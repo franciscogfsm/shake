@@ -17,3 +17,6 @@ contracts/**/test_snapshots/
 # misc
 .DS_Store
 *.log
+
+.vercel
+.env*

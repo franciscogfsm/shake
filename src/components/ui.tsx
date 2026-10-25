@@ -3,11 +3,12 @@ import { motion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./Mark";
+import { NumberTicker } from "./Ticker";
 
 /** Phone-first page shell: safe areas, centred column, top bar with the wordmark. */
-export function Screen({ children, back, right }: { children: React.ReactNode; back?: string; right?: React.ReactNode }) {
+export function Screen({ children, back, right, wide }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean }) {
   return (
-    <main className="pt-safe pb-safe mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5">
+    <main className={`pt-safe pb-safe mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
       <header className="flex h-12 items-center justify-between">
         {back ? (
           <Link href={back} className="-ml-2 grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink" aria-label="Back">
@@ -95,3 +96,25 @@ export function Countdown({ to }: { to: number }) {
   const s = left % 60;
   return <span className="font-mono tabular-nums">{`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`}</span>;
 }
+
+/** The live counter: money held safe by SHAKE right now, read from the contract's events. */
+export function Protected({ className = "justify-center" }: { className?: string }) {
+  const [s, setS] = useState<{ protectedNow: string; deals: number } | null>(null);
+  useEffect(() => {
+    const load = () => fetch("/api/stats").then((r) => (r.ok ? r.json() : null)).then((j) => j && setS(j)).catch(() => {});
+    load();
+    const t = setInterval(load, 15000);
+    return () => clearInterval(t);
+  }, []);
+  if (!s) return <div className="h-[22px]" />;
+  const euros = Number(BigInt(s.protectedNow) / BigInt(10_000_000));
+  return (
+    <div className={`flex items-center gap-2 text-sm text-ink-2 ${className}`}>
+      <span className="pulse-dot" />
+      <span>
+        <NumberTicker value={euros} format={(n) => `€${Math.round(n).toLocaleString("en-IE")}`} className="font-medium text-ink" /> protected right now · {s.deals} deals on Stellar
+      </span>
+    </div>
+  );
+}
+
