@@ -1579,11 +1579,15 @@ function show(i){i=clamp(i,0,slides.length-1);if(i===cur||titling)return;if(cur=
 slides[0].addEventListener("click",()=>go(1));
 let keyboardHold=null;
 addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
- if(e.target.closest?.("video,.film-sound,.film-play"))return;
+ const filmControl=e.target.closest?.("video,.film-sound,.film-play");
+ if((slides[cur]?.dataset.n==="Demo"||filmControl)&&["ArrowRight","ArrowDown","PageDown","ArrowLeft","ArrowUp","PageUp"].includes(k)){
+  e.preventDefault();e.stopPropagation();if(!e.repeat)go(cur+(["ArrowRight","ArrowDown","PageDown"].includes(k)?1:-1));return;
+ }
+ if(filmControl)return;
  if(cur===IX("Product")&&(k===" "||k==="Enter")&&e.target.closest?.(".product-step,.product-control"))return;
  if(cur===DECIDE&&["ArrowRight"," ","Enter"].includes(k)){if(!e.repeat&&!keyboardHold){keyboardHold=k;hstart()}e.preventDefault();return}
  if(e.repeat){e.preventDefault();return}
- if(["ArrowRight","ArrowDown"," ","PageDown"].includes(k))go(cur+1);else if(["ArrowLeft","ArrowUp","PageUp"].includes(k))go(cur-1);else if(k==="Home")go(0);else if(k==="End")go(slides.length-1);else if(k==="f"||k==="F"){document.fullscreenElement?document.exitFullscreen():root.requestFullscreen?.()}else return;e.preventDefault()});
+ if(["ArrowRight","ArrowDown"," ","PageDown"].includes(k))go(cur+1);else if(["ArrowLeft","ArrowUp","PageUp"].includes(k))go(cur-1);else if(k==="Home")go(0);else if(k==="End")go(slides.length-1);else if(k==="f"||k==="F"){document.fullscreenElement?document.exitFullscreen():root.requestFullscreen?.()}else return;e.preventDefault()},{capture:true});
 addEventListener("keyup",e=>{if(e.key===keyboardHold){keyboardHold=null;hstop()}});
 addEventListener("blur",()=>{keyboardHold=null;hstop()});
 document.addEventListener("visibilitychange",()=>{if(document.hidden){keyboardHold=null;hstop()}});
