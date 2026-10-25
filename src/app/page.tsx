@@ -1,11 +1,13 @@
 "use client";
 import Link from "next/link";
-import { AnimatePresence, motion } from "motion/react";
-import { useState } from "react";
+import Image from "next/image";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { HoldToShake } from "@/components/HoldToShake";
 import { LiveReceipt } from "@/components/LiveReceipt";
-import { Mark } from "@/components/Mark";
+import { Mark, springs } from "@/components/Mark";
+import { haptic, sfx } from "@/lib/client/sfx";
 import { Seal } from "@/components/Seal";
 import { Item, Protected, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
 import { usePitchSession, type PitchSession } from "@/lib/client/pitchSession";
@@ -19,6 +21,15 @@ export default function Home() {
   const { session, start, shake, notYet, reset } = usePitchSession();
   const [refunding, setRefunding] = useState(false);
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
+  const phaseRef = useRef(phase);
+  useEffect(() => {
+    const from = phaseRef.current;
+    phaseRef.current = phase;
+    if (from === "working" && phase === "ready") {
+      haptic.success();
+      sfx.confirm();
+    }
+  }, [phase]);
 
   return (
     <Screen
@@ -26,11 +37,11 @@ export default function Home() {
       fit
       right={
         <div className="flex items-center gap-2">
-          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
+          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" onPointerDown={() => haptic.tick()} className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
             <span className="pulse-dot" />
             Live on Stellar testnet
           </a>
-          <Link href="/try" className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>
+          <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>
         </div>
       }
     >
@@ -38,7 +49,7 @@ export default function Home() {
       <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,380px)] lg:items-center lg:gap-14">
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
-        <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
+        <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
           {phase === "idle" && <Hero onStart={start} />}
           {phase === "working" && <Locking step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && (
@@ -58,7 +69,13 @@ export default function Home() {
                   loading={refunding}
                   onClick={async () => {
                     setRefunding(true);
-                    await notYet().finally(() => setRefunding(false));
+                    try {
+                      await notYet();
+                      haptic.success();
+                      sfx.confirm();
+                    } finally {
+                      setRefunding(false);
+                    }
                   }}
                 >
                   Not yet, give it back
@@ -102,11 +119,11 @@ function Hero({ onStart }: { onStart: () => void }) {
           ["They check", "Real money, not a screenshot."],
           ["Shake", "Face to face. Paid in 5s."],
         ].map(([t, d], i) => (
-          <div key={t} className="flex flex-col items-center gap-1.5 lg:items-start">
+          <motion.div key={t} className="flex flex-col items-center gap-1.5 lg:items-start" whileHover={{ y: -3 }} transition={springs.snappy}>
             <span className="step-dot !size-8 font-mono text-xs text-safe">{i + 1}</span>
             <div className="font-display text-[15px] font-medium lg:text-lg">{t}</div>
             <p className="text-[12px] leading-snug text-ink-2 lg:text-sm">{d}</p>
-          </div>
+          </motion.div>
         ))}
       </Item>
     </Stagger>
@@ -114,12 +131,22 @@ function Hero({ onStart }: { onStart: () => void }) {
 }
 
 function Locking({ step, error }: { step: string; error?: string }) {
+  const reduce = useReducedMotion();
+  const prev = useRef(step);
+  useEffect(() => {
+    if (prev.current === step) return;
+    prev.current = step;
+    haptic.tap();
+    sfx.tick();
+  }, [step]);
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-4">
-      <Mark size={96} state="rest" />
+      <motion.div animate={reduce ? undefined : { scale: [1, 1.035, 1] }} transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}>
+        <Mark size={88} state="open" />
+      </motion.div>
       <div className="text-center">
         <div className="eyebrow">Locking for the seller</div>
-        <div className="amount mt-3 text-[64px]">€5</div>
+        <motion.div className="amount mt-3 text-[64px]" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>€5</motion.div>
       </div>
       <div className="glass w-full p-6">
         <Steps
@@ -174,6 +201,7 @@ function LivePanel({ session }: { session: PitchSession }) {
   const released = session.outcome === "released";
   const refunded = session.outcome === "refunded";
   const next = !session.wallet ? "w" : !session.locked ? "l" : !session.joined ? "j" : !session.settled ? "s" : null;
+  const title = session.status === "idle" ? "Watch it happen" : released ? "Paid. Proof below." : refunded ? "Back to you." : "Happening right now";
   return (
     <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.2 }}>
     <div className="halo" aria-hidden />
@@ -182,7 +210,13 @@ function LivePanel({ session }: { session: PitchSession }) {
         <Mark size={40} state={released ? "shut" : session.locked ? "rest" : "open"} />
         <div className="min-w-0">
           <div className="eyebrow">Under the hood · live</div>
-          <div className="truncate font-display text-[17px] font-medium">{session.status === "idle" ? "Watch it happen" : released ? "Paid. Proof below." : refunded ? "Back to you." : "Happening right now"}</div>
+          <div className="relative h-6 overflow-hidden">
+            <AnimatePresence mode="wait" initial={false}>
+              <motion.div key={title} className="truncate font-display text-[17px] font-medium" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy}>
+                {title}
+              </motion.div>
+            </AnimatePresence>
+          </div>
         </div>
       </div>
       <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">~5 seconds · €0 fees · no sign-up</p>
@@ -209,35 +243,43 @@ function LivePanel({ session }: { session: PitchSession }) {
   );
 }
 
-const PARTS: { chip: string; title: string; body: string; href?: string }[] = [
-  { chip: "Soroban", title: "Hash-lock", body: "Pays only with the secret inside the seller's one-time QR.", href: explorer.contract(DEAL_CONTRACT_ID) },
-  { chip: "Passkey", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
-  { chip: "Channels", title: "Zero fees", body: "Channels pays every network fee. Nobody needs XLM.", href: "https://docs.openzeppelin.com/relayer" },
-  { chip: "tEUR", title: "Stable money", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
-  { chip: "SEP-24", title: "To the bank", body: "The seller cashes out to an IBAN through an anchor.", href: "/.well-known/stellar.toml" },
-  { chip: "Preview", title: "Proof", body: "Shared links show the locked money, read from the chain.", href: "/try" },
+const PARTS: { chip: string; icon: string; title: string; body: string; href?: string }[] = [
+  { chip: "Soroban", icon: "stellar", title: "Stellar smart contracts", body: "Pays only with the secret inside the seller's one-time QR.", href: explorer.contract(DEAL_CONTRACT_ID) },
+  { chip: "Passkey", icon: "passkey", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
+  { chip: "OpenZeppelin", icon: "openzeppelin", title: "Sponsored fees", body: "Channels sponsors network fees, with SHAKE's own pool as a fallback.", href: "https://docs.openzeppelin.com/relayer" },
+  { chip: "Test assets", icon: "token", title: "Four test currencies", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
+  { chip: "SEP-24", icon: "anchor", title: "Testnet cash-out", body: "A real testnet transfer to an anchor, with a simulated bank payout.", href: "/.well-known/stellar.toml" },
+  { chip: "Receipts", icon: "proof", title: "On-chain proof", body: "Shared links show the locked money, read from the chain.", href: "/try" },
 ];
 
 /** One quiet row. Each piece still opens its proof. */
 function Composed() {
   return (
-    <footer className="mt-auto flex shrink-0 items-center gap-4 pt-3">
-      <h2 className="eyebrow hidden shrink-0 lg:block">Composed on Stellar</h2>
-      <nav aria-label="Composed on Stellar" className="-mx-5 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-5 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
-        {PARTS.map((p) => (
-          <a
+    <footer className="mt-auto flex shrink-0 flex-col gap-3 border-t border-white/[0.06] pt-4 lg:flex-row lg:items-center lg:gap-5">
+      <h2 className="eyebrow shrink-0 text-[9px] lg:max-w-[100px] lg:leading-relaxed">Composed on Stellar</h2>
+      <nav aria-label="Composed on Stellar" className="flex min-w-0 flex-wrap gap-2 lg:flex-1 lg:gap-1.5">
+        {PARTS.map((p, i) => (
+          <motion.a
             key={p.chip}
             href={p.href}
             title={`${p.title}. ${p.body}`}
             target={p.href?.startsWith("http") ? "_blank" : undefined}
             rel="noreferrer"
-            className="shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-mute hover:bg-white/5 hover:text-ink"
+            className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] py-1.5 pl-2 pr-3 font-mono text-[9px] uppercase tracking-[0.08em] text-ink-2 transition-colors hover:border-safe/30 hover:bg-safe/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-safe lg:text-[10px]"
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ ...springs.snappy, delay: 0.12 + i * 0.04 }}
+            whileTap={{ scale: 0.92 }}
+            onPointerDown={() => haptic.tick()}
           >
+            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-safe/[0.06] transition-colors group-hover:bg-safe/[0.12]">
+              <Image src={`/integrations/${p.icon}.svg`} alt="" width={16} height={16} unoptimized />
+            </span>
             {p.chip}
-          </a>
+          </motion.a>
         ))}
       </nav>
-      <TestnetNote className="hidden shrink-0 lg:block" />
+      <TestnetNote className="hidden shrink-0 xl:block" />
     </footer>
   );
 }

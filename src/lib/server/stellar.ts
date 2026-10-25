@@ -195,7 +195,8 @@ export async function submitAnchorPayment(signedXdr: string, userPk: string) {
 
 /* ---------------- contract calls ---------------- */
 
-export type DealFn = "lock" | "accept" | "release" | "refund";
+export const DEAL_FNS = ["lock", "lock_ship", "accept", "release", "refund", "mark_shipped", "mark_delivered", "dispute", "claim"] as const;
+export type DealFn = (typeof DEAL_FNS)[number];
 
 export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
   const addr = (v: string) => nativeToScVal(Address.fromString(v), { type: "address" });
@@ -206,10 +207,23 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
   };
   switch (fn) {
     case "lock":
+    case "lock_ship": {
       if (!Object.values(CURRENCIES).some((c) => c.token === a.token)) throw new UserError("Unsupported currency");
       const memo = (a.memo ?? "").trim();
       if (Buffer.byteLength(memo) > 64) throw new UserError("Keep the item name under 64 characters");
-      return [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
+      const base = [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
+      // ship mode: SHAKE's resolver can only split a disputed deal between buyer and seller
+      return fn === "lock" ? base : [...base, addr(TEAM_ADDRESS)];
+    }
+    case "mark_shipped": {
+      const tracking = (a.tracking ?? "").trim();
+      if (Buffer.byteLength(tracking) > 64) throw new UserError("Keep the tracking number under 64 characters");
+      return [u64(a.dealId), nativeToScVal(tracking, { type: "string" })];
+    }
+    case "mark_delivered":
+    case "dispute":
+    case "claim":
+      return [u64(a.dealId)];
     case "accept":
       if (a.hash?.length !== 64) throw new UserError("Bad hash");
       return [u64(a.dealId), addr(a.seller), hex(a.hash)];
@@ -267,7 +281,7 @@ function allowed(hf: xdr.HostFunction) {
   if (kind === "hostFunctionTypeInvokeContract") {
     const target = Address.fromScAddress(hf.invokeContract().contractAddress()).toString();
     const name = hf.invokeContract().functionName().toString();
-    return target === DEAL_CONTRACT_ID && ["lock", "accept", "release", "refund"].includes(name);
+    return target === DEAL_CONTRACT_ID && (DEAL_FNS as readonly string[]).includes(name);
   }
   if (kind === "hostFunctionTypeCreateContractV2") {
     const exec = hf.createContractV2().executable();
@@ -328,7 +342,12 @@ const CONTRACT_ERRORS: Record<number, string> = {
   8: "This deal has expired.",
   9: "This deal belongs to another seller.",
   10: "You can't sell to yourself.",
-  11: "Keep the item name under 64 characters."
+  11: "Keep the item name under 64 characters.",
+  12: "That only works for shipped deals.",
+  13: "That step isn't available right now.",
+  14: "The 3 days after delivery aren't over yet.",
+  15: "The 3 days to open a problem are over.",
+  16: "That split doesn't add up."
 };
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
@@ -361,10 +380,13 @@ export type DealView = {
   seller: string | null;
   amount: string;
   expiry: number;
-  status: "Locked" | "Accepted" | "Released" | "Refunded";
+  status: "Locked" | "Accepted" | "Released" | "Refunded" | "Shipped" | "Delivered" | "Disputed" | "Resolved";
   hash: string | null;
   memo: string;
   token: string;
+  mode: "Meet" | "Ship";
+  tracking: string;
+  releaseAfter: number;
 };
 
 export async function readDeal(dealId: string): Promise<DealView | null> {
@@ -388,6 +410,9 @@ export async function readDeal(dealId: string): Promise<DealView | null> {
     hash: d.hash ? Buffer.from(d.hash).toString("hex") : null,
     memo: String(d.memo ?? ""),
     token: String(d.token),
+    mode: (Array.isArray(d.mode) ? d.mode[0] : d.mode) ?? "Meet",
+    tracking: String(d.tracking ?? ""),
+    releaseAfter: Number(d.release_after ?? 0),
   };
 }
 

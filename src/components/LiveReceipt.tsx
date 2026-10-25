@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "motion/react";
+import { springs } from "./Mark";
 import { useEffect, useState } from "react";
 import { explorer } from "@/lib/config";
 import { shortHash } from "./Ticker";
@@ -55,7 +56,13 @@ export function LiveReceipt({ items, delay = 0, stagger = 0.35, dense = false }:
             {it.pending ? (
               <span className={`size-2 rounded-full border ${it.active ? "animate-pulse border-safe" : "border-white/25"}`} />
             ) : (
-              <span className="size-2.5 rounded-full" style={{ background: it.tone === "mute" ? "var(--ink-2)" : "var(--safe)", boxShadow: it.tone === "mute" ? "none" : "0 0 10px var(--safe)" }} />
+              <motion.span
+                className="size-2.5 rounded-full"
+                initial={{ scale: 0.2 }}
+                animate={{ scale: 1 }}
+                transition={springs.slam}
+                style={{ background: it.tone === "mute" ? "var(--ink-2)" : "var(--safe)", boxShadow: it.tone === "mute" ? "none" : "0 0 10px var(--safe)" }}
+              />
             )}
           </span>
           <div className="min-w-0">

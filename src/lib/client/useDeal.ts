@@ -7,12 +7,15 @@ export type Deal = {
   seller: string | null;
   amount: string;
   expiry: number;
-  status: "Locked" | "Accepted" | "Released" | "Refunded";
+  status: "Locked" | "Accepted" | "Released" | "Refunded" | "Shipped" | "Delivered" | "Disputed" | "Resolved";
   hash: string | null;
   memo: string;
   token: string;
+  mode: "Meet" | "Ship";
+  tracking: string;
+  releaseAfter: number;
 };
-export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded"; txHash: string; at: string; ledger: number };
+export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; txHash: string; at: string; ledger: number };
 
 /** Live deal state from the chain, polled every 2s while open (the seller sees the shake within seconds). */
 export function useDeal(id: string | null, { interval = 2000 } = {}) {

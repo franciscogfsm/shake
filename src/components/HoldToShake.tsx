@@ -1,7 +1,8 @@
 "use client";
-import { animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
+import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion, useTransform } from "motion/react";
 import { useEffect, useId, useRef, useState } from "react";
-import { Mark } from "./Mark";
+import { haptic, sfx } from "@/lib/client/sfx";
+import { Mark, springs } from "./Mark";
 import { ShakeBurst } from "./ShakeBurst";
 
 const HOLD_MS = 1400;
@@ -31,59 +32,57 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
   const reduce = useReducedMotion();
   const [phase, setPhase] = useState<"idle" | "holding" | "sending" | "done">("idle");
   const anim = useRef<ReturnType<typeof animate> | null>(null);
-  const tone = useRef<{ ctx: AudioContext; osc: OscillatorNode; gain: GainNode } | null>(null);
-  const [muted] = useState(true);
+  const stopRise = useRef<(() => void) | null>(null);
+  const phaseRef = useRef(phase);
+  phaseRef.current = phase;
 
   const stopTone = () => {
-    const t = tone.current;
-    if (!t) return;
-    t.gain.gain.setTargetAtTime(0, t.ctx.currentTime, 0.05);
-    t.osc.stop(t.ctx.currentTime + 0.2);
-    tone.current = null;
+    stopRise.current?.();
+    stopRise.current = null;
   };
 
   const start = () => {
-    if (disabled || phase === "sending" || phase === "done") return;
+    if (disabled || phaseRef.current === "sending" || phaseRef.current === "done" || phaseRef.current === "holding") return;
+    phaseRef.current = "holding";
     setPhase("holding");
-    if (!muted) {
-      try {
-        const ctx = new AudioContext();
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.frequency.setValueAtTime(180, ctx.currentTime);
-        osc.frequency.linearRampToValueAtTime(420, ctx.currentTime + HOLD_MS / 1000);
-        gain.gain.setValueAtTime(0.0001, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.05, ctx.currentTime + 0.2);
-        osc.connect(gain).connect(ctx.destination);
-        osc.start();
-        tone.current = { ctx, osc, gain };
-      } catch {}
-    }
+    haptic.press();
+    stopTone();
+    if (!reduce) stopRise.current = sfx.rise(HOLD_MS);
     anim.current = animate(progress, 1, {
       duration: ((1 - progress.get()) * HOLD_MS) / 1000,
-      ease: [0.45, 0, 0.75, 1],
+      ease: [0.4, 0, 0.85, 0.4],
       onComplete: complete,
     });
   };
 
   const cancel = () => {
-    if (phase !== "holding") return;
+    if (phaseRef.current !== "holding") return;
+    phaseRef.current = "idle";
     anim.current?.stop();
     stopTone();
+    haptic.release();
+    if (!reduce) sfx.release();
     setPhase("idle");
     animate(progress, 0, { type: "spring", stiffness: 400, damping: 28 });
   };
 
   const complete = async () => {
+    if (phaseRef.current === "sending" || phaseRef.current === "done") return;
+    phaseRef.current = "sending";
     stopTone();
     setPhase("sending");
-    navigator.vibrate?.(30);
+    haptic.slam();
+    sfx.slam();
     try {
       await onShake();
+      phaseRef.current = "done";
       setPhase("done");
-      navigator.vibrate?.([20, 40, 60]);
+      haptic.success();
+      sfx.confirm();
     } catch {
+      phaseRef.current = "idle";
       setPhase("idle");
+      haptic.release();
       animate(progress, 0, { type: "spring", stiffness: 300, damping: 24 });
     }
   };
@@ -91,15 +90,37 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
   useEffect(() => () => stopTone(), []);
 
   useEffect(() => {
+    let bucket = 0;
+    const off = progress.on("change", (v) => {
+      if (v >= 0.98 || phaseRef.current !== "holding") {
+        if (v < 0.2) bucket = 0;
+        return;
+      }
+      const next = Math.floor(v * 7);
+      if (next > bucket) {
+        bucket = next;
+        if (next > 0) {
+          haptic.tick();
+          if (!reduce) sfx.tick();
+        }
+      } else if (next < bucket) bucket = next;
+    });
+    return () => off();
+  }, [progress, reduce]);
+
+  useEffect(() => {
     if (!trigger || disabled || phase === "sending" || phase === "done") return;
     anim.current?.stop();
+    phaseRef.current = "holding";
     setPhase("holding");
     anim.current = animate(progress, 1, { duration: 0.22, ease: "easeIn", onComplete: complete });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [trigger]);
 
   const done = phase === "done";
+  const slammed = phase === "sending" || done;
   const ring = size + 44;
+  const caption = phase === "sending" ? "Releasing…" : done ? "Shaken." : phase === "holding" ? "Keep holding" : label;
   return (
     <div className="flex flex-col items-center gap-4">
       {/* the ring lives outside the glass button: .glass forces its children to position: relative */}
@@ -143,7 +164,7 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
             style={{ strokeDashoffset: offset, filter: "drop-shadow(0 0 2px rgba(143,211,255,.9))" }}
           />
         </svg>
-        <ShakeBurst fire={done} size={ring} />
+        <ShakeBurst fire={slammed} size={ring} />
         <motion.button
           type="button"
           aria-label={label}
@@ -161,8 +182,12 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
           onContextMenu={(e) => e.preventDefault()}
           className="glass grid select-none place-items-center rounded-full disabled:opacity-50"
           style={{ width: size, height: size, touchAction: "none", WebkitUserSelect: "none", WebkitTouchCallout: "none" }}
-          animate={phase === "sending" && !reduce ? { x: [0, -3, 3, -2, 2, 0] } : { x: 0, scale: phase === "holding" ? 0.96 : 1 }}
-          transition={{ duration: 0.35 }}
+          animate={
+            phase === "sending" && !reduce
+              ? { x: [0, -5, 5, -3, 3, -1, 0], scale: [0.94, 1.06, 0.98, 1] }
+              : { x: 0, scale: phase === "holding" ? 0.95 : 1 }
+          }
+          transition={phase === "sending" ? { duration: 0.42, ease: [0.2, 0.8, 0.2, 1] } : springs.snappy}
         >
           <span
             className="grid place-items-center rounded-full"
@@ -173,13 +198,24 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
               boxShadow: "inset 0 2px 10px rgba(0,0,0,.55), inset 0 -1px 0 rgba(255,255,255,.08), 0 1px 0 rgba(255,255,255,.06)",
             }}
           >
-            <Mark size={size * 0.42} state={done ? "shut" : "rest"} tension={done ? undefined : progress} />
+            <Mark size={size * 0.42} state={slammed ? "shut" : "rest"} tension={slammed ? undefined : progress} />
           </span>
         </motion.button>
       </div>
       <div className="text-center" aria-live="polite">
-        <div className="font-display text-xl font-medium tracking-[-0.02em]">
-          {phase === "sending" ? "Releasing…" : done ? "Shaken." : phase === "holding" ? "Keep holding…" : label}
+        <div className="relative h-7 overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={caption}
+              className="font-display text-xl font-medium tracking-[-0.02em]"
+              initial={reduce ? { opacity: 0 } : { opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={reduce ? { opacity: 0 } : { opacity: 0, y: -8 }}
+              transition={springs.snappy}
+            >
+              {caption}
+            </motion.div>
+          </AnimatePresence>
         </div>
         {hint && (
           <div id="hold-hint" className="eyebrow mt-1.5">

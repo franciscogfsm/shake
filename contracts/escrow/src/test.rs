@@ -187,3 +187,115 @@ fn item_memo_is_stored_and_bounded() {
     let long = soroban_sdk::String::from_str(&s.env, &"x".repeat(65));
     assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &(DEAL + 1), &s.expiry, &long), Err(Ok(err(Error::MemoTooLong))));
 }
+
+/* ---------------- ship mode: the shake travels in the box ---------------- */
+
+fn ship_and_accept(s: &Setup) -> Address {
+    let resolver = Address::generate(&s.env);
+    s.client.lock_ship(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &resolver);
+    s.client.accept(&DEAL, &s.seller, &hash_of(&s.env, &secret(&s.env)));
+    resolver
+}
+
+fn tracking(env: &Env) -> soroban_sdk::String {
+    soroban_sdk::String::from_str(env, "CTT RR123456789PT")
+}
+
+#[test]
+fn ship_buyer_scans_the_qr_in_the_box() {
+    let s = setup();
+    ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    assert_eq!(last_signer(&s.env), s.seller);
+    let deal = s.client.get(&DEAL);
+    assert_eq!((deal.status, deal.mode, deal.tracking), (Status::Shipped, Mode::Ship, tracking(&s.env)));
+    s.client.release(&DEAL, &secret(&s.env));
+    assert_eq!(last_signer(&s.env), s.buyer);
+    assert_eq!(s.token.balance(&s.seller), AMOUNT);
+}
+
+#[test]
+fn ship_once_shipped_buyer_cannot_pull_the_money_even_after_expiry() {
+    let s = setup();
+    ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    s.env.ledger().set_timestamp(s.expiry + 1);
+    assert_eq!(s.client.try_refund(&DEAL), Err(Ok(err(Error::NotOpen))));
+    assert_eq!(s.token.balance(&s.contract), AMOUNT);
+}
+
+#[test]
+fn ship_silent_buyer_releases_to_seller_three_days_after_delivery() {
+    let s = setup();
+    ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    s.client.mark_delivered(&DEAL);
+    let after = s.client.get(&DEAL).release_after;
+    assert_eq!(after, 1_000 + GRACE_SECS);
+    s.env.ledger().set_timestamp(after - 1);
+    assert_eq!(s.client.try_claim(&DEAL), Err(Ok(err(Error::TooEarly))));
+    s.env.ledger().set_timestamp(after);
+    s.client.claim(&DEAL);
+    assert!(s.env.auths().is_empty(), "anyone can trigger the auto-release");
+    assert_eq!(s.token.balance(&s.seller), AMOUNT);
+    assert_eq!(s.client.get(&DEAL).status, Status::Released);
+}
+
+#[test]
+fn ship_dispute_freezes_and_resolver_can_only_split() {
+    let s = setup();
+    let resolver = ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    s.client.mark_delivered(&DEAL);
+    s.client.dispute(&DEAL);
+    assert_eq!(last_signer(&s.env), s.buyer);
+    s.env.ledger().set_timestamp(1_000 + GRACE_SECS + 1);
+    assert_eq!(s.client.try_claim(&DEAL), Err(Ok(err(Error::WrongStage))));
+    assert_eq!(s.client.try_release(&DEAL, &secret(&s.env)), Err(Ok(err(Error::NotOpen))));
+    assert_eq!(s.client.try_resolve(&DEAL, &(AMOUNT + 1)), Err(Ok(err(Error::BadSplit))));
+    assert_eq!(s.client.try_resolve(&DEAL, &-1), Err(Ok(err(Error::BadSplit))));
+    s.client.resolve(&DEAL, &(AMOUNT / 5));
+    assert_eq!(last_signer(&s.env), resolver);
+    assert_eq!(s.token.balance(&s.buyer), AMOUNT / 5);
+    assert_eq!(s.token.balance(&s.seller), AMOUNT - AMOUNT / 5);
+    assert_eq!(s.token.balance(&resolver), 0);
+    assert_eq!(s.client.get(&DEAL).status, Status::Resolved);
+}
+
+#[test]
+fn ship_dispute_window_closes_after_three_days() {
+    let s = setup();
+    ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    s.client.mark_delivered(&DEAL);
+    s.env.ledger().set_timestamp(1_000 + GRACE_SECS);
+    assert_eq!(s.client.try_dispute(&DEAL), Err(Ok(err(Error::TooLate))));
+}
+
+#[test]
+fn ship_steps_only_in_order_and_only_in_ship_mode() {
+    let s = setup();
+    lock_and_accept(&s);
+    assert_eq!(s.client.try_mark_shipped(&DEAL, &tracking(&s.env)), Err(Ok(err(Error::NotShipMode))));
+    assert_eq!(s.client.try_dispute(&DEAL), Err(Ok(err(Error::NotShipMode))));
+    let t = setup();
+    let resolver = Address::generate(&t.env);
+    t.client.lock_ship(&t.buyer, &t.token.address, &AMOUNT, &DEAL, &t.expiry, &memo(&t.env), &resolver);
+    assert_eq!(t.client.try_mark_shipped(&DEAL, &tracking(&t.env)), Err(Ok(err(Error::NotAccepted))));
+    let h = hash_of(&t.env, &secret(&t.env));
+    assert_eq!(t.client.try_accept(&DEAL, &resolver, &h), Err(Ok(err(Error::SellerIsBuyer))));
+    t.client.accept(&DEAL, &t.seller, &h);
+    assert_eq!(t.client.try_mark_delivered(&DEAL), Err(Ok(err(Error::WrongStage))));
+    assert_eq!(t.client.try_dispute(&DEAL), Err(Ok(err(Error::WrongStage))));
+    assert_eq!(t.client.try_resolve(&DEAL, &0), Err(Ok(err(Error::WrongStage))));
+}
+
+#[test]
+fn ship_buyer_can_still_withdraw_before_the_seller_ships() {
+    let s = setup();
+    let resolver = Address::generate(&s.env);
+    assert_eq!(s.client.try_lock_ship(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &s.buyer), Err(Ok(err(Error::NotAllowed))));
+    s.client.lock_ship(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &resolver);
+    s.client.refund(&DEAL);
+    assert_eq!(s.token.balance(&s.buyer), AMOUNT);
+}

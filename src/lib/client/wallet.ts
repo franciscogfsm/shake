@@ -59,7 +59,7 @@ export type CallStep = "preparing" | "signing" | "confirming";
 /** Prepare → sign only our own authorizations (key or Face ID) → OpenZeppelin Channels submits and pays the fee. */
 export async function callDeal(
   kp: Keypair,
-  fn: "lock" | "accept" | "release" | "refund",
+  fn: "lock" | "lock_ship" | "accept" | "release" | "refund" | "mark_shipped" | "mark_delivered" | "dispute" | "claim",
   args: Record<string, string>,
   onStep?: (s: CallStep) => void,
 ) {

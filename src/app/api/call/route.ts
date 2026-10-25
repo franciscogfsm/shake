@@ -1,9 +1,8 @@
 import { NextResponse } from "next/server";
-import { UserError, dealArgs, prepareCall, submitCall, type DealFn } from "@/lib/server/stellar";
+import { DEAL_FNS, UserError, dealArgs, prepareCall, submitCall } from "@/lib/server/stellar";
 import { errorResponse } from "@/lib/server/http";
 
 export const runtime = "nodejs";
-const FNS: DealFn[] = ["lock", "accept", "release", "refund"];
 
 // prepare: simulate a deal call and return the auth entries the user must sign
 // submit:  hand func + signed auth to OpenZeppelin Channels, which pays the fee
@@ -11,7 +10,7 @@ export async function POST(req: Request) {
   try {
     const body = await req.json();
     if (body?.action === "prepare") {
-      if (!FNS.includes(body.fn)) throw new UserError("Unknown action");
+      if (!DEAL_FNS.includes(body.fn)) throw new UserError("Unknown action");
       const args = dealArgs(body.fn, body.args ?? {});
       return NextResponse.json(await prepareCall(body.fn, args));
     }

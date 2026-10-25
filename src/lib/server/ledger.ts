@@ -8,7 +8,7 @@ import { server } from "./stellar";
  * powers the live "€ protected" counter and on-chain reputation.
  * RPC returns a bounded ledger range per call, so we walk the window in chunks and cache briefly.
  */
-export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded"; dealId: string; who: string; amount: bigint; at: string; ledger: number; txHash: string };
+export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; dealId: string; who: string; amount: bigint; at: string; ledger: number; txHash: string };
 
 const LOOKBACK_LEDGERS = 3 * 17_280; // ~3 days
 const CHUNK = 9_000;
@@ -61,8 +61,8 @@ export async function allEvents(maxAgeMs = 10_000) {
 
 export async function stats() {
   const ev = await allEvents();
-  const closed = new Map<string, "released" | "refunded">();
-  for (const e of ev) if (e.type === "released" || e.type === "refunded") closed.set(e.dealId, e.type);
+  const closed = new Map<string, "released" | "refunded" | "resolved">();
+  for (const e of ev) if (e.type === "released" || e.type === "refunded" || e.type === "resolved") closed.set(e.dealId, e.type);
   let lockedTotal = 0n;
   let protectedNow = 0n;
   let deals = 0;

@@ -6,6 +6,8 @@
 
 Built for HackMeridian 2026 · Genesis · Stellar Composed
 
+![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
+
 [Live demo](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
@@ -97,6 +99,8 @@ Use separate browser profiles because wallets are stored on each device. For pho
 **Stellar components serve one user journey.** Soroban controls settlement, Stellar Asset Contracts carry test currencies, passkeys authorize smart accounts, sponsorship removes manual network funding, and an anchor flow demonstrates withdrawal.
 
 ## Architecture
+
+The integration artwork uses the [Stellar](https://github.com/simple-icons/simple-icons/blob/develop/icons/stellar.svg) and [OpenZeppelin](https://github.com/simple-icons/simple-icons/blob/develop/icons/openzeppelin.svg) brand marks from Simple Icons. Passkeys, test assets, SEP-24, and receipts use custom capability icons.
 
 ```mermaid
 flowchart TD
