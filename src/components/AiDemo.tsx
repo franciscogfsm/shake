@@ -23,32 +23,26 @@ export function AiDemo() {
   const shown = LINES.slice(0, reduce ? LINES.length : n);
   const refused = shown.length === LINES.length;
   return (
-    <div className="relative mt-3 h-[116px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)] sm:mt-4 sm:h-[148px]" aria-hidden>
-      <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end gap-1.5">
-        <AnimatePresence mode="popLayout">
-          {shown.map((line, i) => (
-            <motion.div
-              key={line.text}
-              layout
-              initial={{ opacity: 0, y: 12 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              transition={springs.snappy}
-              className={`max-w-[92%] rounded-2xl px-3 py-1.5 text-[13px] leading-snug sm:text-[14px] ${line.you ? "ml-auto rounded-br-md bg-white/8 text-ink" : "rounded-bl-md bg-white/5 text-ink-2"} ${!line.you && i === 3 ? "ring-1 ring-safe/40" : ""}`}
-            >
-              {!line.you && <span className="text-safe">SHAKE · </span>}
-              {line.text}
-            </motion.div>
-          ))}
-        </AnimatePresence>
-        <AnimatePresence>
-          {refused && (
-            <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 pt-0.5 text-[12px] text-safe">
-              <Mark size={18} state="rest" />
-              Still locked. It never had the money.
-            </motion.div>
-          )}
-        </AnimatePresence>
+    <div className="mt-4 flex min-h-[248px] flex-col justify-end gap-2 lg:mt-8 lg:min-h-[300px] lg:max-w-[640px] lg:gap-3" aria-hidden>
+      <AnimatePresence mode="popLayout">
+        {shown.map((line, i) => (
+          <motion.div
+            key={line.text}
+            layout
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={springs.snappy}
+            className={`max-w-[92%] rounded-2xl px-3.5 py-2 text-[14px] leading-snug lg:px-4 lg:py-2.5 lg:text-[16px] ${line.you ? "ml-auto rounded-br-md bg-white/12 text-ink" : "rounded-bl-md bg-white/8 text-ink-2"} ${!line.you && i === 3 ? "ring-1 ring-safe/50" : ""}`}
+          >
+            {!line.you && <span className="text-safe">SHAKE · </span>}
+            {line.text}
+          </motion.div>
+        ))}
+      </AnimatePresence>
+      <div className={`flex h-6 items-center gap-2 text-[13px] text-safe lg:text-[15px] ${refused ? "opacity-100" : "opacity-0"}`}>
+        <Mark size={18} state="rest" />
+        Still locked. It never had the money.
       </div>
     </div>
   );

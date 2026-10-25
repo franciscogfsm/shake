@@ -1,12 +1,12 @@
 "use client";
-import { AnimatePresence, motion, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
+import { AnimatePresence, animate, motion, useMotionValue, useMotionValueEvent, useReducedMotion, useScroll, useTransform, type MotionValue } from "motion/react";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LEFT, RIGHT, springs } from "@/components/Mark";
 import { haptic } from "@/lib/client/sfx";
 
 type MV = MotionValue<number>;
-type Case = { id: string; tag: "Works today" | "Coming next"; where: string; title: string; sub: string; steps: [string, string, string] };
+type Case = { id: string; tag: "Works today" | "Coming next"; where: string; title: string; sub: string; steps: [string, string, string]; beats: [string, string, string] };
 
 // Amounts are illustrative examples, not data.
 const CASES: Case[] = [
@@ -14,40 +14,56 @@ const CASES: Case[] = [
     id: "car", tag: "Works today", where: "Buying a car on OLX",
     title: "He drives out knowing the money is real.",
     sub: "No envelope of cash. No transfer screenshot. The car is paid the moment the keys are in your hand.",
+    beats: ["You lock the money", "He sees it’s real, so he drives", "Keys for a scan · paid"],
     steps: ["You lock €8,500 before he leaves home.", "His phone shows it: real, locked for him.", "Keys in hand, you scan his QR. Paid in 5 seconds."],
   },
   {
     id: "flat", tag: "Works today", where: "Renting a flat",
     title: "No keys, no deposit.",
     sub: "Fake landlords collect deposits for flats they don't own. Yours waits until you're standing inside.",
+    beats: ["You lock the deposit", "Screenshots don’t count. This does.", "Keys in hand · paid"],
     steps: ["You lock the €1,200 deposit.", "The landlord sees it's real, not a screenshot.", "At the flat, keys in hand, you scan. No flat? It comes back."],
   },
   {
     id: "parcel", tag: "Works today", where: "Selling on Vinted, shipped",
     title: "The QR travels in the box.",
     sub: "You ship knowing the money is locked. They pay only once the parcel is in their hands.",
+    beats: ["Buyer locks the money", "The QR goes in the box", "Box opened, QR scanned · paid"],
     steps: ["The buyer locks €45 before you ship.", "You put the one-time QR inside the box.", "They open it and scan. You're paid."],
   },
   {
     id: "night", tag: "Coming next", where: "Paying the crew for one night",
     title: "Everyone who shows up gets paid.",
     sub: "Lock the night's pay up front. Each person checks in at the door with their QR. At close, everyone who came is paid at once.",
+    beats: ["You lock everyone’s pay", "They check in at the door", "Close: paid, no-show refunded"],
     steps: ["You lock €120 for each of six people.", "Each one checks in at the door with their QR.", "At close, everyone who came is paid. No-shows come back to you."],
   },
 ];
 const N = CASES.length;
 
-/** Scroll-pinned story: the page stays still while each use case plays out. The scroll is the timeline, like scrubbing a film. */
+/** Scroll-pinned story: the page stays still, scrolling picks the use case, and each one plays itself like a short film. */
 export function UseCases() {
   const ref = useRef<HTMLElement>(null);
   const reduce = useReducedMotion();
   const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end end"] });
-  const [pos, setPos] = useState(0);
+  const [idx, setIdx] = useState(0);
   useMotionValueEvent(scrollYProgress, "change", (p) => {
-    const next = Math.min(N * 3 - 1, Math.max(0, Math.floor(p * N * 3)));
-    if (next !== pos) { if (Math.floor(next / 3) !== Math.floor(pos / 3)) haptic.tick(); setPos(next); }
+    const next = Math.min(N - 1, Math.max(0, Math.floor(p * N)));
+    if (next !== idx) { haptic.tick(); setIdx(next); }
   });
-  const idx = Math.floor(pos / 3), step = pos % 3, c = CASES[idx];
+  // the film's own clock: plays through, holds on the payoff, replays
+  const lp = useMotionValue(0);
+  const [step, setStep] = useState(0);
+  useMotionValueEvent(lp, "change", (v) => { const s = v < 0.24 ? 0 : v < 0.64 ? 1 : 2; if (s !== step) setStep(s); });
+  useEffect(() => {
+    if (reduce) { lp.set(1); return; }
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    let ctl: ReturnType<typeof animate> | undefined;
+    const play = () => { lp.set(0); ctl = animate(lp, 1, { duration: 12, ease: "linear", onComplete: () => { timer = setTimeout(play, 2800); } }); };
+    play();
+    return () => { ctl?.stop(); clearTimeout(timer); };
+  }, [idx, reduce, lp]);
+  const c = CASES[idx];
   const hint = useTransform(scrollYProgress, [0, 0.04], [1, 0]);
   const t = reduce ? { duration: 0 } : springs.smooth;
 
@@ -59,10 +75,10 @@ export function UseCases() {
   };
 
   return (
-    <section ref={ref} style={{ height: `${(N + 1) * 130}svh` }} className="relative" aria-label="Use cases">
+    <section ref={ref} style={{ height: `${N * 90 + 100}svh` }} className="relative" aria-label="Use cases">
       <div className="sticky top-0 flex h-svh flex-col justify-center gap-4 py-4 lg:gap-10">
         <nav className="grid grid-cols-4 gap-2" aria-label="Choose a use case">
-          {CASES.map((x, i) => <Segment key={x.id} i={i} p={scrollYProgress} label={x.where} active={i === idx} onClick={() => jump(i)} />)}
+          {CASES.map((x, i) => <Segment key={x.id} fill={i === idx ? lp : i < idx ? 1 : 0} label={x.where} active={i === idx} onClick={() => jump(i)} />)}
         </nav>
 
         <div className="grid items-center gap-5 lg:grid-cols-[minmax(0,1fr)_520px] lg:gap-14">
@@ -85,23 +101,33 @@ export function UseCases() {
             </motion.div>
           </AnimatePresence>
 
-          <div className="glass relative aspect-[10/7] w-full overflow-hidden" aria-hidden>
-            <AnimatePresence mode="wait" initial={false}>
-              <motion.div key={c.id} className="absolute inset-0" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.03 }} transition={t}>
-                <Film i={idx} p={scrollYProgress} />
-              </motion.div>
-            </AnimatePresence>
+          <div className="flex flex-col items-center gap-3">
+            {/* what's happening right now, in words, so the film reads without the text beside it */}
+            <div className="flex h-8 justify-center" aria-live="polite">
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={`${c.id}${step}`} initial={{ opacity: 0, y: -8, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: 6 }} transition={t}
+                  className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 py-1 pl-1 pr-3.5 text-[13px] text-ink">
+                  <span className="grid size-6 place-items-center rounded-full bg-safe font-mono text-[11px] text-on-safe">{step + 1}</span>{c.beats[step]}
+                </motion.div>
+              </AnimatePresence>
+            </div>
+            <div className="glass relative aspect-[10/7] w-full overflow-hidden" aria-hidden>
+              <AnimatePresence mode="wait" initial={false}>
+                <motion.div key={c.id} className="absolute inset-0" initial={{ opacity: 0, scale: 0.96 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0, scale: 1.03 }} transition={t}>
+                  <Film i={idx} lp={lp} />
+                </motion.div>
+              </AnimatePresence>
+            </div>
           </div>
         </div>
 
-        <motion.p style={{ opacity: hint }} className="eyebrow text-center">Scroll · you&apos;re the one playing it</motion.p>
+        <motion.p style={{ opacity: hint }} className="eyebrow text-center">Scroll for the next one</motion.p>
       </div>
     </section>
   );
 }
 
-function Segment({ i, p, label, active, onClick }: { i: number; p: MV; label: string; active: boolean; onClick: () => void }) {
-  const fill = useTransform(p, [i / N, (i + 1) / N], [0, 1]);
+function Segment({ fill, label, active, onClick }: { fill: MV | number; label: string; active: boolean; onClick: () => void }) {
   return (
     <button type="button" onClick={onClick} aria-current={active ? "step" : undefined} className="group min-h-11 text-left">
       <span className="block h-[3px] overflow-hidden rounded-full bg-white/10">
@@ -112,9 +138,8 @@ function Segment({ i, p, label, active, onClick }: { i: number; p: MV; label: st
   );
 }
 
-/** One scene, scrubbed by its own 0..1 slice of the scroll. */
-function Film({ i, p }: { i: number; p: MV }) {
-  const lp = useTransform(p, [i / N, (i + 1) / N], [0, 1]);
+/** One scene, driven by a 0..1 timeline. */
+function Film({ i, lp }: { i: number; lp: MV }) {
   const Scene = [Car, Flat, Parcel, Night][i];
   return (
     <svg viewBox="0 0 400 280" className="absolute inset-0 h-full w-full" fill="none" strokeLinecap="round" strokeLinejoin="round">
@@ -122,6 +147,8 @@ function Film({ i, p }: { i: number; p: MV }) {
         <filter id="uc-blur" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="6" /></filter>
         <radialGradient id="uc-spot"><stop offset="0" stopColor="var(--safe)" stopOpacity=".35" /><stop offset="1" stopColor="var(--safe)" stopOpacity="0" /></radialGradient>
         <linearGradient id="uc-beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="var(--safe)" stopOpacity=".32" /><stop offset="1" stopColor="var(--safe)" stopOpacity="0" /></linearGradient>
+        <linearGradient id="uc-lamp" x1="1" y1="0" x2="0" y2="0"><stop offset="0" stopColor="#ffe7b0" stopOpacity=".4" /><stop offset="1" stopColor="#ffe7b0" stopOpacity="0" /></linearGradient>
+        <linearGradient id="uc-body" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#2a323c" /><stop offset="1" stopColor="#13171c" /></linearGradient>
         <linearGradient id="uc-door" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#ffe7b0" stopOpacity=".55" /><stop offset="1" stopColor="#ffe7b0" stopOpacity="0" /></linearGradient>
       </defs>
       <Scene lp={lp} />
@@ -166,7 +193,8 @@ function Phone({ x, y, label, glow, children }: { x: number; y: number; label: s
 
 /** Face ID frame drawing itself, then the amount counting up as the money drops in. Local to a phone. */
 function LockIn({ lp, amount }: { lp: MV; amount: number }) {
-  const face = useTransform(lp, [0.01, 0.07], [0, 1]);
+  const face = useTransform(lp, [0.01, 0.06], [0, 1]);
+  const faceS = useTransform(lp, [0.01, 0.06], [1.3, 1]);
   const faceO = useTransform(lp, [0.07, 0.1], [1, 0]);
   const n = useTransform(lp, [0.1, 0.2], [0, amount]);
   const label = useTransform(n, (v) => `€${Math.round(v).toLocaleString("en")}`);
@@ -174,7 +202,8 @@ function LockIn({ lp, amount }: { lp: MV; amount: number }) {
   return (
     <>
       <motion.g style={{ opacity: faceO }}>
-        <motion.path d="M24 50v-6a5 5 0 0 1 5-5h6M46 39h6a5 5 0 0 1 5 5v6M57 66v6a5 5 0 0 1-5 5h-6M35 77h-6a5 5 0 0 1-5-5v-6M31 52v2M50 52v2M40 52v8h-3M33 68q7 5 14 0" transform="translate(-5 0)" stroke="var(--safe)" strokeWidth={1.6} style={{ pathLength: face }} />
+        <Txt x={35} y={100} size={8} mono fill="var(--safe)">FACE ID</Txt>
+        <motion.path d="M24 50v-6a5 5 0 0 1 5-5h6M46 39h6a5 5 0 0 1 5 5v6M57 66v6a5 5 0 0 1-5 5h-6M35 77h-6a5 5 0 0 1-5-5v-6M31 52v2M50 52v2M40 52v8h-3M33 68q7 5 14 0" transform="translate(-5 0)" stroke="var(--safe)" strokeWidth={1.6} style={{ opacity: face, scale: faceS }} />
       </motion.g>
       <motion.g style={{ opacity: ticker }}>
         <motion.text x={35} y={100} fontSize={13} fill="var(--ink)" textAnchor="middle" className="amount">{label}</motion.text>
@@ -197,7 +226,7 @@ function LockedForYou({ lp, at, amount }: { lp: MV; at: number; amount: string }
         <Txt x={35} y={95} size={13} weight={600} fill="var(--safe)">{amount}</Txt>
         <Txt x={35} y={107} size={6.5} mono fill="var(--ink-2)">LOCKED FOR YOU</Txt>
       </Fade>
-      <Fade lp={lp} at={[at, at + 0.02, 0.84, 0.87]} rise={0}><Check lp={lp} at={[at + 0.02, at + 0.07]} x={35} y={58} s={1.1} /></Fade>
+      <Fade lp={lp} at={[at, at + 0.02, 0.84, 0.87]} rise={0}><Check lp={lp} at={[at + 0.02, at + 0.07]} x={35} y={59} s={1.4} /></Fade>
       <Fade lp={lp} at={[0.88, 0.92]}>
         <Txt x={35} y={95} size={15} weight={700} fill="var(--safe)">Paid</Txt>
         <Txt x={35} y={107} size={6.5} mono fill="var(--ink-2)">IN 5 SECONDS</Txt>
@@ -272,35 +301,53 @@ const Ground = ({ y = 238 }: { y?: number }) => <path d={`M0 ${y}H400`} stroke="
 /* ---------- 01 · the car ---------- */
 
 function Car({ lp }: { lp: MV }) {
-  const drive = useTransform(lp, [0.24, 0.6], [300, 0], { ease });
-  const wheel = useTransform(lp, [0.24, 0.6], [0, -1080], { ease });
-  const bob = useTransform(lp, (v) => (v > 0.24 && v < 0.6 ? Math.sin(v * 260) * 0.7 : 0));
-  const lines = useTransform(lp, [0.26, 0.3, 0.52, 0.6], [0, 0.7, 0.7, 0]);
-  const sky = useTransform(lp, [0, 1], [0, -40]);
-  const glow = useTransform(lp, [0.36, 0.42, 0.84, 0.88, 0.9], [0, 0.9, 0.9, 0.5, 1]);
-  const beam = useTransform(lp, [0.3, 0.36, 0.62, 0.66], [0, 1, 1, 0.25]);
+  const drive = useTransform(lp, [0.26, 0.58], [290, 0], { ease });
+  const wheel = useTransform(lp, [0.26, 0.58], [0, -1440], { ease });
+  const bob = useTransform(lp, (v) => (v > 0.26 && v < 0.56 ? Math.sin(v * 320) * 0.8 : 0));
+  // the nose dips as it brakes, then settles
+  const brake = useTransform(lp, [0.55, 0.585, 0.62], [0, 2.2, 0]);
+  const lines = useTransform(lp, [0.27, 0.31, 0.5, 0.57], [0, 0.8, 0.8, 0]);
+  const sky = useTransform(lp, [0.26, 0.58], [0, -36], { ease });
+  const glow = useTransform(lp, [0.2, 0.26, 0.84, 0.88, 0.9], [0, 0.9, 0.9, 0.5, 1]);
+  const lamp = useTransform(lp, [0.26, 0.3, 0.6, 0.64], [0, 1, 1, 0]);
   return (
     <>
-      <motion.g style={{ x: sky }} fill="rgba(255,255,255,.035)">
-        {[[10, 150, 34, 88], [48, 120, 26, 118], [80, 168, 40, 70], [130, 136, 30, 102], [176, 158, 46, 80], [236, 110, 28, 128], [270, 150, 40, 88], [320, 128, 34, 110], [362, 160, 40, 78], [404, 140, 30, 98]].map(([x, y, w, h]) => <rect key={x} x={x} y={y} width={w} height={h} rx={2} />)}
+      <motion.g style={{ x: sky }} fill="rgba(255,255,255,.028)">
+        {[[0, 40, 70], [44, 26, 96], [74, 44, 58], [124, 30, 84], [158, 50, 66], [214, 28, 104], [246, 44, 72], [296, 34, 90], [334, 46, 62], [384, 30, 86], [418, 40, 70]].map(([x, w, h]) => (
+          <g key={x}>
+            <rect x={x} y={250 - h} width={w} height={h} rx={2} />
+            {Array.from({ length: Math.floor(h / 16) }, (_, k) => <rect key={k} x={x + 6} y={250 - h + 8 + k * 16} width={w - 12} height={3} rx={1} fill="rgba(255,231,176,.05)" />)}
+          </g>
+        ))}
       </motion.g>
-      <Ground y={250} />
-      <path d="M0 262H400" stroke="rgba(255,255,255,.08)" strokeDasharray="14 12" />
+      <Ground y={252} />
+      <path d="M0 264H400" stroke="rgba(255,255,255,.08)" strokeDasharray="14 12" />
       <motion.g style={{ x: drive, y: bob }}>
         <g transform="translate(140 248)">
-          <motion.path d="M0 -14L-70 -30V2Z" fill="url(#uc-beam)" transform="rotate(90 0 -14)" style={{ opacity: beam }} />
+          <ellipse cx={61} cy={4} rx={64} ry={4} fill="#000" opacity={0.55} />
+          <motion.path d="M3 -17L-74 -32V-1Z" fill="url(#uc-lamp)" style={{ opacity: lamp }} />
           <motion.g style={{ opacity: lines }} stroke="rgba(255,255,255,.35)" strokeWidth={1.4}>
-            <path d="M128 -30h22M134 -20h28M126 -10h18" />
+            <path d="M132 -32h22M138 -20h28M130 -8h18" />
           </motion.g>
-          <path d="M0 -8V-19Q0 -23 6 -24L26 -27L44 -42H82L101 -28L114 -25Q121 -23 121 -17V-8Z" fill="#1a1f26" stroke="rgba(255,255,255,.28)" strokeWidth={1.2} />
-          <path d="M48 -38H64V-28H36ZM68 -38H80L94 -28H68Z" fill="rgba(143,211,255,.18)" />
-          <circle cx={3} cy={-15} r={2.2} fill="#ffe7b0" />
-          {[24, 96].map((cx) => (
+          <motion.g style={{ rotate: brake, originX: 0.5, originY: 1 }}>
+            <path d="M2 -8Q0 -10 1 -16L4 -21Q6 -24 12 -25L34 -28Q40 -29 46 -35L54 -42Q57 -44 62 -44H86Q92 -44 96 -40L106 -30Q108 -28 112 -27L116 -26Q121 -25 121 -19V-10Q121 -7 118 -7H4Z" fill="url(#uc-body)" stroke="rgba(255,255,255,.3)" strokeWidth={1.2} />
+            <path d="M45 -30L55 -39Q57 -41 60 -41H71V-30ZM75 -41H86Q89 -41 91 -39L100 -30H75Z" fill="rgba(143,211,255,.24)" />
+            <path d="M73 -29V-10M60 -22h6M86 -22h6" stroke="rgba(255,255,255,.14)" strokeWidth={1.2} />
+            <path d="M3 -18h6" stroke="#ffe7b0" strokeWidth={3} />
+            <path d="M116 -21h4" stroke="#ff9f5a" strokeWidth={3} />
+          </motion.g>
+          {[26, 96].map((cx) => (
             <g key={cx} transform={`translate(${cx} -6)`}>
-              <circle r={10} fill="#07090b" stroke="rgba(255,255,255,.3)" strokeWidth={1.2} />
-              <motion.path d="M0 -6V6M-6 0H6" stroke="rgba(255,255,255,.45)" strokeWidth={1.4} style={{ rotate: wheel }} />
+              <circle r={10.5} fill="#07090b" stroke="rgba(255,255,255,.28)" strokeWidth={1.2} />
+              <circle r={4.5} fill="#2a313a" />
+              <motion.g style={{ rotate: wheel }}>
+                <circle cy={-7.5} r={1.4} fill="rgba(255,255,255,.55)" />
+                <circle cy={7.5} r={1.4} fill="rgba(255,255,255,.25)" />
+              </motion.g>
             </g>
           ))}
+          <Fade lp={lp} at={[0.28, 0.32, 0.54, 0.58]}><Pill x={61} y={-58} text="ON HIS WAY" /></Fade>
+          <Fade lp={lp} at={[0.6, 0.63, 0.74, 0.77]}><Pill x={61} y={-58} text="ARRIVED" /></Fade>
         </g>
       </motion.g>
 
@@ -308,14 +355,21 @@ function Car({ lp }: { lp: MV }) {
         <Fade lp={lp} at={[0.86, 0.9]}><Txt x={35} y={100} size={12} weight={600}>Keys</Txt><Check lp={lp} at={[0.88, 0.93]} x={35} y={112} /></Fade>
       </Phone>
       <Phone x={300} y={56} label="Seller" glow={glow}>
-        <LockedForYou lp={lp} at={0.42} amount="€8,500" />
-        <Fade lp={lp} at={[0.64, 0.67, 0.8, 0.83]}><Qr lp={lp} at={[0.68, 0.8]} x={20} y={42} /></Fade>
+        <LockedForYou lp={lp} at={0.24} amount="€8,500" />
+        <Fade lp={lp} at={[0.66, 0.69, 0.8, 0.83]}><Qr lp={lp} at={[0.7, 0.8]} x={20} y={42} /></Fade>
       </Phone>
-      <Key lp={lp} from={[230, 210]} to={[65, 150]} at={[0.66, 0.77]} />
+      <Key lp={lp} from={[200, 222]} to={[65, 150]} at={[0.7, 0.79]} />
       <Coin lp={lp} from={[65, 114]} to={[335, 114]} fly={[0.8, 0.88]} />
     </>
   );
 }
+
+const Pill = ({ x, y, text }: { x: number; y: number; text: string }) => (
+  <g transform={`translate(${x} ${y})`}>
+    <rect x={-34} y={-10} width={68} height={18} rx={9} fill="rgba(13,15,18,.85)" stroke="rgba(143,211,255,.35)" />
+    <Txt x={0} y={3} size={7.5} mono fill="var(--safe)">{text}</Txt>
+  </g>
+);
 
 /* ---------- 02 · the flat ---------- */
 
@@ -357,7 +411,8 @@ function Flat({ lp }: { lp: MV }) {
           <rect x={300} y={92} width={82} height={50} rx={8} fill="#1a0f10" stroke="var(--danger)" strokeOpacity={0.7} />
           <Txt x={341} y={112} size={8} mono fill="var(--danger)">SCREENSHOT</Txt>
           <Txt x={341} y={128} size={10} fill="var(--ink-2)">“Transfer sent”</Txt>
-          <motion.path d="M306 98L376 136M376 98L306 136" stroke="var(--danger)" strokeWidth={2.4} style={{ pathLength: strike }} />
+          <motion.path d="M306 98L376 136" stroke="var(--danger)" strokeWidth={2.4} style={{ pathLength: strike }} />
+          <motion.path d="M376 98L306 136" stroke="var(--danger)" strokeWidth={2.4} style={{ pathLength: strike }} />
         </motion.g>
       </motion.g>
 

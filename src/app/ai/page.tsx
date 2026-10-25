@@ -11,7 +11,7 @@ export default async function AiPage() {
   const url = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "shake-lake.vercel.app"}/api/mcp`;
   return (
     <Screen wide fit back="/" right={<span className="eyebrow hidden sm:inline">Claude · ChatGPT · Cursor</span>}>
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:gap-14">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-20">
         <div className="min-w-0">
           <div className="flex items-center gap-3 lg:block">
             <Mark size={32} className="shrink-0 lg:hidden" />
