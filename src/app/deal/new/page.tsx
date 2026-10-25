@@ -17,7 +17,7 @@ import { dealMeta } from "@/lib/client/handshake";
 import { buyerKey } from "@/lib/client/offline";
 import { fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
 import { nidoAddress, nidoStatus } from "@/lib/client/nido";
-import { NidoMark, NidoSheet } from "@/components/NidoSheet";
+import { NidoSheet } from "@/components/NidoSheet";
 import { KIND_ORDER, KINDS, type Kind } from "@/lib/kinds";
 import { haptic, sfx } from "@/lib/client/sfx";
 
@@ -285,8 +285,8 @@ function NewDeal() {
                   {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
                 </Button>
                 {faceIdOk && valid && !asking && (
-                  <a href="https://test.nido.fyi" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 text-xs text-mute lg:justify-start">
-                    <NidoMark size={14} />Face ID wallet by Nido · a smart account on Stellar
+                  <a href="https://test.nido.fyi" target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-mute hover:text-ink lg:text-left">
+                    With Nido
                   </a>
                 )}
                 {linkState && <p className="break-all text-center text-sm text-safe lg:text-left" role="status">{linkState}</p>}
