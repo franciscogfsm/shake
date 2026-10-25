@@ -41,6 +41,7 @@ export default function Home() {
             <span className="pulse-dot" />
             Live on Stellar testnet
           </a>
+          <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Scam check</Link>
           <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>
         </div>
       }
@@ -116,6 +117,11 @@ function Hero({ onStart }: { onStart: () => void }) {
       </Item>
       <Item>
         <Protected className="justify-center lg:justify-start" />
+      </Item>
+      <Item>
+        <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[14px] text-ink-2 hover:text-ink">
+          Meeting in person? Shake. Shipping it? <span className="text-safe">The shake travels in the box →</span>
+        </Link>
       </Item>
       <Item className="grid grid-cols-3 gap-2 lg:max-w-[560px] lg:gap-4">
         {[
