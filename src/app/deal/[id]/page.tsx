@@ -11,9 +11,10 @@ import { SellerQR } from "@/components/SellerQR";
 import { ShakeBurst } from "@/components/ShakeBurst";
 import { ShakeMoment } from "@/components/ShakeMoment";
 import { CashOut } from "@/components/CashOut";
+import { ProofLink } from "@/components/LiveReceipt";
 import { HashTyper, NumberTicker } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
-import { currencyOfToken, explorer, formatMoney, fromUnits } from "@/lib/config";
+import { currencyOfToken, formatMoney, fromUnits } from "@/lib/config";
 import { Money, useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/client/handshake";
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
@@ -106,9 +107,9 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
         <div className="eyebrow">Locked by you</div>
         <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[76px]" />
         {lockEv && (
-          <a href={explorer.tx(lockEv.txHash)} target="_blank" rel="noreferrer" className="mt-3 block text-xs text-mute hover:text-safe">
+          <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-3 block text-xs text-mute hover:text-safe">
             proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
-          </a>
+          </ProofLink>
         )}
         <div className="mt-5 grid grid-cols-2 gap-3 border-t border-line pt-4 text-[13px]">
           <div><div className="text-mute">Refund if no deal</div><div className="mt-0.5 text-ink">{expired ? "Available now" : <Countdown to={deal.expiry} />}</div></div>
@@ -242,9 +243,9 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
           <span className="pulse-dot" /> Verified on the Stellar network
         </div>
         {lockEv && (
-          <a href={explorer.tx(lockEv.txHash)} target="_blank" rel="noreferrer" className="mt-2 block text-xs text-mute hover:text-safe">
+          <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-2 block text-xs text-mute hover:text-safe">
             see proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
-          </a>
+          </ProofLink>
         )}
         <p className="mt-5 border-t border-line pt-4 text-[14px] text-ink-2">
           This is real money held by public code, not a screenshot. It&apos;s yours the moment the buyer scans your QR.
@@ -304,7 +305,7 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
       <Item className="flex w-full flex-col gap-3">
         {role === "seller" && <CashOut amount={euros} currency={currency} locale={locale} />}
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
-        {rel && <a href={explorer.tx(rel.txHash)} target="_blank" rel="noreferrer" className="text-sm text-mute hover:text-safe">Proof on Stellar ↗</a>}
+        {rel && <ProofLink hash={rel.txHash} at={rel.at} className="text-sm text-mute hover:text-safe">Proof on Stellar ↗</ProofLink>}
       </Item>
       </Stagger>
     </div>

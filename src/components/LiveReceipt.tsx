@@ -1,5 +1,6 @@
 "use client";
 import { motion } from "motion/react";
+import { useEffect, useState } from "react";
 import { explorer } from "@/lib/config";
 import { shortHash } from "./Ticker";
 
@@ -7,6 +8,27 @@ export type TimelineItem = { key: string; title: string; at?: string; hash?: str
 
 const time = (iso?: string) =>
   iso ? new Date(iso).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" }) : "";
+
+// Stellar Expert indexes a new transaction within about a minute; linking earlier shows "not found".
+const INDEX_MS = 40_000;
+
+/** A link to a transaction on Stellar Expert that waits out the explorer's indexing delay. */
+export function ProofLink({ hash, at, className, children }: { hash: string; at?: string; className?: string; children: React.ReactNode }) {
+  const age = () => (at ? Date.now() - Date.parse(at) : Infinity);
+  const [ready, setReady] = useState(() => age() > INDEX_MS);
+  useEffect(() => {
+    if (ready) return;
+    const t = setTimeout(() => setReady(true), Math.max(0, INDEX_MS - age()));
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ready, at]);
+  if (!ready) return <span className={className} title="Stellar Expert is indexing this transaction">confirmed · proof link in a moment…</span>;
+  return (
+    <a href={explorer.tx(hash)} target="_blank" rel="noreferrer" className={className}>
+      {children}
+    </a>
+  );
+}
 
 /** A timeline that draws itself event by event; every event links to its proof on Stellar Expert. */
 export function LiveReceipt({ items, delay = 0, stagger = 0.35, dense = false }: { items: TimelineItem[]; delay?: number; stagger?: number; dense?: boolean }) {
@@ -39,9 +61,9 @@ export function LiveReceipt({ items, delay = 0, stagger = 0.35, dense = false }:
           <div className="min-w-0">
             <div className={`font-medium ${dense ? "text-sm" : "text-[15px]"} ${it.pending ? "text-mute" : "text-ink"}`}>{it.title}</div>
             {it.hash && (
-              <a href={explorer.tx(it.hash)} target="_blank" rel="noreferrer" className="font-mono text-xs text-mute underline-offset-4 hover:text-safe hover:underline">
+              <ProofLink hash={it.hash} at={it.at} className="font-mono text-xs text-mute underline-offset-4 hover:text-safe hover:underline">
                 proof {shortHash(it.hash)} ↗
-              </a>
+              </ProofLink>
             )}
           </div>
           <span className="font-mono text-xs tabular-nums text-mute">{time(it.at)}</span>
