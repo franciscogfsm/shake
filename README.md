@@ -6,6 +6,8 @@
 
 Built for HackMeridian 2026 · Genesis · Stellar Composed
 
+Implementation reviewed against the local source on **25 October 2026**. Hosted features depend on deployment configuration.
+
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
 [Live demo](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
@@ -73,7 +75,7 @@ Before shipment, the usual cancellation permissions apply: the buyer can cancel 
 
 ### Try the anti-scam check
 
-Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet. Paste `Envio-te um pedido de dinheiro no MB WAY, é só aceitar` to see the request-money warning, or `I already paid, here is the screenshot. Urgent please` to see screenshot and urgency warnings. Paste a SHAKE deal link or short code to open its public receipt. The **Screenshot** button uses optional server-side vision; message checking works without an API key.
+Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet. Use the built-in **MB WAY request**, **Fake link**, or **Screenshot** examples, or paste `Envio-te um pedido de dinheiro no MB WAY, é só aceitar` to see the request-money warning. Paste a SHAKE deal link or short code to open its public receipt. The **Screenshot** button uses optional server-side vision; message checking works without an API key.
 
 ## Features
 
@@ -135,7 +137,7 @@ The checker returns **danger**, **warn**, or **clear**, with an explanation for 
 
 **Data handling:** pasted message text stays in the browser. Choosing **Screenshot** sends the selected image to `/api/check`, which forwards it to Anthropic when `ANTHROPIC_API_KEY` is configured. The screenshot picker accepts PNG, JPEG, and WebP; the server also accepts GIF and rejects base64 payloads above 7,000,000 characters. No screenshot storage is implemented in the route. AI output is advisory, and failed or disabled analysis falls back to guidance and local text checking. Nearby-place lookup separately sends coordinates to Overpass only after requesting the user's location.
 
-**Payment protection:** the seller checks the contract's amount and status; the buyer must authorize release with the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop both normal release and the timed claim until the resolver settles them. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself.
+**Payment protection:** the seller checks the contract's amount and status; the current QR flow requires buyer authorization and the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop QR release and the timed claim. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself. New contract-only approval/deposit methods are described below separately from the current browser flow.
 
 Public track records describe recent address activity, not a verified person's identity. Cancellation attribution follows the implementation: the accepted seller, or the buyer if nobody accepted, is counted as having walked away even when a refund was submitted after expiry. Meetup suggestions come from map categories; the app does not verify opening hours, cameras, or the safety of a particular location.
 
@@ -144,6 +146,21 @@ Public track records describe recent address activity, not a verified person's i
 Meetup payments, shipping/disputes, local message checks, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository. Screenshot analysis additionally requires an Anthropic key and successful access to the model configured in `src/app/api/check/route.ts`; its presence in source does not confirm that a hosted deployment has enabled it.
 
 Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The app manifest does not provide an offline payment mode. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
+
+### Deposit support in the contract
+
+The current local contract source also includes **Hold mode** for refundable deposits, such as rental equipment or bookings. These additions are not yet exposed by the browser deal form or the server's contract-call allowlist, and are not a claim about the deployed contract:
+
+| Method | Implemented contract behavior |
+| --- | --- |
+| `lock_hold(…, resolver)` | Locks a deposit with an end date and a resolver distinct from the payer and eventual holder. |
+| `claim_damage(deal_id, amount)` | The bound holder claims a positive amount up to the deposit before expiry; the accepted deposit becomes disputed. |
+| `agree(deal_id)` | The payer accepts a disputed deduction; the claimed amount goes to the holder and the remainder returns to the payer. |
+| `refund(deal_id)` in Hold mode | An undisputed deposit can be returned by anyone after expiry. Before expiry, normal cancellation permissions apply. A holder can also withdraw a disputed claim and return the full deposit. |
+| `resolve(deal_id, to_buyer)` | The assigned resolver splits a disputed deposit between payer and holder. |
+| `approve(deal_id)` | Buyer-authorized full payment without a QR in non-Meet modes, including disputed status. Meet mode rejects it. This method is also currently absent from the web call allowlist. |
+
+Expiry makes a deposit refund callable; it does not submit a transaction by itself. Contract tests for deposit returns, claims, agreed deductions, resolver splits, and deadline/mode restrictions accompany this work.
 
 ## Why this approach
 
@@ -204,7 +221,7 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 
 | Route | Purpose |
 | --- | --- |
-| `/` | One-device payment demo, product explanation, reveal, and development history. |
+| `/` | One-device payment demo, product explanation, live proof panel, and reveal. |
 | `/try` | Two-device entry point: buy or open a seller deal code. |
 | `/deal/new` | Item, amount, region/currency preferences, passkey choice, and meetup/shipping selection. |
 | `/deal/[id]` | Buyer/seller views, verified funds, sharing, QR rotation, refunds, shipping, claims, and disputes. |

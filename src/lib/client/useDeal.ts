@@ -11,11 +11,13 @@ export type Deal = {
   hash: string | null;
   memo: string;
   token: string;
-  mode: "Meet" | "Ship";
+  mode: "Meet" | "Ship" | "Hold";
   tracking: string;
   releaseAfter: number;
+  /** Hold mode: what the holder claimed from the deposit, in units. */
+  claimed: string;
 };
-export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; txHash: string; at: string; ledger: number };
+export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved" | "claimed"; txHash: string; at: string; ledger: number };
 
 /** Live deal state from the chain, polled every 2s while open (the seller sees the shake within seconds). */
 export function useDeal(id: string | null, { interval = 2000 } = {}) {

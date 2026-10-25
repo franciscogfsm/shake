@@ -196,7 +196,7 @@ export async function submitAnchorPayment(signedXdr: string, userPk: string) {
 
 /* ---------------- contract calls ---------------- */
 
-export const DEAL_FNS = ["lock", "lock_ship", "accept", "release", "refund", "mark_shipped", "mark_delivered", "dispute", "claim"] as const;
+export const DEAL_FNS = ["lock", "lock_ship", "lock_hold", "accept", "release", "refund", "mark_shipped", "mark_delivered", "dispute", "claim", "approve", "claim_damage", "agree"] as const;
 export type DealFn = (typeof DEAL_FNS)[number];
 
 export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
@@ -208,12 +208,13 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
   };
   switch (fn) {
     case "lock":
-    case "lock_ship": {
+    case "lock_ship":
+    case "lock_hold": {
       if (!Object.values(CURRENCIES).some((c) => c.token === a.token)) throw new UserError("Unsupported currency");
       const memo = (a.memo ?? "").trim();
       if (Buffer.byteLength(memo) > 64) throw new UserError("Keep the item name under 64 characters");
       const base = [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
-      // ship mode: SHAKE's resolver can only split a disputed deal between buyer and seller
+      // ship and hold modes: SHAKE's resolver can only split a disputed deal between the two
       return fn === "lock" ? base : [...base, addr(TEAM_ADDRESS)];
     }
     case "mark_shipped": {
@@ -221,9 +222,14 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
       if (Buffer.byteLength(tracking) > 64) throw new UserError("Keep the tracking number under 64 characters");
       return [u64(a.dealId), nativeToScVal(tracking, { type: "string" })];
     }
+    case "claim_damage":
+      if (!/^\d{1,15}$/.test(a.amount ?? "") || a.amount === "0") throw new UserError("Enter the amount you're claiming");
+      return [u64(a.dealId), nativeToScVal(BigInt(a.amount), { type: "i128" })];
     case "mark_delivered":
     case "dispute":
     case "claim":
+    case "approve":
+    case "agree":
       return [u64(a.dealId)];
     case "accept":
       if (a.hash?.length !== 64) throw new UserError("Bad hash");
@@ -348,7 +354,8 @@ const CONTRACT_ERRORS: Record<number, string> = {
   13: "That step isn't available right now.",
   14: "The 3 days after delivery aren't over yet.",
   15: "The 3 days to open a problem are over.",
-  16: "That split doesn't add up."
+  16: "That split doesn't add up.",
+  17: "That only works for deposits."
 };
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
@@ -385,9 +392,10 @@ export type DealView = {
   hash: string | null;
   memo: string;
   token: string;
-  mode: "Meet" | "Ship";
+  mode: "Meet" | "Ship" | "Hold";
   tracking: string;
   releaseAfter: number;
+  claimed: string;
 };
 
 export async function readDeal(dealId: string): Promise<DealView | null> {
@@ -414,6 +422,7 @@ export async function readDeal(dealId: string): Promise<DealView | null> {
     mode: (Array.isArray(d.mode) ? d.mode[0] : d.mode) ?? "Meet",
     tracking: String(d.tracking ?? ""),
     releaseAfter: Number(d.release_after ?? 0),
+    claimed: String(d.claimed ?? 0),
   };
 }
 

@@ -93,6 +93,7 @@ export function useNow(ms = 1000) {
 
 export function Countdown({ to }: { to: number }) {
   const left = Math.max(0, to - useNow());
+  if (left >= 2 * 86400) return <span className="tabular-nums">{Math.floor(left / 86400)} days</span>;
   const h = Math.floor(left / 3600);
   const m = Math.floor((left % 3600) / 60);
   const s = left % 60;

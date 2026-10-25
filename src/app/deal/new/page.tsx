@@ -1,16 +1,19 @@
 "use client";
-import { AnimatePresence, motion } from "motion/react";
-import { useRouter } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
-import { Mark } from "@/components/Mark";
-import { Item, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
-import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits } from "@/lib/config";
+import { Mark, springs } from "@/components/Mark";
+import { NumberTicker } from "@/components/Ticker";
+import { Item, Screen, Stagger, TestnetNote } from "@/components/ui";
+import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
 import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
 import { ensurePasskeyWallet, fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
+import { KIND_ORDER, KINDS, type Kind } from "@/lib/kinds";
+import { haptic, sfx } from "@/lib/client/sfx";
 
 const MAX = 2000;
 const DAY = 24 * 60 * 60;
@@ -22,12 +25,30 @@ const steps = (faceId: boolean) => [
   { key: "confirming", label: "Confirming on the network" },
 ];
 
-export default function NewDeal() {
+const dayInput = (days: number) => new Date(Date.now() + days * DAY * 1000).toISOString().slice(0, 10);
+
+export default function NewDealPage() {
+  return (
+    <Suspense>
+      <NewDeal />
+    </Suspense>
+  );
+}
+
+function NewDeal() {
   const router = useRouter();
+  const q = useSearchParams();
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [seller, setSeller] = useState("");
-  const [ship, setShip] = useState(false);
+  const [kind, setKindState] = useState<Kind>(() => (KINDS[q.get("k") as Kind] ? (q.get("k") as Kind) : "meet"));
+  const k = KINDS[kind];
+  const hold = k.mode === "Hold";
+  const [ends, setEnds] = useState(() => dayInput(k.days));
+  const setKind = (v: Kind) => {
+    setKindState(v);
+    setEnds(dayInput(KINDS[v].days));
+  };
   const [from, setFrom] = useState("");
   const autofill = async (url: string) => {
     setFrom("Reading the listing…");
@@ -55,7 +76,8 @@ export default function NewDeal() {
   const sym = moneyParts(1, currency, country.locale);
 
   const amount = parseAmount(price, country.locale);
-  const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX;
+  const endsAt = Math.floor(new Date(`${ends}T23:59:00`).getTime() / 1000);
+  const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX && (!hold || endsAt > Date.now() / 1000 + 600);
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
   const lock = async (withFaceId = faceId) => {
@@ -74,14 +96,14 @@ export default function NewDeal() {
         await fundPasskeyWallet(buyer, amount, currency);
       } else await ensureAccount(kp, amount, currency);
       const dealId = newDealId();
-      // shipping needs time to post the box; refund stays possible until the seller marks it shipped
-      const expiry = String(Math.floor(Date.now() / 1000) + (ship ? 14 : 1) * DAY);
+      // deposits end on the chosen day; shipping and jobs need time; refund stays possible until the seller marks it shipped
+      const expiry = String(hold ? endsAt : Math.floor(Date.now() / 1000) + k.days * DAY);
       // the memo is public on-chain: it is what the link preview and receipt show
       const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
-      await callDeal(kp, ship ? "lock_ship" : "lock", { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
-      dealMeta.set(dealId, { item: item.trim(), seller: seller.trim() });
-      const q = new URLSearchParams({ i: item.trim(), ...(seller.trim() ? { s: seller.trim() } : {}) });
-      router.replace(`/deal/${dealId}?${q}&new=1`);
+      await callDeal(kp, k.fn, { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
+      dealMeta.set(dealId, { item: item.trim(), seller: seller.trim(), kind });
+      const link = new URLSearchParams({ i: item.trim(), k: kind, ...(seller.trim() ? { s: seller.trim() } : {}) });
+      router.replace(`/deal/${dealId}?${link}&new=1`);
     } catch (e) {
       setError(e instanceof ApiError ? e.message : "The network didn't answer in time. Your money is safe; nothing was locked.");
       setPhase("failed");
@@ -110,7 +132,21 @@ export default function NewDeal() {
               <Item className="flex flex-col gap-8">
               <div>
                 <div className="eyebrow">New safe payment</div>
-                <h1 className="display mt-3 text-[40px] lg:text-[64px] lg:leading-[0.96]">What are you<br className="hidden lg:block" /> buying?</h1>
+                <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
+                  {KIND_ORDER.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      role="radio"
+                      aria-checked={kind === v}
+                      onClick={() => setKind(v)}
+                      className={`shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition-colors ${kind === v ? "bg-safe text-on-safe" : "glass text-ink-2 hover:text-ink"}`}
+                    >
+                      {KINDS[v].label}
+                    </button>
+                  ))}
+                </div>
+                <h1 className="display mt-5 text-[40px] lg:text-[64px] lg:leading-[0.96]">{k.ask}</h1>
               </div>
               <div>
                 <label htmlFor="item" className="sr-only">Item</label>
@@ -122,15 +158,15 @@ export default function NewDeal() {
                     if (/^https:\/\/\S+$/.test(v)) return autofill(v);
                     setItem(e.target.value.slice(0, 40));
                   }}
-                  placeholder="iPhone 13, 128GB"
+                  placeholder={k.placeholder}
                   autoComplete="off"
                   aria-describedby="item-hint"
                   className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
-                <p id="item-hint" className="mt-2 text-[13px] text-mute" aria-live="polite">{from || "Or paste the OLX or Vinted link"}</p>
+                <p id="item-hint" className="mt-2 text-[13px] text-mute" aria-live="polite">{from || (k.mode === "Hold" || kind === "service" ? "Works for anything: rooms, cars, venues, gear, jobs." : "Or paste the OLX or Vinted link")}</p>
               </div>
               <div>
-                <label htmlFor="price" className="eyebrow">Price</label>
+                <label htmlFor="price" className="eyebrow">{hold ? "Deposit" : kind === "service" ? "Agreed price" : "Price"}</label>
                 <div className="mt-2 flex items-baseline gap-2">
                   {sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                   <input
@@ -154,42 +190,34 @@ export default function NewDeal() {
               <div className="halo hidden lg:block" aria-hidden />
               <div className="flex flex-col gap-6 lg:glass lg:gap-7 lg:p-7">
               <div>
-                <label htmlFor="seller" className="eyebrow">Seller (optional)</label>
+                <label htmlFor="seller" className="eyebrow">{k.payee[0].toUpperCase() + k.payee.slice(1)} (optional)</label>
                 <input
                   id="seller"
                   value={seller}
                   onChange={(e) => setSeller(e.target.value.slice(0, 32))}
-                  placeholder="@rita on OLX"
+                  placeholder={k.payeeHint}
                   autoComplete="off"
                   className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
               </div>
-              <div>
-                <div className="eyebrow">How does it reach you?</div>
-                <div role="radiogroup" aria-label="How does it reach you?" className="glass mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
-                  {([[false, "We’ll meet"], [true, "It’s shipped"]] as const).map(([v, label]) => (
-                    <button
-                      key={label}
-                      type="button"
-                      role="radio"
-                      aria-checked={ship === v}
-                      onClick={() => setShip(v)}
-                      className={`rounded-full px-4 py-2.5 text-[15px] font-medium transition-colors ${ship === v ? "bg-safe text-on-safe" : "text-ink-2 hover:text-ink"}`}
-                    >
-                      {label}
-                    </button>
-                  ))}
+              {hold && (
+                <div>
+                  <label htmlFor="ends" className="eyebrow">{kind === "deposit" ? "Move-out day" : "Ends on"}</label>
+                  <input
+                    id="ends"
+                    type="date"
+                    value={ends}
+                    min={dayInput(1)}
+                    onChange={(e) => setEnds(e.target.value)}
+                    className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none [color-scheme:dark] focus-visible:outline-none focus:border-safe"
+                  />
                 </div>
-              </div>
+              )}
               <div className="flex flex-col gap-3">
-                <p className="text-center text-[15px] text-ink-2">
-                  {ship
-                    ? "The shake travels in the box: scan the QR inside when you open it. Released 3 days after delivery unless you open a problem."
-                    : "Held safely until you shake. Refunded if you don’t."}
-                </p>
+                <p className="text-center text-[15px] text-ink-2 lg:text-left">{k.blurb}</p>
                 <Button type="submit" full disabled={!valid}>
                   {faceIdOk && <FaceIdIcon />}
-                  {valid ? `Lock ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : "Lock"}
+                  {valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
                 </Button>
                 {faceIdOk && valid && (
                   <button type="button" onClick={() => lock(false)} className="text-sm text-mute underline-offset-4 hover:underline">
@@ -205,32 +233,149 @@ export default function NewDeal() {
         )}
 
         {phase !== "form" && (
-          <motion.div key="locking" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 lg:grid lg:grid-cols-2 lg:gap-20">
-            <div className="flex flex-col items-center gap-10 lg:items-start">
-            <Mark size={96} state={phase === "failed" ? "open" : "rest"} />
-            <div className="text-center lg:text-left">
-              <div className="eyebrow">{item}</div>
-              <div className="amount mt-3 text-[64px] lg:text-[96px]">{money(amount)}</div>
-            </div>
-            </div>
-            {phase === "locking" ? (
-              <div className="relative w-full">
-              <div className="halo hidden lg:block" aria-hidden />
-              <div className="glass p-6">
-                <Steps steps={steps(faceId)} current={step} />
-              </div>
-              </div>
-            ) : (
-              <div className="flex w-full flex-col items-center gap-4 text-center">
-                <p className="max-w-[30ch] text-ink-2" role="alert">{error}</p>
-                <Button full onClick={() => lock()}>Try again</Button>
-                <Button variant="ghost" onClick={() => setPhase("form")}>Edit deal</Button>
-              </div>
-            )}
-          </motion.div>
+          <LockMoment
+            item={item}
+            amount={amount}
+            currency={currency}
+            locale={country.locale}
+            phase={phase}
+            step={step}
+            faceId={faceId}
+            error={error}
+            onRetry={() => lock()}
+            onEdit={() => setPhase("form")}
+          />
         )}
       </AnimatePresence>
     </Screen>
+  );
+}
+
+function LockMoment({
+  item, amount, currency, locale, phase, step, faceId, error, onRetry, onEdit,
+}: {
+  item: string;
+  amount: number;
+  currency: CurrencyCode;
+  locale: string;
+  phase: "locking" | "failed";
+  step: string | null;
+  faceId: boolean;
+  error: string;
+  onRetry: () => void;
+  onEdit: () => void;
+}) {
+  const reduce = useReducedMotion();
+  const sym = moneyParts(amount || 0, currency, locale);
+  const failed = phase === "failed";
+  const list = steps(faceId);
+  const active = list.find((s) => s.key === step);
+
+  return (
+    <motion.div
+      key="locking"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="mx-auto flex min-h-0 w-full max-w-[400px] flex-1 flex-col items-center justify-center gap-8 lg:max-w-[860px] lg:grid lg:grid-cols-[minmax(0,1fr)_320px] lg:items-center lg:gap-x-14"
+    >
+      <div className="flex flex-col items-center text-center">
+        <div className="relative grid size-32 place-items-center lg:size-40">
+          <div className="halo" aria-hidden />
+          {!reduce && !failed &&
+            [0, 0.75].map((delay) => (
+              <motion.span
+                key={delay}
+                aria-hidden
+                className="absolute inset-3 rounded-full border border-[rgba(143,211,255,0.5)]"
+                animate={{ scale: [0.7, 1.5], opacity: [0.6, 0] }}
+                transition={{ duration: 2.4, repeat: Infinity, delay, ease: "easeOut" }}
+              />
+            ))}
+          <motion.div initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 0.82 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>
+            <Mark size={84} assemble={!failed} state={failed ? "open" : "rest"} />
+          </motion.div>
+        </div>
+        <motion.div className="mt-5" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.1 }}>
+          <div className="eyebrow">{item}</div>
+          <div className="amount mt-2 flex items-baseline justify-center gap-2 text-[68px] leading-none lg:text-[92px]">
+            {sym.before && <span className="text-[0.42em] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
+            <NumberTicker value={amount} format={(n) => new Intl.NumberFormat(locale, { maximumFractionDigits: amount % 1 ? 2 : 0 }).format(n)} />
+            {!sym.before && <span className="text-[0.42em] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
+          </div>
+          <p className="mt-3 text-sm text-mute">{failed ? "Nothing was locked" : active?.label ?? "Locking on Stellar"}</p>
+        </motion.div>
+      </div>
+
+      <div className="relative w-full">
+        <div className="halo hidden lg:block" aria-hidden />
+        <div className="glass w-full p-6">
+          {failed ? (
+            <div className="flex flex-col items-center gap-4 text-center">
+              <p className="text-ink-2" role="alert">{error}</p>
+              <Button full onClick={onRetry}>Try again</Button>
+              <Button variant="ghost" onClick={onEdit}>Edit deal</Button>
+            </div>
+          ) : (
+            <LockSteps list={list} current={step} />
+          )}
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function LockSteps({ list, current }: { list: { key: string; label: string }[]; current: string | null }) {
+  const reduce = useReducedMotion();
+  const found = list.findIndex((s) => s.key === current);
+  const idx = found < 0 ? 0 : found;
+  const prev = useRef(idx);
+  useEffect(() => {
+    if (idx > prev.current) {
+      haptic.tap();
+      sfx.tick();
+    }
+    prev.current = idx;
+  }, [idx]);
+  const fill = list.length < 2 ? 1 : idx / (list.length - 1);
+
+  return (
+    <ol className="relative flex flex-col gap-5" aria-live="polite">
+      <span className="absolute top-2.5 bottom-2.5 left-[9px] w-px bg-white/10" aria-hidden />
+      <motion.span
+        className="absolute top-2.5 left-[9px] w-px origin-top bg-safe"
+        style={{ height: "calc(100% - 20px)", boxShadow: "0 0 12px var(--safe)" }}
+        initial={{ scaleY: 0 }}
+        animate={{ scaleY: fill }}
+        transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 160, damping: 26 }}
+        aria-hidden
+      />
+      {list.map((s, i) => {
+        const done = idx > i;
+        const active = idx === i;
+        return (
+          <motion.li
+            key={s.key}
+            className="relative flex items-center gap-3"
+            initial={reduce ? false : { opacity: 0, x: 10 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ ...springs.snappy, delay: 0.07 * i }}
+          >
+            <span className="z-[1] grid size-5 place-items-center rounded-full bg-[#14171b]">
+              {done ? (
+                <motion.svg initial={{ scale: 0 }} animate={{ scale: 1 }} transition={springs.slam} width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" strokeWidth="2.6" strokeLinecap="round">
+                  <path d="M5 12.5l4.5 4.5L19 7" />
+                </motion.svg>
+              ) : active ? (
+                <span className="pulse-dot" />
+              ) : (
+                <span className="size-2 rounded-full bg-white/25" />
+              )}
+            </span>
+            <span className={done ? "text-ink-2" : active ? "font-medium text-ink" : "text-mute"}>{s.label}</span>
+          </motion.li>
+        );
+      })}
+    </ol>
   );
 }
 
