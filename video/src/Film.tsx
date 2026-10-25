@@ -465,9 +465,24 @@ function Ai({ t }: { t: number }) {
   const nudge = refused ? Math.sin((t - refuse) * 60) * 9 * (1 - lerp(t, [refuse, refuse + 0.45])) : 0;
   return (
     <>
-      <div style={{ position: "absolute", left: 150, top: 520, width: 760, transform: "translateY(-50%)" }}>
+      <div style={{ position: "absolute", left: 150, top: 500, width: 760, transform: "translateY(-50%)" }}>
         <Rise t={t} at={a + 0.1}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>MCP server · Claude · ChatGPT</div></Rise>
-        <Head t={t} size={96} parts={[["Your AI sets it up.", W("more", "Claude")], ["It never touches", W("more", "never"), "ink2"], ["your money.", W("more", "your"), "grad"]]} />
+        <Head t={t} size={96} parts={[["Your AI sets it up.", W("more", "Claude")]]} />
+        <div style={{ display: "flex", gap: 12, marginTop: 26 }}>
+          {([{ name: "Claude", file: "ai/claude.png", at: W("more", "Claude") }, { name: "ChatGPT", file: "ai/chatgpt.png", at: W("more", "ChatGPT") }] as const).map((m, i) => {
+            const inn = spr(t, a + 0.16 + i * 0.12, SPR.snappy);
+            const hot = t >= m.at - 0.05 && t < (i === 0 ? W("more", "ChatGPT") - 0.06 : 1e9);
+            return (
+              <div key={m.name} style={{ display: "flex", alignItems: "center", gap: 12, padding: "8px 18px 8px 8px", borderRadius: 18, background: "rgba(255,255,255,.06)", border: `1px solid ${hot ? C.safe : "rgba(255,255,255,.12)"}`, boxShadow: hot ? "0 0 26px rgba(143,211,255,.4)" : "0 10px 24px rgba(0,0,0,.25)", opacity: inn, transform: `translateY(${(1 - inn) * 12}px) scale(${hot ? 1.04 : 1})` }}>
+                <Img src={staticFile(m.file)} style={{ width: 48, height: 48, borderRadius: 12, objectFit: "cover" }} />
+                <span style={{ fontFamily: F.display, fontWeight: 600, fontSize: 28, letterSpacing: "-0.03em", color: C.ink }}>{m.name}</span>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{ marginTop: 22 }}>
+          <Head t={t} size={96} parts={[["It never touches", W("more", "never"), "ink2"], ["your money.", W("more", "your"), "grad"]]} />
+        </div>
       </div>
       <Stage x={1380 + (1 - p) * 900} y={545} ry={-9} rx={3}>
         <div style={{ width: 760, borderRadius: 28, border: `1px solid ${C.line}`, background: "rgba(20,23,27,.94)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.15)", overflow: "hidden", fontFamily: F.text }}>
