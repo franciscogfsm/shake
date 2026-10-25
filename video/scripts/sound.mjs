@@ -1,5 +1,6 @@
 // Sound effects and the score from ElevenLabs, cached by prompt. The score's sections follow src/vo.json,
 // so the drops land on "So they shake on it", "she's paid" and the closing "SHAKE.".   node scripts/sound.mjs [sfx|music]
+import { execFileSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { XI } from "./env.mjs";
@@ -35,6 +36,7 @@ export const SFX = {
   coin: ["Single bright clean coin clink, premium, short", 0.6],
   stamp: ["Heavy rubber stamp slammed on paper, short punchy thud", 0.6],
   dissolve: ["Digital particles disintegrating, soft sparkling dissolve whoosh", 1.2],
+  outro: ["Cinematic final impact hit followed by a warm uplifting resolving synth pad chord with a long shimmering reverb tail, premium, no drums after the hit", 6],
 };
 
 if (only !== "music") {
@@ -68,6 +70,17 @@ if (only !== "sfx") {
   };
   const name = `music-${tag(plan)}.mp3`;
   await get("https://api.elevenlabs.io/v1/music?output_format=mp3_44100_128", { composition_plan: plan, model_id: "music_v1" }, new URL(name, dir));
-  writeFileSync(new URL("../src/music.json", import.meta.url), JSON.stringify({ file: `audio/${name}`, hits }, null, 1));
+  // the model doesn't put the drop exactly where it was asked: find the real one (the biggest jump in loudness
+  // near the "shake" hit) and start the score early or late by that much, so the drop lands on the slam
+  const pcm = execFileSync("ffmpeg", ["-v", "error", "-i", new URL(name, dir).pathname.slice(process.platform === "win32" ? 1 : 0).replace(/%20/g, " "), "-ac", "1", "-ar", "8000", "-f", "s16le", "-"], { maxBuffer: 1 << 28 });
+  const db = (from, n) => { let e = 0; for (let i = from; i < from + n; i++) { const v = pcm.readInt16LE(i * 2) / 32768; e += v * v; } return 10 * Math.log10(e / n + 1e-12); };
+  const W = 2000, at = (s) => Math.round(s * 8000);
+  let lead = 0, best = -Infinity;
+  for (let s = hits.shake - 1.5; s <= hits.shake + 1.5; s += 0.01) {
+    const jump = db(at(s), W) - db(at(s) - W, W);
+    if (jump > best) { best = jump; lead = s - hits.shake; }
+  }
+  writeFileSync(new URL("../src/music.json", import.meta.url), JSON.stringify({ file: `audio/${name}`, hits, lead: +lead.toFixed(2) }, null, 1));
+  console.log(`drop found ${lead.toFixed(2)}s after the slam (+${best.toFixed(1)} dB), the film starts the score that much in`);
   console.log("music cuts", cuts.map((c) => (c / 1000).toFixed(2)).join(" "));
 }

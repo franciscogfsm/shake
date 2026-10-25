@@ -4,6 +4,7 @@
   "scripts": {
     "studio": "remotion studio",
     "draft": "remotion render Film out/shake-draft.mp4 --scale=0.5 --crf=30",
+    "720": "remotion render Film out/shake-720.mp4 --scale=0.6666666666666666 --crf=18",
     "final": "remotion render Film out/shake.mp4 --crf=16"
   },
   "dependencies": {

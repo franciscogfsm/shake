@@ -135,7 +135,7 @@ export function Words({ t, text, at = 0, times, size, color = C.ink, grad, weigh
         const a = (times?.[i] ?? at + i * stagger) - 0.06;
         const p = spr(t, a, SPR.smooth), o = lerp(t, [a, a + 0.22]);
         return (
-          <span key={i} style={{ display: "inline-block", whiteSpace: "pre", transform: `translateY(${(1 - p) * 0.45}em)`, opacity: o, filter: o < 1 ? `blur(${(1 - o) * 10}px)` : undefined, ...(grad ? glacier : {}) }}>
+          <span key={i} style={{ display: "inline-block", whiteSpace: "pre", transform: `translateY(${(1 - p) * 0.45}em)`, opacity: o, filter: o < 1 ? `blur(${(1 - o) * 10}px)` : undefined, ...(grad ? { ...glacier, backgroundSize: "220% 100%", backgroundPosition: `${50 + Math.sin(t * 0.9 + i * 0.5) * 50}% 0` } : {}) }}>
             {w}{i < words.length - 1 ? " " : ""}
           </span>
         );

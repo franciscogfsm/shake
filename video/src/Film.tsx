@@ -1,10 +1,14 @@
 // SHAKE · the 45-second film. Every moment is placed on the voice (src/vo.json) and the score's hits (src/music.json),
-// so re-voicing a line re-times the cut. Screens are real captures from shake-lake.vercel.app (scripts/shots.cjs).
+// so re-voicing a line re-times the cut. Phone screens are real captures from shake-lake.vercel.app (scripts/shots.cjs).
+// Money is always written the Portuguese way: "400 €".
 import React from "react";
 import { AbsoluteFill, Audio, Easing, Img, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
-import { Backdrop, Burst, C, Chip, Coin, F, FPS, Grain, HIT, LINES, P, Phone, Plane, SPR, Say, Stage, TOTAL, V, W, Words, eyebrow, glacier, lerp, easeIn, sec, shake, spr, win, type Layer } from "./kit";
+import { Backdrop, Burst, C, Chip, Coin, F, FPS, Grain, HIT, LINES, P, Phone, Plane, SPR, Stage, TOTAL, W, Words, eyebrow, lerp, easeIn, sec, shake, spr, win, type Layer } from "./kit";
 import sfx from "./sfx.json";
 import music from "./music.json";
+
+const io = Easing.inOut(Easing.cubic);
+const EUR = (n: string) => `${n} €`;
 
 /** crossfade a list of [time, screenshot] cuts */
 const cuts = (t: number, list: [number, string][], fade = 0.14): Layer[] =>
@@ -14,96 +18,186 @@ const cuts = (t: number, list: [number, string][], fade = 0.14): Layer[] =>
     return { src, o: next !== undefined && t > next + fade ? 0 : shown }; // later cuts stack on top, so hide one only once the next is fully in
   });
 
-/** a scene: fades/blurs in and out of its window */
-function Scene({ t, a, b, children, fin = 0.28, fout = 0.28 }: { t: number; a: number; b: number; children: React.ReactNode; fin?: number; fout?: number }) {
+/** a shot: glides in from the right and out to the left, like one camera panning through the story */
+function Shot({ t, a, b, children, fin = 0.45, fout = 0.4, pan = 160 }: { t: number; a: number; b: number; children: React.ReactNode; fin?: number; fout?: number; pan?: number }) {
   if (t < a - 0.02 || t > b + 0.02) return null;
-  const i = lerp(t, [a, a + fin]), o = lerp(t, [b - fout, b]);
-  return <AbsoluteFill style={{ opacity: Math.min(i, 1 - o), transform: `scale(${1 + (1 - i) * 0.05 - o * 0.04 + (t - a) * 0.006})`, filter: i < 1 || o > 0 ? `blur(${(1 - i) * 14 + o * 14}px)` : undefined }}>{children}</AbsoluteFill>;
+  const i = lerp(t, [a, a + fin], [0, 1], io), o = lerp(t, [b - fout, b], [0, 1], io);
+  return (
+    <AbsoluteFill style={{ opacity: Math.min(i * 1.4, 1 - o), transform: `translateX(${(1 - i) * pan - o * pan}px) scale(${1.015 + (t - a) * 0.004})`, filter: i < 1 || o > 0 ? `blur(${(1 - i) * 10 + o * 10}px)` : undefined }}>
+      {children}
+    </AbsoluteFill>
+  );
 }
-const Col = ({ x, y, w = 780, children, align = "left" }: { x: number; y: number; w?: number; children: React.ReactNode; align?: "left" | "center" }) => (
-  <div style={{ position: "absolute", left: x, top: y, width: w, transform: "translateY(-50%)", textAlign: align, display: "flex", flexDirection: "column", alignItems: align === "center" ? "center" : "flex-start", gap: 6 }}>{children}</div>
-);
+
+type Tone = "ink" | "ink2" | "mute" | "grad";
+/** a two-tone headline: each part rises in on its own word */
+function Head({ t, parts, size, out, align = "left", style, gap = 0 }: { t: number; parts: [string, number, Tone?][]; size: number; out?: number; align?: "left" | "center"; style?: React.CSSProperties; gap?: number }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap, alignItems: align === "center" ? "center" : "flex-start", textAlign: align, ...style }}>
+      {parts.map(([text, at, tone = "ink"], i) => (
+        <Words key={i} t={t} text={text} at={at - 0.08} stagger={0.055} size={size} grad={tone === "grad"} color={tone === "mute" ? C.mute : tone === "ink2" ? C.ink2 : C.ink} out={out} />
+      ))}
+    </div>
+  );
+}
+
+/** the little feature name, bottom-left, like a product film's lower third */
+function Label({ t, a, b, children }: { t: number; a: number; b: number; children: React.ReactNode }) {
+  const o = win(t, a, b, 0.3, 0.25), p = spr(t, a, SPR.smooth);
+  return (
+    <div style={{ position: "absolute", left: 72, bottom: 62, opacity: o, transform: `translateY(${(1 - p) * 18}px)`, display: "flex", alignItems: "center", gap: 14, padding: "13px 22px 13px 18px", borderRadius: 999, background: "rgba(255,255,255,.055)", border: `1px solid ${C.line}`, backdropFilter: "blur(14px)", fontFamily: F.text, fontSize: 22, color: C.ink2, letterSpacing: "-0.01em" }}>
+      <span style={{ width: 9, height: 9, borderRadius: 9, background: C.safe, boxShadow: `0 0 12px ${C.safe}` }} />
+      {children}
+    </div>
+  );
+}
 const Rise = ({ t, at, children, style }: { t: number; at: number; children: React.ReactNode; style?: React.CSSProperties }) => {
   const p = spr(t, at), o = lerp(t, [at, at + 0.25]);
   return <div style={{ opacity: o, transform: `translateY(${(1 - p) * 30}px)`, ...style }}>{children}</div>;
 };
 
-/* ───────── 1 · Sam, Ana, a bike, and a screenshot that lies ───────── */
-function Intro({ t }: { t: number }) {
-  const S = 380, cx = 960, cy = 450;
-  const half = (side: -1 | 1, enter: number, tense: number) => {
-    const inn = spr(t, enter, { stiffness: 170, damping: 22 });
-    const pull = lerp(t, [tense, tense + 0.9], [0, 70]);
-    const rush = lerp(t, [11.72, HIT.shake], [0, 1], easeIn);
-    return side * (1500 - inn * 960 + pull) * (1 - rush);
-  };
-  const l = half(-1, 0.32, 5.76), r = half(1, 1.48, 7.2);
-  const fake = win(t, 9.35, 11.75, 0.2, 0.3);
-  const dim = 1 - fake * 0.65;
-  const shut = t >= HIT.shake ? t - HIT.shake : undefined;
-  const leave = lerp(t, [13.25, 13.7]);
-  const [sx, sy] = shake(t - HIT.shake, 18);
-  const nameX = (off: number, side: -1 | 1) => cx + off + side * S * 0.21;
-  const names = 1 - lerp(t, [11.5, 11.85]);
+/* ───────── 1 · Sam, a bike, a stranger. Who pays first? ───────── */
+const SAM = { x: 400, y: 520 }, ANA = { x: 1520, y: 520 }, CARD = { x: 960, y: 500 }, R = 96;
+
+function Avatar({ x, y, letter, tone, o = 1, s = 1, lit = 0 }: { x: number; y: number; letter: string; tone: "sam" | "ana"; o?: number; s?: number; lit?: number }) {
   return (
-    <AbsoluteFill style={{ transform: `translate(${sx}px, ${sy}px)` }}>
-      {/* the two halves: Sam and Ana */}
-      <div style={{ position: "absolute", left: cx - S / 2, top: cy - S / 2 - leave * 140, opacity: 1 - leave, transform: `scale(${1 - leave * 0.35})` }}>
-        <Coin size={S} l={l} r={r} lo={dim} ro={dim} shut={shut} glow={shut !== undefined ? 0.9 : 0.4} />
+    <div style={{ position: "absolute", left: x - R, top: y - R, width: R * 2, height: R * 2, borderRadius: "50%", opacity: o, transform: `scale(${s})`, background: tone === "sam" ? "linear-gradient(150deg,#ffffff,#c9ced6)" : "linear-gradient(150deg,#d9f0ff,#8fd3ff)", display: "grid", placeItems: "center", fontFamily: F.display, fontWeight: 700, fontSize: 88, letterSpacing: "-0.04em", color: C.bg, boxShadow: `0 0 0 7px rgba(255,255,255,.05), 0 0 ${60 + lit * 60}px rgba(143,211,255,${0.22 + lit * 0.4}), inset 0 -10px 24px rgba(0,0,0,.14)` }}>
+      {letter}
+    </div>
+  );
+}
+
+/** a city bike that draws itself (p: 0 → 1) */
+const BIKE = [
+  "M25 170a55 55 0 1 0 110 0a55 55 0 1 0 -110 0", "M245 170a55 55 0 1 0 110 0a55 55 0 1 0 -110 0",
+  "M80 170L185 170L262 85", "M80 170L150 85L185 170", "M150 85L262 85L300 170", "M150 85L143 60M124 58H166", "M262 85L256 56L288 50", "M175 170a10 10 0 1 0 20 0a10 10 0 1 0 -20 0",
+];
+function Bike({ p, w = 340, color = C.safe, dim = 0 }: { p: number; w?: number; color?: string; dim?: number }) {
+  return (
+    <svg width={w} height={(w * 240) / 380} viewBox="0 0 380 240" fill="none" stroke={color} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" style={{ overflow: "visible", filter: `drop-shadow(0 0 14px rgba(143,211,255,${0.45 * (1 - dim)}))`, opacity: 1 - dim * 0.6 }}>
+      {BIKE.map((d, i) => {
+        const q = Math.min(1, Math.max(0, p * BIKE.length - i));
+        return q > 0 ? <path key={i} d={d} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - q} /> : null;
+      })}
+    </svg>
+  );
+}
+
+function MoneyChip({ x, y, o = 1, s = 1, blur = 0 }: { x: number; y: number; o?: number; s?: number; blur?: number }) {
+  return (
+    <div style={{ position: "absolute", left: x, top: y, transform: `translate(-50%,-50%) scale(${s})`, opacity: o, filter: blur > 0.3 ? `blur(${blur}px)` : undefined, display: "flex", alignItems: "center", gap: 12, padding: "12px 24px 12px 14px", borderRadius: 999, background: "rgba(22,27,34,.9)", border: `1px solid ${C.safe}66`, boxShadow: `0 0 44px rgba(143,211,255,.3)`, fontFamily: F.display, fontWeight: 500, fontSize: 36, letterSpacing: "-0.03em", color: C.ink, whiteSpace: "nowrap" }}>
+      <Coin size={36} glow={0.3} />{EUR("400")}
+    </div>
+  );
+}
+
+function Intro({ t }: { t: number }) {
+  const meet = W("intro", "Meet"), he = W("intro", "He"), stranger = W("intro", "stranger");
+  const who = W("problem", "who") - 0.15, up = W("problem", "upfront"), never = W("problem", "never");
+  const ana = W("problem", "Ana") - 0.35, fake = W("problem", "fake"), before = P("problem", 3).end;
+  const so = W("turn", "So"), shk = W("turn", "shake"), hit = HIT.shake;
+  const s = t - hit;
+  const [sx, sy] = shake(s, 20);
+
+  // Ana's side of the story: the camera turns to her
+  const focus = lerp(t, [ana, ana + 0.7], [0, 1], io) * (1 - lerp(t, [so - 0.45, so + 0.15], [0, 1], io));
+  const samIn = spr(t, meet - 0.12, { stiffness: 170, damping: 17 }), anaIn = spr(t, W("intro", "from") - 0.05, { stiffness: 170, damping: 17 });
+  const anaX = ANA.x + (560 - ANA.x) * focus;
+  // the two of them become the two halves, and meet
+  const morph = lerp(t, [shk - 0.2, shk + 0.05]);
+  const rush = lerp(t, [shk - 0.05, hit], [0, 1], easeIn);
+  const S = 270, half = SAM.x - 960 + S * 0.18;
+  const leave = lerp(t, [W("flow", "Sam") - 0.7, W("flow", "Sam") - 0.15], [0, 1], io);
+
+  // the listing
+  const cardP = spr(t, he - 0.2, { stiffness: 150, damping: 22 });
+  const draw = lerp(t, [he - 0.05, he + 1.5], [0, 1], Easing.inOut(Easing.quad));
+  const gone = lerp(t, [never - 0.15, never + 0.5], [0, 1], io);
+  const cardO = lerp(t, [he - 0.2, he + 0.15]) * (1 - focus) * (1 - lerp(t, [so - 0.45, so]));
+  // the money: who goes first? Sam pays upfront… and the bike never shows
+  const chipP = spr(t, who, SPR.snappy);
+  const fly = lerp(t, [up - 0.05, up + 0.6], [0, 1], io);
+  const chip = (q: number) => ({ x: 612 + (CARD.x - 612) * q, y: SAM.y + 10 + (CARD.y - 60 - SAM.y - 10) * q - Math.sin(Math.PI * q) * 190 });
+  const wobble = Math.sin((t - who) * 10) * 9 * (1 - fly) * lerp(t, [who, who + 0.3]) * (1 - lerp(t, [up - 0.3, up]));
+  const swallowed = lerp(t, [up + 0.48, up + 0.62]);
+  const names = (1 - morph) * (1 - lerp(t, [so - 0.2, so + 0.1], [0, 0.4]));
+
+  // the opening shot: close on Sam, pulling back (and into focus) to reveal the deal
+  const dolly = interpolate(t, [0.2, 3.2], [1.45, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.16, 1, 0.3, 1) });
+  const focusPull = lerp(t, [0.3, 1.4], [7, 0]);
+  return (
+    <AbsoluteFill style={{ transform: `translate(${sx}px, ${sy}px) scale(${dolly})`, transformOrigin: `${SAM.x + 120}px ${SAM.y}px`, filter: focusPull > 0.2 ? `blur(${focusPull}px)` : undefined }}>
+      {/* who pays first? */}
+      <div style={{ position: "absolute", left: 0, right: 0, top: 108, display: "flex", justifyContent: "center", opacity: 1 - lerp(t, [ana - 0.1, ana + 0.3]) }}>
+        <Head t={t} size={96} align="center" parts={[["Who pays first?", who]]} />
       </div>
-      {[["Sam", "the buyer", l, -1, W("v01", "Sam")], ["Ana", "the seller", r, 1, W("v02", "Ana")]].map(([name, role, off, side, at]) => (
-        <div key={name as string} style={{ position: "absolute", left: nameX(off as number, side as -1 | 1), top: cy + S / 2 + 40, transform: "translateX(-50%)", textAlign: "center", opacity: names * dim }}>
-          <Words t={t} text={name as string} at={(at as number) - 0.05} size={78} />
-          <Rise t={t} at={(at as number) + 0.15}><div style={{ ...eyebrow, marginTop: 10 }}>{role as string}</div></Rise>
-        </div>
-      ))}
-      {/* what each of them won't do */}
-      <div style={{ position: "absolute", left: nameX(l, -1), top: cy + S / 2 + 190, width: 420, transform: "translateX(-50%)", textAlign: "center", opacity: names * dim }}>
-        <Words t={t} text="won't pay first." times={V("v04").words.slice(1, 4).map((w) => w.start)} size={38} color={C.ink2} weight={500} />
-      </div>
-      <div style={{ position: "absolute", left: nameX(r, 1), top: cy + S / 2 + 190, width: 440, transform: "translateX(-50%)", textAlign: "center", opacity: names * dim }}>
-        <Words t={t} text="won't hand it over for a screenshot." times={V("v04").words.slice(5).map((w) => w.start)} size={38} color={C.ink2} />
-      </div>
-      {/* strangers · one bike · €400 */}
-      <div style={{ position: "absolute", left: 0, right: 0, top: cy, transform: "translateY(-50%)", display: "flex", justifyContent: "center" }}>
-        <div style={{ position: "relative", width: 900, height: 260 }}>
-          {[["Strangers.", P("v03", 0).start, P("v03", 1).start], ["One bike.", P("v03", 1).start, P("v03", 2).start]].map(([txt, a, b]) => (
-            <div key={txt as string} style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center" }}>
-              <Words t={t} text={txt as string} at={(a as number) - 0.04} size={118} out={(b as number) - 0.12} />
+
+      {/* the listing Sam found */}
+      <div style={{ position: "absolute", left: CARD.x - 230, top: CARD.y - 245, width: 460, opacity: cardO, transform: `translateY(${(1 - cardP) * 70}px) scale(${0.94 + cardP * 0.06})` }}>
+        <div style={{ borderRadius: 34, overflow: "hidden", background: "linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.03))", border: `1.5px ${gone > 0.5 ? "dashed" : "solid"} rgba(255,255,255,${0.14 - gone * 0.04})`, boxShadow: `0 40px 120px rgba(0,0,0,.55), 0 0 ${80 * lerp(t, [up + 0.5, up + 0.6]) * (1 - gone)}px rgba(143,211,255,.35)`, backdropFilter: "blur(20px)" }}>
+          <div style={{ position: "relative", height: 270, display: "grid", placeItems: "center", background: "radial-gradient(70% 80% at 50% 60%, rgba(143,211,255,.12), transparent 70%)" }}>
+            <Bike p={draw * (1 - gone)} w={330} />
+            <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", fontFamily: F.display, fontWeight: 500, fontSize: 150, color: C.mute, opacity: gone * 0.7, transform: `scale(${0.8 + gone * 0.2})` }}>?</div>
+          </div>
+          <div style={{ padding: "22px 30px 28px" }}>
+            <div style={{ fontFamily: F.text, fontSize: 24, color: C.ink2 }}>City bike · like new</div>
+            <div style={{ fontFamily: F.display, fontWeight: 500, fontSize: 74, letterSpacing: "-0.05em", color: gone > 0.5 ? C.mute : C.ink, marginTop: 4 }}>
+              400<span style={{ fontSize: 50, marginLeft: 8, color: C.ink2 }}>€</span>
             </div>
-          ))}
-          <Price t={t} at={P("v03", 2).start} out={5.62} />
+            <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 14, fontFamily: F.text, fontSize: 19, color: C.mute }}>
+              <span style={{ width: 30, height: 30, borderRadius: 30, background: "linear-gradient(150deg,#d9f0ff,#8fd3ff)", display: "grid", placeItems: "center", fontFamily: F.display, fontWeight: 700, fontSize: 15, color: C.bg }}>A</span>
+              Ana · no reviews yet
+            </div>
+          </div>
         </div>
+        <div style={{ textAlign: "center", marginTop: 22, ...eyebrow, fontSize: 18, opacity: gone }}>The bike never shows</div>
       </div>
-      <FakeShot t={t} />
-      <Burst s={t - HIT.shake} x={cx} y={cy} />
-      {/* SHAKE */}
-      <div style={{ position: "absolute", left: 0, right: 0, top: cy + S / 2 + 70 - leave * 140, display: "flex", justifyContent: "center", gap: 2, opacity: 1 - leave }}>
+
+      {/* the money, deciding who goes first */}
+      {t > who - 0.05 && swallowed < 1 && (
+        <>
+          {fly > 0.02 && fly < 0.98 && [0.16, 0.11, 0.06].map((d, i) => { const q = chip(Math.max(0, fly - d)); return <MoneyChip key={i} x={q.x} y={q.y} o={0.12 + i * 0.08} s={0.92} blur={6 - i * 2} />; })}
+          <MoneyChip x={chip(fly).x + wobble} y={chip(fly).y} o={lerp(t, [who, who + 0.15]) * (1 - swallowed)} s={(0.6 + chipP * 0.4) * (1 - swallowed * 0.5)} />
+        </>
+      )}
+
+      {/* the fake screenshot Ana has seen before */}
+      <FakeShot t={t} a={ana + 0.35} lie={fake} gone={before + 0.15} />
+
+      {/* Sam and Ana */}
+      <Avatar x={SAM.x - focus * 260} y={SAM.y} letter="S" tone="sam" o={Math.min(samIn * 1.5, 1) * (1 - focus * 0.92) * (1 - morph)} s={samIn} />
+      <Avatar x={anaX} y={ANA.y} letter="A" tone="ana" o={Math.min(anaIn * 1.5, 1) * (1 - morph)} s={anaIn} lit={focus} />
+      <div style={{ position: "absolute", left: SAM.x - 200 - focus * 260, width: 400, top: SAM.y + R + 30, textAlign: "center", opacity: names * (1 - focus * 0.92) }}>
+        <Words t={t} text="Sam" at={meet} size={64} weight={700} />
+        <Rise t={t} at={meet + 0.2}><div style={{ ...eyebrow, marginTop: 12 }}>Buying</div></Rise>
+      </div>
+      <div style={{ position: "absolute", left: anaX - 220, width: 440, top: ANA.y + R + 30, textAlign: "center", opacity: names }}>
+        <Words t={t} text="Ana" at={W("intro", "from")} size={64} weight={700} />
+        <Rise t={t} at={stranger}><div style={{ ...eyebrow, marginTop: 12, color: C.safe }}>A total stranger</div></Rise>
+      </div>
+
+      {/* …and they shake on it */}
+      {morph > 0 && (
+        <div style={{ position: "absolute", left: 960 - S / 2, top: 520 - S / 2 - leave * 160, opacity: 1 - leave, transform: `scale(${1 - leave * 0.3})`, filter: rush > 0.55 && s < 0 ? `blur(${(rush - 0.55) * 9}px)` : undefined }}>
+          <Coin size={S} l={half * (1 - rush)} r={-half * (1 - rush)} lo={morph} ro={morph} shut={s >= 0 ? s : undefined} glow={s >= 0 ? 0.95 : 0.45} />
+        </div>
+      )}
+      <Burst s={s} x={960} y={520} />
+      <div style={{ position: "absolute", left: 0, right: 0, top: 520 + S / 2 + 46 - leave * 160, display: "flex", justifyContent: "center", opacity: 1 - leave }}>
         {"SHAKE".split("").map((ch, i) => {
-          const a = HIT.shake + 0.14 + i * 0.045, p = spr(t, a, SPR.snappy), o = lerp(t, [a, a + 0.18]);
-          return <span key={i} style={{ fontFamily: F.display, fontWeight: 700, fontSize: 64, letterSpacing: "0.3em", color: C.ink, opacity: o, transform: `translateY(${(1 - p) * 40}px)`, display: "inline-block" }}>{ch}</span>;
+          const a = hit + 0.14 + i * 0.045, p = spr(t, a, SPR.snappy), o = lerp(t, [a, a + 0.18]);
+          return <span key={i} style={{ fontFamily: F.display, fontWeight: 700, fontSize: 68, letterSpacing: "0.32em", marginRight: "-0.32em", color: C.ink, opacity: o, transform: `translateY(${(1 - p) * 40}px)`, display: "inline-block" }}>{ch}</span>;
         })}
       </div>
     </AbsoluteFill>
   );
 }
-function Price({ t, at, out }: { t: number; at: number; out: number }) {
-  const p = spr(t, at - 0.04, SPR.slam), o = Math.min(lerp(t, [at - 0.04, at + 0.18]), 1 - lerp(t, [out, out + 0.3]));
-  return (
-    <div style={{ position: "absolute", inset: 0, display: "grid", placeItems: "center", opacity: o }}>
-      <div style={{ fontFamily: F.display, fontWeight: 500, fontSize: 230, letterSpacing: "-0.06em", lineHeight: 0.9, transform: `scale(${0.7 + p * 0.3})`, ...glacier, filter: "drop-shadow(0 0 40px rgba(143,211,255,.35))" }}>
-        <span style={{ fontSize: 150, marginRight: 10 }}>€</span>400
-      </div>
-    </div>
-  );
-}
 
-/** the pitch's bank-app "Paid ✓" card (src/components/pitch/Story.tsx), torn apart by a glitch */
-function FakeShot({ t }: { t: number }) {
-  const a = 9.4, lie = W("v05", "lie") - 0.04, gone = 11.62;
-  if (t < a || t > gone + 0.5) return null;
-  const inn = spr(t, a, { stiffness: 210, damping: 20 });
-  const out = lerp(t, [gone, gone + 0.45], [0, 1], easeIn);
+/** a bank-app "Transfer complete ✓" screenshot, torn apart by a glitch: screenshots lie */
+function FakeShot({ t, a, lie, gone }: { t: number; a: number; lie: number; gone: number }) {
+  if (t < a || t > gone + 0.6) return null;
+  const inn = spr(t, a, { stiffness: 190, damping: 20 });
+  const out = lerp(t, [gone, gone + 0.5], [0, 1], easeIn);
   const g = t >= lie && t < gone ? 1 : 0;
   const f = Math.floor(t * FPS);
   const jit = (n: number) => (g ? (Math.sin(f * 12.9898 + n * 78.233) * 43758.5453) % 1 : 0);
@@ -112,14 +206,14 @@ function FakeShot({ t }: { t: number }) {
       <div style={{ display: "flex", justifyContent: "space-between", fontFamily: F.text, fontSize: 11, color: C.mute }}><span>Bank app</span><span>14:02</span></div>
       <div style={{ margin: "24px auto 0", width: 48, height: 48, borderRadius: 48, display: "grid", placeItems: "center", background: "rgba(52,211,153,.15)", color: "#6ee7b7", fontSize: 22 }}>✓</div>
       <div style={{ marginTop: 16, textAlign: "center", fontFamily: F.text, fontSize: 13, color: C.ink2 }}>Transfer complete</div>
-      <div style={{ marginTop: 4, textAlign: "center", fontFamily: F.display, fontWeight: 500, fontSize: 46, letterSpacing: "-0.06em", color: C.ink }}>€400.00</div>
+      <div style={{ marginTop: 4, textAlign: "center", fontFamily: F.display, fontWeight: 500, fontSize: 46, letterSpacing: "-0.05em", color: C.ink }}>400,00 €</div>
       <div style={{ marginTop: 4, textAlign: "center", fontFamily: F.text, fontSize: 13, color: C.mute }}>to Ana R. · ref 88213</div>
       <div style={{ marginTop: 24, borderRadius: 12, background: "rgba(255,255,255,.04)", padding: "10px 12px", fontFamily: F.text, fontSize: 12, color: C.ink2 }}>“Paid ✅ send the bike pls”</div>
     </div>
   );
-  const stamp = spr(t, lie + 0.08, SPR.slam);
+  const stamp = spr(t, lie + 0.1, SPR.slam);
   return (
-    <div style={{ position: "absolute", left: 960, top: 470, transform: `translate(-50%, -50%) translateY(${(1 - inn) * 380 + out * 420}px) rotate(${-4 + (1 - inn) * -10 + out * 14}deg) scale(1.9)`, opacity: Math.min(inn * 1.5, 1) * (1 - out) }}>
+    <div style={{ position: "absolute", left: 1210, top: 480, transform: `translate(-50%, -50%) translateY(${(1 - inn) * 420 + out * 460}px) rotate(${-5 + (1 - inn) * -12 + out * 16}deg) scale(1.75)`, opacity: Math.min(inn * 1.5, 1) * (1 - out) }}>
       <div style={{ position: "relative" }}>
         {g ? (
           <>
@@ -128,7 +222,6 @@ function FakeShot({ t }: { t: number }) {
           </>
         ) : null}
         <div style={{ transform: `translateX(${jit(3) * 6}px) skewX(${jit(4) * 6}deg)` }}>{card(g ? "saturate(.4) brightness(.85)" : undefined)}</div>
-        {/* torn slices */}
         {g
           ? [0.18, 0.41, 0.66, 0.83].map((y, i) => (
               <div key={i} style={{ position: "absolute", left: 0, right: 0, top: `${y * 100}%`, height: 8 + Math.abs(jit(i + 9)) * 22, overflow: "hidden", transform: `translateX(${jit(i + 5) * 46}px)`, opacity: 0.85 }}>
@@ -136,8 +229,8 @@ function FakeShot({ t }: { t: number }) {
               </div>
             ))
           : null}
-        {t >= lie + 0.08 && (
-          <div style={{ position: "absolute", left: "50%", top: "50%", transform: `translate(-50%, -50%) rotate(-12deg) scale(${2.2 - stamp * 1.2})`, opacity: lerp(t, [lie + 0.08, lie + 0.16]), border: `3px solid ${C.danger}`, borderRadius: 12, padding: "8px 22px", fontFamily: F.mono, fontWeight: 700, fontSize: 34, letterSpacing: "0.18em", color: C.danger, background: "rgba(13,15,18,.55)", whiteSpace: "nowrap", boxShadow: `0 0 30px rgba(255,69,58,.35)` }}>
+        {t >= lie + 0.1 && (
+          <div style={{ position: "absolute", left: "50%", top: "50%", transform: `translate(-50%, -50%) rotate(-12deg) scale(${2.2 - stamp * 1.2})`, opacity: lerp(t, [lie + 0.1, lie + 0.18]), border: `3px solid ${C.danger}`, borderRadius: 12, padding: "8px 22px", fontFamily: F.mono, fontWeight: 700, fontSize: 34, letterSpacing: "0.18em", color: C.danger, background: "rgba(13,15,18,.6)", whiteSpace: "nowrap", boxShadow: `0 0 30px rgba(255,69,58,.35)` }}>
             FAKE
           </div>
         )}
@@ -146,220 +239,197 @@ function FakeShot({ t }: { t: number }) {
   );
 }
 
-/* ───────── 2 · Sam locks the money ───────── */
-function Lock({ t }: { t: number }) {
-  const a = 13.25, tap = W("v07", "tap") - 0.05, steps = W("v07", "No");
-  const p = spr(t, a, { stiffness: 140, damping: 22 });
-  const k = 400 / 393;
-  const press = lerp(t, [tap - 0.2, tap - 0.05]) * (1 - lerp(t, [tap + 0.15, tap + 0.35]));
-  const ripple = lerp(t, [tap, tap + 0.5]);
-  return (
-    <>
-      <Stage x={620} y={560 + (1 - p) * 760} rx={4 + (1 - p) * 18} ry={14 - lerp(t, [a, 17], [0, 6])} rz={-1}>
-        <Phone w={400} glow={0.5} layers={cuts(t, [[a, "d-pay.png"], [tap, "d-picked.png"], [steps, "d-locking.png"], [steps + 0.75, "d-locking2.png"]])}>
-          <div style={{ position: "absolute", left: 108 * k - 34, top: (433 + 50) * k - 34, width: 68, height: 68, borderRadius: 68, background: "rgba(255,255,255,.35)", opacity: press, transform: `scale(${0.6 + press * 0.4})` }} />
-          {ripple > 0 && ripple < 1 && <div style={{ position: "absolute", left: 108 * k - 90 * ripple, top: (433 + 50) * k - 90 * ripple, width: 180 * ripple, height: 180 * ripple, borderRadius: 999, border: `2px solid ${C.safe}`, opacity: 1 - ripple }} />}
-        </Phone>
-      </Stage>
-      <Col x={1060} y={540}>
-        <Rise t={t} at={13.45}><div style={{ ...eyebrow, color: C.safe, marginBottom: 18 }}>Sam · the buyer</div></Rise>
-        <Say t={t} id="v07" i={0} size={96} />
-        <Say t={t} id="v07" i={1} size={96} grad />
-        <Say t={t} id="v07" i={2} size={96} color={C.ink2} />
-        <Rise t={t} at={steps + 0.35} style={{ marginTop: 34 }}><Chip tone="mute">Test mode · real Stellar transactions</Chip></Rise>
-      </Col>
-    </>
-  );
-}
-
-/* ───────── 3 · Ana sees it's real ───────── */
-function Proof({ t }: { t: number }) {
-  const a = 16.78, zoom = W("v08", "Locked") - 0.1;
-  const p = spr(t, a, { stiffness: 140, damping: 22 });
-  const z = lerp(t, [zoom, zoom + 0.9], [1, 1.12]);
-  return (
-    <>
-      <Stage x={1300 + (1 - p) * 900} y={560} rx={4} ry={-14 + lerp(t, [a, 21], [0, 5])} rz={1}>
-        <Phone w={400} glow={0.4 + lerp(t, [W("v08", "real") - 0.1, W("v08", "real") + 0.4]) * 0.6} layers={[{ src: "d-seller.png", o: 1, scale: z, origin: "50% 45%" }]} />
-      </Stage>
-      <Col x={150} y={540}>
-        <Rise t={t} at={a + 0.2}><div style={{ ...eyebrow, color: C.safe, marginBottom: 18 }}>Ana · the seller</div></Rise>
-        <Say t={t} id="v08" i={0} size={92} />
-        <Say t={t} id="v08" i={1} size={92} grad />
-        <Say t={t} id="v08" i={2} size={92} color={C.ink2} />
-        <Rise t={t} at={W("v08", "Stellar")} style={{ marginTop: 34 }}><Chip>Read live · contract CAQ6…2JW</Chip></Rise>
-      </Col>
-    </>
-  );
-}
-
-/* ───────── 4 · they meet, scan, hold… paid ───────── */
-function Meet({ t }: { t: number }) {
-  const a = 21.0, scan = W("v09", "scans"), turn = W("v09", "and") - 0.1, hold = W("v09", "holds") - 0.05, paid = HIT.paid;
-  const pin = spr(t, a, { stiffness: 120, damping: 22 });
-  const slam = spr(t, paid, SPR.slam);
+/* ───────── 2 · lock → Ana sees it → they meet → paid. One continuous camera, real screens. ───────── */
+function Flow({ t }: { t: number }) {
+  const a = W("flow", "Sam") - 0.5, tap = W("flow", "tap") - 0.12;
+  const ana = W("flow", "Ana") - 0.32, real = W("flow", "real"), locked = W("flow", "locked");
+  const meet = W("flow", "They") - 0.3, scans = W("flow", "scans"), her = W("flow", "her") - 0.05;
+  const hold = P("flow", 2).end - 0.12, paid = HIT.paid;
   const s = t - paid;
   const [sx, sy] = shake(s, 16);
-  const push = lerp(t, [a, paid], [1, 1.07], Easing.inOut(Easing.quad)) - (t > paid ? lerp(t, [paid, paid + 0.6], [0, 0.07]) : 0);
-  const w = 362, k = w / 393;
-  const turnP = spr(t, turn, { stiffness: 160, damping: 24 });
-  const samRy = t < turn ? 58 : 58 - turnP * 46;
+  const rise = spr(t, a, { stiffness: 110, damping: 20 });
+  const away = lerp(t, [ana, ana + 0.75], [0, 1], io), back = lerp(t, [meet, meet + 0.8], [0, 1], io);
+  const samX = 720 - 1080 * away + 1050 * back, phoneY = 560 + 60 * back, samY = phoneY + (1 - rise) * 820;
+  const anaX = 2300 - 1080 * lerp(t, [ana, ana + 0.75], [0, 1], io) + 20 * back;
+  const k = 420 / 393;
+  // overlays are in the phone's own pixels, then shifted by the status bar the frame draws on top
+  const tapAt = { x: 107, y: 520 + 50 }; // Apple Pay, measured on d-pay.png
+  const holdAt = { x: 199, y: 557 + 50 }; // the coin, measured on the hold frames
+  // Sam's phone faces Ana's while it scans, then turns back so we see him hold
+  const turn = spr(t, her, { stiffness: 150, damping: 24 });
+  const samRy = 13 * (1 - back) + back * (t < her ? 34 : 34 - turn * 26);
+  const anaRy = -13 - back * 10;
   const tension = lerp(t, [hold, paid]);
-  const qrTop = (402 + 50) * k, qrH = (685 - 402) * k, qrL = 55 * k, qrW = (338 - 55) * k;
-  const beam = win(t, scan - 0.05, W("v09", "and"), 0.15, 0.25);
-  const sweep = ((t - scan) / 0.55) % 1;
-  const samX = 690 - (1 - pin) * 900 + slam * 70, anaX = 1230 + (1 - pin) * 900 - slam * 70;
+  const push = 1 + lerp(t, [meet + 0.6, paid], [0, 0.06], Easing.inOut(Easing.quad)) - (s > 0 ? lerp(s, [0, 0.7], [0, 0.06]) : 0);
+  const midX = (samX + anaX) / 2;
+  const scale = 1 - 0.2 * back;
+  const beam = win(t, scans - 0.15, her + 0.05, 0.15, 0.2);
+  const sweep = ((t - scans + 0.15) / 0.55) % 1;
+  const press = lerp(t, [tap - 0.18, tap - 0.04]) * (1 - lerp(t, [tap + 0.12, tap + 0.3]));
+  const ripple = lerp(t, [tap, tap + 0.5]);
+  const flash = s >= 0 ? lerp(s, [0, 0.35], [0.7, 0]) : 0;
+  const qr = { l: 55 * k, t: (412 + 50) * k, w: 282 * k, h: 272 * k }; // the white code on d-qr.png
+
   return (
-    <AbsoluteFill style={{ transform: `translate(${sx}px, ${sy}px) scale(${push})` }}>
-      {/* headline */}
-      <div style={{ position: "absolute", left: 0, right: 0, top: 70, display: "flex", justifyContent: "center", alignItems: "baseline", gap: 30 }}>
-        {t < paid - 0.1 ? (
+    <AbsoluteFill style={{ transform: `translate(${sx}px, ${sy}px)` }}>
+      {/* 2a · Sam locks */}
+      <div style={{ position: "absolute", left: 1120, top: 540, transform: `translate(${-away * 900}px, -50%)`, opacity: lerp(t, [a + 0.2, a + 0.5]) * (1 - lerp(t, [ana, ana + 0.4])) }}>
+        <Rise t={t} at={a + 0.3}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>Sam · buying</div></Rise>
+        <Head t={t} size={104} parts={[[`Locks ${EUR("400")}`, W("flow", "locks")], ["in one tap.", W("flow", "one"), "grad"]]} />
+        <Rise t={t} at={tap + 0.35} style={{ marginTop: 34, fontFamily: F.text, fontSize: 28, color: C.ink2 }}>No sign-up. No app to install.</Rise>
+      </div>
+      {/* 2b · Ana sees it */}
+      <div style={{ position: "absolute", left: 150, top: 540, transform: `translate(${(1 - lerp(t, [ana, ana + 0.75], [0, 1], io)) * 900 - back * 900}px, -50%)`, opacity: lerp(t, [ana + 0.2, ana + 0.5]) * (1 - lerp(t, [meet, meet + 0.35])) }}>
+        <Rise t={t} at={ana + 0.3}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>Ana · selling</div></Rise>
+        <Head t={t} size={104} parts={[["Sees it's real.", W("flow", "sees")], ["Locked on Stellar.", locked, "grad"]]} />
+        <Rise t={t} at={locked + 0.3} style={{ marginTop: 34, fontFamily: F.text, fontSize: 28, color: C.ink2 }}>Real money. Not a screenshot.</Rise>
+      </div>
+      {/* 2c · they meet */}
+      <div style={{ position: "absolute", left: 0, right: 0, top: 34, display: "flex", justifyContent: "center", alignItems: "baseline", gap: 28, zIndex: 2 }}>
+        {t < paid - 0.05 ? (
           <>
-            <Say t={t} id="v09" i={0} size={64} out={paid - 0.35} />
-            <Say t={t} id="v09" i={1} size={64} color={C.ink2} out={paid - 0.35} />
-            <Say t={t} id="v09" i={2} size={64} grad out={paid - 0.35} />
+            <Words t={t} text="They meet." at={W("flow", "They") - 0.08} size={64} out={paid - 0.3} />
+            <Words t={t} text="Sam scans." at={scans - 0.1} size={64} color={C.mute} out={paid - 0.3} />
           </>
         ) : (
           <>
-            <Say t={t} id="v10" i={0} size={120} grad />
-            <Say t={t} id="v10" i={1} size={64} />
+            <Words t={t} text="Paid." at={paid + 0.02} size={112} grad weight={500} />
+            <Words t={t} text="Only face to face." at={paid + 0.32} size={64} />
           </>
         )}
       </div>
-      {/* light from Sam's camera to Ana's code */}
-      <div style={{ position: "absolute", inset: 0, opacity: beam * 0.8, background: `linear-gradient(90deg, transparent ${(samX + 80) / 19.2}%, rgba(143,211,255,.22) ${(anaX - 200) / 19.2}%, transparent ${(anaX - 40) / 19.2}%)`, clipPath: `polygon(${samX + 90}px 560px, ${anaX - 160}px ${600 - qrH * 0.6}px, ${anaX - 160}px ${600 + qrH * 0.4}px)`, filter: "blur(6px)" }} />
-      <Stage x={samX} y={640} ry={samRy + (t > paid ? -slam * 4 : 0)} rx={3}>
-        <Phone w={w} glow={0.3 + tension * 0.7} layers={cuts(t, [[a, "d-scan0.png"], [turn, "d-confirm.png"], [hold, "d-hold0.png"], [hold + 0.35, "d-hold1.png"], [hold + 0.8, "d-hold2.png"], [paid, "d-shaken3.png"]], 0.1)}>
-          {t < turn + 0.12 && <Viewfinder k={k} t={t} />}
-          {t > hold - 0.2 && t < paid && <div style={{ position: "absolute", left: 196 * k - 34, top: (621 + 50) * k - 34, width: 68, height: 68, borderRadius: 68, background: "rgba(255,255,255,.3)", boxShadow: "0 0 30px rgba(143,211,255,.6)", opacity: lerp(t, [hold - 0.2, hold]) }} />}
-          <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: lerp(s, [0, 0.35], [0.7, 0]) * (s >= 0 ? 1 : 0) }} />
-        </Phone>
-      </Stage>
-      <Stage x={anaX} y={640} ry={-22 + slam * 10} rx={3}>
-        <Phone w={w} glow={0.35 + (s > 0 ? 0.6 : 0)} layers={cuts(t, [[a, "d-qr.png"], [paid, "d-seller-paid.png"]], 0.1)}>
-          {beam > 0.01 && (
-            <div style={{ position: "absolute", left: qrL, top: qrTop, width: qrW, height: qrH, opacity: beam }}>
-              {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y], i) => (
-                <div key={i} style={{ position: "absolute", [x ? "right" : "left"]: -6, [y ? "bottom" : "top"]: -6, width: 34, height: 34, borderColor: C.safe, borderStyle: "solid", borderWidth: `${y ? 0 : 4}px ${x ? 4 : 0}px ${y ? 4 : 0}px ${x ? 0 : 4}px`, borderRadius: 6, boxShadow: `0 0 16px ${C.safe}` } as React.CSSProperties} />
-              ))}
-              <div style={{ position: "absolute", left: 0, right: 0, top: `${Math.max(0, sweep) * 100}%`, height: 4, background: C.safe, boxShadow: `0 0 24px 6px rgba(143,211,255,.7)` }} />
-            </div>
-          )}
-          <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: lerp(s, [0, 0.35], [0.7, 0]) * (s >= 0 ? 1 : 0) }} />
-        </Phone>
-      </Stage>
-      {/* the handshake: the halves pull apart while Sam holds, then slam */}
-      <div style={{ position: "absolute", left: (samX + anaX) / 2 - 70, top: 600 - 70, opacity: lerp(t, [hold - 0.3, hold]) * (1 - lerp(s, [0.9, 1.3])) }}>
-        <Coin size={140} gap={t < paid ? 6 + tension * 26 : 0} tension={t < paid ? tension * 0.4 : 0} shut={s >= 0 ? s : undefined} glow={0.4 + tension * 0.6} />
+
+      <div style={{ position: "absolute", inset: 0, transform: `scale(${push})` }}>
+        {/* light from Sam's camera to Ana's code */}
+        <div style={{ position: "absolute", inset: 0, opacity: beam * 0.75, background: "linear-gradient(90deg, transparent, rgba(143,211,255,.25), transparent)", clipPath: `polygon(${samX + 100}px ${phoneY + 40}px, ${anaX - 140}px ${phoneY + 40 - qr.h * 0.45}px, ${anaX - 140}px ${phoneY + 40 + qr.h * 0.35}px)`, filter: "blur(8px)" }} />
+        <Stage x={samX} y={samY} ry={samRy + Math.sin(t * 0.7) * 2} rx={3 + Math.sin(t * 0.5) * 1.2} s={scale}>
+          <Phone w={420} glow={0.35 + tension * 0.7} layers={cuts(t, [[a, "d-pay.png"], [tap, "d-picked.png"], [tap + 0.42, "d-locking.png"], [tap + 0.95, "d-locking2.png"], [ana - 0.15, "d-share.png"], [meet, "d-scan0.png"], [her, "d-confirm.png"], [hold, "d-hold0.png"], [hold + 0.25, "d-hold1.png"], [hold + 0.5, "d-hold2.png"], [paid, "d-shaken3.png"]], 0.12)}>
+            <div style={{ position: "absolute", left: tapAt.x * k - 36, top: tapAt.y * k - 36, width: 72, height: 72, borderRadius: 72, background: "rgba(255,255,255,.38)", opacity: press, transform: `scale(${0.6 + press * 0.4})` }} />
+            {ripple > 0 && ripple < 1 && <div style={{ position: "absolute", left: tapAt.x * k - 95 * ripple, top: tapAt.y * k - 95 * ripple, width: 190 * ripple, height: 190 * ripple, borderRadius: 999, border: `2px solid ${C.safe}`, opacity: 1 - ripple }} />}
+            {t > hold - 0.2 && t < paid && <div style={{ position: "absolute", left: holdAt.x * k - 38, top: holdAt.y * k - 38, width: 76, height: 76, borderRadius: 76, background: "rgba(255,255,255,.3)", boxShadow: "0 0 34px rgba(143,211,255,.7)", opacity: lerp(t, [hold - 0.2, hold]) }} />}
+            <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: flash }} />
+          </Phone>
+        </Stage>
+        <Stage x={anaX} y={phoneY} ry={anaRy} rx={3} s={scale}>
+          <Phone w={420} glow={0.35 + lerp(t, [real - 0.1, real + 0.4]) * 0.5 * (1 - back) + (s > 0 ? 0.6 : 0)} layers={cuts(t, [[ana, "d-seller.png"], [meet + 0.15, "d-qr.png"], [paid, "d-seller-paid.png"]], 0.14)}>
+            {beam > 0.01 && (
+              <div style={{ position: "absolute", left: qr.l, top: qr.t, width: qr.w, height: qr.h, opacity: beam }}>
+                {[[0, 0], [1, 0], [0, 1], [1, 1]].map(([x, y], i) => (
+                  <div key={i} style={{ position: "absolute", [x ? "right" : "left"]: -6, [y ? "bottom" : "top"]: -6, width: 36, height: 36, borderColor: C.safe, borderStyle: "solid", borderWidth: `${y ? 0 : 4}px ${x ? 4 : 0}px ${y ? 4 : 0}px ${x ? 0 : 4}px`, borderRadius: 6, boxShadow: `0 0 16px ${C.safe}` } as React.CSSProperties} />
+                ))}
+                <div style={{ position: "absolute", left: 0, right: 0, top: `${Math.max(0, sweep) * 100}%`, height: 4, background: C.safe, boxShadow: `0 0 24px 6px rgba(143,211,255,.7)` }} />
+              </div>
+            )}
+            <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: flash }} />
+          </Phone>
+        </Stage>
+        {/* the handshake: the halves pull apart while Sam holds, then slam */}
+        <div style={{ position: "absolute", left: midX - 80, top: phoneY + 40 - 80, opacity: lerp(t, [hold - 0.25, hold]) * (1 - lerp(s, [0.9, 1.3])) }}>
+          <Coin size={160} gap={t < paid ? 8 + tension * 30 : 0} tension={t < paid ? tension * 0.45 : 0} shut={s >= 0 ? s : undefined} glow={0.4 + tension * 0.6} />
+        </div>
+        <Burst s={s} x={midX} y={phoneY + 40} scale={1.1} />
       </div>
-      <Burst s={s} x={(samX + anaX) / 2} y={600} scale={1.1} />
+
+      <Label t={t} a={tap + 0.5} b={ana + 0.2}>Apple Pay, cards or MB WAY · no account</Label>
+      <Label t={t} a={locked + 0.1} b={meet + 0.1}>Read live from the Stellar network</Label>
+      <Label t={t} a={paid + 0.4} b={W("more", "No") - 0.3}>Released in about 5 seconds · on-chain receipt</Label>
     </AbsoluteFill>
   );
 }
 
-/** Sam's camera, filming Ana's phone, until he turns his phone to hold */
-function Viewfinder({ k, t }: { k: number; t: number }) {
-  const sc = 0.55, box = { l: 18 * k, t: 130 * k, w: 357 * k, h: 698 * k };
-  const pw = 393 * sc * k, ph = 852 * sc * k;
-  return (
-    <div style={{ position: "absolute", left: box.l, top: box.t, width: box.w, height: box.h, borderRadius: 30 * k, overflow: "hidden", background: "radial-gradient(80% 70% at 50% 45%, #1a2230, #050607)" }}>
-      <div style={{ position: "absolute", left: box.w / 2 - pw / 2 + Math.sin(t * 3) * 3 * k, top: box.h / 2 - ph / 2 + Math.cos(t * 2.3) * 3 * k, width: pw, height: ph, borderRadius: 30 * sc * k, overflow: "hidden", border: `${3 * k}px solid #22262c`, transform: "rotate(-4deg)", filter: "blur(0.5px)" }}>
-        <Img src={staticFile("shots/d-qr.png")} style={{ width: pw, height: ph }} />
-      </div>
-      {/* the scanner's frame */}
-      <div style={{ position: "absolute", left: box.w * 0.2, top: box.h * 0.28, width: box.w * 0.6, height: box.w * 0.6, borderRadius: 18 * k, boxShadow: `0 0 0 ${1.5 * k}px rgba(143,211,255,.9), 0 0 ${24 * k}px rgba(143,211,255,.5)` }} />
-      <div style={{ position: "absolute", inset: 0, background: "radial-gradient(75% 65% at 50% 50%, transparent 55%, rgba(0,0,0,.6))" }} />
-    </div>
-  );
-}
-
-/* ───────── 5 · the montage: no signal, the extension, the AI, the crew ───────── */
+/* ───────── 3 · no signal · inside Vinted and OLX · Claude and ChatGPT ───────── */
 function NoSignal({ t }: { t: number }) {
-  const a = 27.15;
-  const p1 = spr(t, a, { stiffness: 150, damping: 22 }), p2 = spr(t, a + 0.12, { stiffness: 150, damping: 22 });
-  const paid = W("v11", "Still") - 0.1;
+  const a = W("more", "No") - 0.3, still = W("more", "Still") - 0.08;
+  const p1 = spr(t, a, { stiffness: 140, damping: 22 }), p2 = spr(t, a + 0.1, { stiffness: 140, damping: 22 });
   return (
     <>
-      <Col x={150} y={520}>
-        <Rise t={t} at={a + 0.05}><div style={{ marginBottom: 22, width: 92, height: 92, borderRadius: 92, display: "grid", placeItems: "center", border: `1px solid ${C.safe}55`, background: `${C.safe}14`, boxShadow: `0 0 40px rgba(143,211,255,.25)` }}><Plane size={46} /></div></Rise>
-        <Say t={t} id="v11" i={0} size={110} />
-        <Say t={t} id="v11" i={1} size={110} grad />
-        <Rise t={t} at={paid + 0.35} style={{ marginTop: 30 }}>
-          <div style={{ ...eyebrow, fontSize: 19, lineHeight: 1.7 }}>Each phone holds half the key<br />Lands on Stellar when back online</div>
-        </Rise>
-      </Col>
-      <Stage x={1170 + (1 - p1) * 800} y={545} ry={12} rx={3}>
-        <Phone w={300} airplane layers={[{ src: "o-half.png", o: 1 }]} glow={0.4} />
+      <div style={{ position: "absolute", left: 150, top: 520, transform: "translateY(-50%)" }}>
+        <Rise t={t} at={a + 0.05}><div style={{ marginBottom: 26, width: 96, height: 96, borderRadius: 96, display: "grid", placeItems: "center", border: `1px solid ${C.safe}55`, background: `${C.safe}14`, boxShadow: `0 0 40px rgba(143,211,255,.25)` }}><Plane size={48} /></div></Rise>
+        <Head t={t} size={118} parts={[["No signal?", W("more", "No")], ["Still works.", still, "grad"]]} />
+      </div>
+      <Stage x={1130 + (1 - p1) * 900} y={545} ry={12} rx={3}>
+        <Phone w={320} airplane layers={[{ src: "o-half.png", o: 1 }]} glow={0.4} />
       </Stage>
-      <Stage x={1560 + (1 - p2) * 800} y={545} ry={-12} rx={3}>
-        <Phone w={300} airplane layers={cuts(t, [[a, "o-seller-qr.png"], [paid, "o-paid1.png"]])} glow={0.4 + lerp(t, [paid, paid + 0.3]) * 0.5} />
+      <Stage x={1550 + (1 - p2) * 900} y={545} ry={-12} rx={3}>
+        <Phone w={320} airplane layers={cuts(t, [[a, "o-seller-qr.png"], [still - 0.3, "o-paid0.png"], [still + 0.12, "o-paid1.png"]])} glow={0.4 + lerp(t, [still, still + 0.3]) * 0.5} />
       </Stage>
-      <Burst s={(t - paid) * 1.3} x={1560} y={500} scale={0.5} />
+      <Burst s={(t - still) * 1.3} x={1550} y={500} scale={0.5} />
+      <Label t={t} a={still + 0.3} b={W("more", "It's") - 0.1}>Each phone holds half the key · lands on Stellar later</Label>
     </>
   );
 }
 
+// Every marketplace the extension actually reads a listing from (extension/extract.js).
+const MARKETS: [string, string][] = [
+  ["Vinted", "vinted.pt"], ["OLX", "olx.pt"], ["Wallapop", "wallapop.com"], ["Depop", "depop.com"],
+  ["eBay", "ebay.com"], ["Etsy", "etsy.com"], ["Gumtree", "gumtree.com"], ["Leboncoin", "leboncoin.fr"],
+  ["Marktplaats", "marktplaats.nl"], ["Kleinanzeigen", "kleinanzeigen.de"], ["Facebook", "facebook.com"], ["Mercari", "mercari.com"],
+  ["Poshmark", "poshmark.com"], ["OfferUp", "offerup.com"], ["Craigslist", "craigslist.org"], ["Carousell", "carousell.sg"],
+];
+
+/** the extension: one beat names Vinted and OLX, the screen shows everywhere else it already works */
 function Extension({ t }: { t: number }) {
-  const a = 29.1, p = spr(t, a, { stiffness: 140, damping: 22 });
-  const click = W("v12", "OLX") + 0.15;
-  const W0 = 1000, crop = 125, sc = W0 / 1280;
-  const ripple = lerp(t, [click, click + 0.5]);
-  const shops = ["Vinted", "OLX", "eBay", "Wallapop", "Depop", "Etsy", "Facebook Marketplace", "+9 more"];
+  const a = W("more", "It's") - 0.3, vinted = W("more", "Vinted"), olx = W("more", "OLX");
+  const p = spr(t, a, { stiffness: 130, damping: 22 });
+  const icon = spr(t, vinted - 0.15, { stiffness: 170, damping: 22 });
+  const sweep = Math.min(13, Math.floor(lerp(t, [a + 0.08, vinted - 0.08]) * 14));
+  const lit = t >= olx - 0.06 ? "OLX" : t >= vinted - 0.06 ? "Vinted" : MARKETS[sweep + 2][0];
+  const host = MARKETS.find((m) => m[0] === lit)?.[1] ?? "vinted.pt";
   return (
     <>
-      <Col x={150} y={500} w={720}>
-        <Rise t={t} at={a + 0.05}><div style={{ ...eyebrow, color: C.safe, marginBottom: 18 }}>Found it? Shake on it.</div></Rise>
-        <Say t={t} id="v12" i={0} size={96} />
-        <div style={{ display: "flex", flexWrap: "wrap", gap: 10, marginTop: 34, maxWidth: 660 }}>
-          {shops.map((s, i) => (
-            <Rise key={s} t={t} at={W("v12", "OLX") + 0.05 + i * 0.05}>
-              <div style={{ padding: "9px 18px", borderRadius: 999, border: `1px solid ${C.line}`, background: "rgba(255,255,255,.04)", fontFamily: F.text, fontSize: 20, color: i < 2 ? C.ink : C.ink2 }}>{s}</div>
-            </Rise>
-          ))}
-        </div>
-      </Col>
-      <Stage x={1370 + (1 - p) * 700} y={540} ry={-10 + (1 - p) * -12} rx={3}>
-        <div style={{ width: W0, borderRadius: 18, overflow: "hidden", background: "#0b0c0e", border: "1px solid rgba(255,255,255,.14)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.18)" }}>
-          <div style={{ height: 46, display: "flex", alignItems: "center", gap: 8, padding: "0 16px", background: "#1b1e23" }}>
+      <div style={{ position: "absolute", left: 150, top: 520, transform: "translateY(-50%)" }}>
+        <Rise t={t} at={a + 0.1}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>Browser extension</div></Rise>
+        <Head t={t} size={110} parts={[["Right inside", W("more", "right")], ["Vinted & OLX.", vinted, "grad"]]} />
+      </div>
+      <Stage x={1330 + (1 - p) * 900} y={545} ry={-9} rx={3}>
+        <div style={{ width: 980, borderRadius: 20, overflow: "hidden", background: "#f3f4f6", border: "1px solid rgba(255,255,255,.14)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.16)", fontFamily: F.text }}>
+          <div style={{ height: 50, display: "flex", alignItems: "center", gap: 8, padding: "0 18px", background: "#1b1e23" }}>
             {["#ff5f57", "#febc2e", "#28c840"].map((c) => <i key={c} style={{ width: 12, height: 12, borderRadius: 12, background: c }} />)}
-            <div style={{ marginLeft: 18, flex: 1, height: 28, borderRadius: 8, background: "rgba(255,255,255,.07)", display: "flex", alignItems: "center", padding: "0 12px", fontFamily: F.text, fontSize: 14, color: C.mute }}>a second-hand listing</div>
-            <div style={{ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(143,211,255,.15)" }}><Coin size={20} gap={1} glow={0.2} /></div>
+            <div style={{ marginLeft: 18, flex: 1, height: 30, borderRadius: 8, background: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", padding: "0 14px", fontSize: 15, color: C.ink2 }}>{host}</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(143,211,255,.18)", boxShadow: `0 0 ${18 * icon}px rgba(143,211,255,.55)`, transform: `scale(${0.9 + icon * 0.1})` }}><Coin size={20} gap={1} glow={0.2} /></div>
           </div>
-          <div style={{ position: "relative", height: (720 - crop) * sc, overflow: "hidden" }}>
-            <Img src={staticFile("shots/extension-preview.png")} style={{ width: W0, display: "block", marginTop: -crop * sc }} />
-            {ripple > 0 && ripple < 1 && <div style={{ position: "absolute", left: 1083 * sc - 120 * ripple, top: (591 - crop) * sc - 120 * ripple, width: 240 * ripple, height: 240 * ripple, borderRadius: 999, border: `3px solid ${C.safe}`, opacity: 1 - ripple }} />}
+          <div style={{ height: 560, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
+            {MARKETS.map(([name, domain], i) => {
+              const on = name === lit;
+              const inn = spr(t, a + i * 0.04, SPR.snappy);
+              return (
+                <div key={name} style={{ borderRadius: 16, background: on ? "#0d0f12" : "#fff", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 16px", opacity: inn, transform: `translateY(${(1 - inn) * 18}px) scale(${on ? 1.03 : 1})`, boxShadow: on ? "0 0 0 2px #8fd3ff, 0 0 32px rgba(143,211,255,.4)" : "0 8px 18px rgba(15,23,42,.06)" }}>
+                  <div style={{ fontFamily: F.display, fontWeight: 500, fontSize: name.length > 11 ? 22 : 28, letterSpacing: "-0.03em", color: on ? C.ink : "#0f172a", lineHeight: 1 }}>{name}</div>
+                  <div style={{ marginTop: 6, fontSize: 13, color: on ? C.safe : "#64748b" }}>{on ? "Pay safely with SHAKE" : domain}</div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </Stage>
+      <Label t={t} a={a + 0.45} b={W("more", "Claude") - 0.2}>16 marketplaces. The same extension.</Label>
     </>
   );
 }
 
 type Beat = { at: number; k: "you" | "tool" | "shake"; text: string; refused?: boolean; link?: boolean };
+/** Claude or ChatGPT with the SHAKE MCP server: it does the work, never the money (same story as /ai) */
 function Ai({ t }: { t: number }) {
-  const a = 31.25, p = spr(t, a, { stiffness: 140, damping: 22 });
-  const ask = W("v13", "everything") - 0.4, refuse = W("v13", "except") - 0.05;
+  const a = W("more", "Claude") - 0.4, p = spr(t, a, { stiffness: 130, damping: 22 });
+  const ask = W("more", "but") - 0.35, refuse = W("more", "touch") - 0.1;
   const beats: Beat[] = [
-    { at: 31.55, k: "you", text: "Vinted seller wants a €4 courier fee by link first. Safe?" },
-    { at: 32.2, k: "tool", text: "check_seller_message" },
-    { at: 32.6, k: "shake", text: "No. Fake courier fee is a known trick. Pay through this instead:", link: true },
-    { at: ask, k: "you", text: "Locked it. Now release the €60 to her." },
-    { at: ask + 0.7, k: "tool", text: "release_payment", refused: true },
-    { at: refuse, k: "shake", text: "I can’t. Nobody can. Only your phone, scanning her QR, when you meet.", refused: true },
+    { at: a + 0.35, k: "you", text: `Buying a bike from a stranger on OLX, ${EUR("400")}. Make it safe.` },
+    { at: a + 1.05, k: "tool", text: "create_deal" },
+    { at: a + 1.45, k: "shake", text: "Done. Lock it here. It only releases when you two meet.", link: true },
+    { at: ask, k: "you", text: "Now send her the money." },
+    { at: ask + 0.45, k: "tool", text: "release_payment", refused: true },
+    { at: refuse, k: "shake", text: "I can’t. Nobody can. Only your phone, scanning her QR, face to face.", refused: true },
   ];
-  const locked = t >= ask, refused = t >= refuse;
+  const locked = t >= ask - 0.3, refused = t >= refuse;
   const nudge = refused ? Math.sin((t - refuse) * 60) * 9 * (1 - lerp(t, [refuse, refuse + 0.45])) : 0;
   return (
     <>
-      <Col x={150} y={520} w={760}>
-        <Rise t={t} at={a + 0.05}><div style={{ ...eyebrow, color: C.safe, marginBottom: 18 }}>Claude · ChatGPT · Cursor</div></Rise>
-        <div style={{ opacity: 1 - lerp(t, [W("v13", "It"), W("v13", "It") + 0.3], [0, 0.55]) }}><Say t={t} id="v13" i={0} size={84} /></div>
-        <Say t={t} id="v13" i={1} size={84} color={C.ink2} />
-        <Say t={t} id="v13" i={2} size={84} grad />
-        <Rise t={t} at={refuse + 0.4} style={{ marginTop: 30 }}><Chip>MCP server · holds no keys</Chip></Rise>
-      </Col>
-      <Stage x={1390 + (1 - p) * 700} y={545} ry={-9} rx={3}>
-        <div style={{ width: 780, borderRadius: 28, border: `1px solid ${C.line}`, background: "rgba(20,23,27,.92)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.15)", overflow: "hidden", fontFamily: F.text }}>
+      <div style={{ position: "absolute", left: 150, top: 520, width: 760, transform: "translateY(-50%)" }}>
+        <Rise t={t} at={a + 0.1}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>MCP server · Claude · ChatGPT</div></Rise>
+        <Head t={t} size={96} parts={[["Your AI sets it up.", W("more", "Claude")], ["It never touches", W("more", "never"), "ink2"], ["your money.", W("more", "your"), "grad"]]} />
+      </div>
+      <Stage x={1380 + (1 - p) * 900} y={545} ry={-9} rx={3}>
+        <div style={{ width: 760, borderRadius: 28, border: `1px solid ${C.line}`, background: "rgba(20,23,27,.94)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.15)", overflow: "hidden", fontFamily: F.text }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 22px", borderBottom: `1px solid ${C.line}` }}>
             <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 17, color: C.ink2 }}>
               {[0, 1, 2].map((i) => <i key={i} style={{ width: 12, height: 12, borderRadius: 12, background: "rgba(255,255,255,.15)" }} />)}
@@ -369,24 +439,24 @@ function Ai({ t }: { t: number }) {
               <i style={{ width: 7, height: 7, borderRadius: 7, background: C.safe }} />SHAKE connected
             </span>
           </div>
-          <div style={{ height: 470, display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 12, padding: "20px 22px 16px" }}>
+          <div style={{ height: 440, overflow: "hidden", display: "flex", flexDirection: "column", justifyContent: "flex-end", gap: 12, padding: "20px 22px 16px" }}>
             {beats.map((b, i) => {
-              const q = spr(t, b.at, SPR.snappy), o = lerp(t, [b.at, b.at + 0.18]);
               if (t < b.at) return null;
+              const q = spr(t, b.at, SPR.snappy), o = lerp(t, [b.at, b.at + 0.18]);
               const box: React.CSSProperties = { opacity: o, transform: `translateY(${(1 - q) * 14}px) scale(${0.98 + q * 0.02})`, maxHeight: q * 260, alignSelf: b.k === "you" ? "flex-end" : "flex-start", maxWidth: b.k === "you" ? "86%" : "92%" };
-              if (b.k === "tool") return <div key={i} style={{ ...box, fontFamily: F.mono, fontSize: 15, color: b.refused ? C.danger : C.mute }}>↳ {b.text} <span style={{ color: b.refused ? C.danger : C.safe }}>{b.refused ? "· refused" : "· ok"}</span></div>;
-              if (b.k === "you") return <div key={i} style={{ ...box, borderRadius: "20px 20px 6px 20px", background: "rgba(255,255,255,.12)", padding: "12px 18px", fontSize: 20, color: C.ink, lineHeight: 1.35 }}>{b.text}</div>;
+              if (b.k === "tool") return <div key={i} style={{ ...box, fontFamily: F.mono, fontSize: 15, color: C.mute }}>↳ {b.text} <span style={{ color: b.refused ? C.ink2 : C.safe }}>{b.refused ? "· not allowed" : "· ok"}</span></div>;
+              if (b.k === "you") return <div key={i} style={{ ...box, borderRadius: "20px 20px 6px 20px", background: "rgba(255,255,255,.12)", padding: "12px 18px", fontSize: 21, color: C.ink, lineHeight: 1.35 }}>{b.text}</div>;
               return (
-                <div key={i} style={{ ...box, borderRadius: "20px 20px 20px 6px", background: "rgba(255,255,255,.08)", padding: "12px 18px", fontSize: 20, color: C.ink2, lineHeight: 1.35, boxShadow: b.refused ? `0 0 0 1.5px ${C.safe}88, 0 0 30px rgba(143,211,255,.25)` : undefined }}>
+                <div key={i} style={{ ...box, borderRadius: "20px 20px 20px 6px", background: "rgba(255,255,255,.08)", padding: "12px 18px", fontSize: 21, color: C.ink2, lineHeight: 1.35, boxShadow: b.refused ? `0 0 0 1.5px ${C.safe}88, 0 0 30px rgba(143,211,255,.25)` : undefined }}>
                   <span style={{ color: C.safe }}>SHAKE · </span>{b.text}
                   {b.link && (
                     <div style={{ marginTop: 10, display: "flex", alignItems: "center", gap: 14, borderRadius: 14, border: `1px solid ${C.line}`, background: "rgba(0,0,0,.25)", padding: 12 }}>
                       <Coin size={34} gap={3} glow={0.2} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 17, color: C.ink }}>Denim jacket · €60</div>
-                        <div style={{ fontFamily: F.mono, fontSize: 13, color: C.mute }}>shake · deal K3X9A2</div>
+                        <div style={{ fontSize: 18, color: C.ink }}>City bike · {EUR("400")}</div>
+                        <div style={{ fontFamily: F.mono, fontSize: 13, color: C.mute }}>shake · deal 757180718407</div>
                       </div>
-                      <span style={{ borderRadius: 999, background: C.safe, padding: "6px 14px", fontSize: 15, fontWeight: 500, color: "#0b0b0c" }}>Lock €60</span>
+                      <span style={{ borderRadius: 999, background: C.safe, padding: "7px 15px", fontSize: 15, fontWeight: 600, color: "#0b0b0c" }}>Lock {EUR("400")}</span>
                     </div>
                   )}
                 </div>
@@ -394,70 +464,106 @@ function Ai({ t }: { t: number }) {
             })}
           </div>
           <div style={{ display: "flex", alignItems: "center", gap: 14, padding: "16px 22px", borderTop: `1px solid ${locked ? C.safe + "40" : C.line}`, background: locked ? "rgba(143,211,255,.07)" : undefined, transform: `translateX(${nudge}px)` }}>
-            <Coin size={26} gap={locked ? 0 : 3} glow={0.2} shut={locked ? t - ask : undefined} />
-            <span style={{ flex: 1, fontSize: 18, color: locked ? C.safe : C.mute }}>{refused ? "Still locked. The AI never had the money." : locked ? "€60 locked on Stellar" : "Nothing locked yet"}</span>
+            <Coin size={26} gap={locked ? 0 : 3} glow={0.2} shut={locked ? t - (ask - 0.3) : undefined} />
+            <span style={{ flex: 1, fontSize: 18, color: locked ? C.safe : C.mute }}>{refused ? "Still locked. The AI never had the money." : locked ? `${EUR("400")} locked on Stellar` : "Nothing locked yet"}</span>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={locked ? C.safe : C.mute} strokeWidth="2" strokeLinecap="round"><rect x="4" y="11" width="16" height="10" rx="2.5" /><path d={locked ? "M8 11V7a4 4 0 0 1 8 0v4" : "M8 11V7a4 4 0 0 1 7.5-2"} /></svg>
           </div>
         </div>
       </Stage>
+      <Label t={t} a={refuse + 0.3} b={W("cases", "Cars") - 0.2}>Holds no keys · releasing takes both phones</Label>
     </>
   );
 }
 
-/** the night-crew use case from /use-cases (src/components/UseCases.tsx), played by time instead of scroll */
-const CREW = ["DJ", "Bar", "Door", "Sound", "Lights", "Bar"];
-const NO_SHOW = 4;
-function Crew({ t }: { t: number }) {
-  const a = 36.8, b = 40.3, lp = lerp(t, [a + 0.05, b - 0.55], [0, 1], (x) => x);
-  const p = spr(t, a, { stiffness: 140, damping: 22 });
-  const m = (x: number[], y: number[]) => interpolate(lp, x, y, { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.3, 0, 0.2, 1) });
-  const pool = m([0.04, 0.16, 0.78, 0.9], [0, 720, 720, 0]);
-  const words = V("v14").words.slice(1);
+/* ───────── 4 · cars, flats, parcels… and the crew ───────── */
+const ICON: Record<string, string> = {
+  car: "M3 16V12.5L5.2 7.4A2 2 0 0 1 7 6.2h10a2 2 0 0 1 1.8 1.2L21 12.5V16a1 1 0 0 1-1 1h-1M3 16a1 1 0 0 0 1 1h1M3 12.5h18M9 17h6M5 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M15 17a2 2 0 1 0 4 0a2 2 0 1 0 -4 0",
+  key: "M4 15a4 4 0 1 0 8 0a4 4 0 1 0 -8 0M10.8 12.2L20 3M16.5 6.5l2.5 2.5M14 9l2 2",
+  box: "M3 7.5l9-4.5 9 4.5v9L12 21l-9-4.5zM3 7.5l9 4.5 9-4.5M12 12v9M7.5 5.25l9 4.5",
+};
+const CASES: [string, string, string, string, string][] = [
+  ["Cars", "car", "Buying a car", "8 500", "Keys in hand, then it pays."],
+  ["flats", "key", "Flat deposit", "1 200", "Pays once you're inside."],
+  ["parcels", "box", "Shipped parcel", "45", "The QR travels in the box."],
+];
+function Cases({ t }: { t: number }) {
+  const leave = lerp(t, [W("cases", "even") - 0.3, W("cases", "even") + 0.2], [0, 1], io);
   return (
     <>
-      <Col x={150} y={520} w={760}>
-        <Rise t={t} at={a + 0.05}><Chip style={{ marginBottom: 26 }}>Coming next</Chip></Rise>
-        <Words t={t} text="Pay a whole event crew, the moment they check in." times={words.map((w) => w.start)} size={84} />
-      </Col>
-      <div style={{ position: "absolute", left: 960 + (1 - p) * 600, top: 230, opacity: p }}>
+      {CASES.map(([word, icon, title, amount, line], i) => {
+        const at = W("cases", word) - 0.12, p = spr(t, at, { stiffness: 190, damping: 20 }), o = lerp(t, [at, at + 0.2]);
+        return (
+          <div key={word} style={{ position: "absolute", left: 960 + (i - 1) * 470 - 210, top: 540 - 250, width: 420, opacity: o * (1 - leave), transform: `translateY(${(1 - p) * 120 - leave * 80}px) scale(${0.9 + p * 0.1})`, filter: leave ? `blur(${leave * 10}px)` : undefined }}>
+            <div style={{ borderRadius: 34, padding: "40px 38px 38px", background: "linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.025))", border: `1px solid ${C.line}`, boxShadow: "0 40px 120px rgba(0,0,0,.5)", backdropFilter: "blur(20px)" }}>
+              <div style={{ width: 92, height: 92, borderRadius: 26, display: "grid", placeItems: "center", background: `${C.safe}14`, border: `1px solid ${C.safe}44` }}>
+                <svg width="50" height="50" viewBox="0 0 24 24" fill="none" stroke={C.safe} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round"><path d={ICON[icon]} /></svg>
+              </div>
+              <div style={{ marginTop: 34, fontFamily: F.text, fontSize: 28, color: C.ink2 }}>{title}</div>
+              <div style={{ marginTop: 6, fontFamily: F.display, fontWeight: 500, fontSize: 88, letterSpacing: "-0.05em", color: C.ink, lineHeight: 1 }}>{amount}<span style={{ fontSize: 56, marginLeft: 10, color: C.ink2 }}>€</span></div>
+              <div style={{ marginTop: 26, display: "flex", alignItems: "center", gap: 10, fontFamily: F.text, fontSize: 22, color: C.mute }}>
+                <Coin size={24} glow={0.15} />{line}
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </>
+  );
+}
+
+/** the night-crew story from /use-cases (src/components/UseCases.tsx): each person is paid the moment they check in */
+const CREW = ["DJ", "Bar", "Door", "Sound", "Lights", "Bar"];
+const NO_SHOW = 4;
+const crewAt = (i: number) => 0.2 + i * 0.1; // when person i checks in, on the crew clock (0 → 1)
+const crewSpan = () => [W("cases", "even") - 0.15, P("cases", 1).end + 0.05] as const;
+function Crew({ t }: { t: number }) {
+  const [a, b] = crewSpan();
+  const lp = lerp(t, [a, b], [0, 1], (x) => x);
+  const p = spr(t, a - 0.1, { stiffness: 130, damping: 22 });
+  const m = (x: number[], y: number[]) => interpolate(lp, x, y, { extrapolateLeft: "clamp", extrapolateRight: "clamp", easing: Easing.bezier(0.3, 0, 0.2, 1) });
+  const spent = CREW.reduce((sum, _, i) => sum + (i === NO_SHOW ? 0 : m([crewAt(i) + 0.02, crewAt(i) + 0.09], [0, 120])), 0);
+  const pool = m([0.0, 0.12], [0, 720]) - spent - m([0.8, 0.88], [0, 120]);
+  return (
+    <>
+      <div style={{ position: "absolute", left: 150, top: 520, width: 760, transform: "translateY(-50%)" }}>
+        <Rise t={t} at={a}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>HackMeridian · tonight's crew</div></Rise>
+        <Head t={t} size={104} parts={[["Your event crew,", W("cases", "event")], ["paid at check-in.", W("cases", "check") - 0.35, "grad"]]} />
+      </div>
+      <div style={{ position: "absolute", left: 980 + (1 - p) * 700, top: 230, opacity: p }}>
         <svg width={860} height={602} viewBox="0 0 400 280" style={{ overflow: "visible" }}>
-          <defs><linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8fd3ff" stopOpacity=".13" /><stop offset="1" stopColor="#8fd3ff" stopOpacity="0" /></linearGradient></defs>
-          <g opacity={m([0.3, 0.36, 0.7, 0.76], [0, 1, 1, 0])}>
-            <path d="M90 -10L40 260H150Z" fill="url(#beam)" transform={`rotate(${m([0.3, 0.72], [-28, 22])} 90 -10)`} />
-            <path d="M310 -10L250 260H360Z" fill="url(#beam)" transform={`rotate(${-m([0.3, 0.72], [-28, 22])} 310 -10)`} />
+          <defs><linearGradient id="beam" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stopColor="#8fd3ff" stopOpacity=".14" /><stop offset="1" stopColor="#8fd3ff" stopOpacity="0" /></linearGradient></defs>
+          <g opacity={m([0.12, 0.2, 0.8, 0.9], [0, 1, 1, 0])}>
+            <path d="M90 -10L40 260H150Z" fill="url(#beam)" transform={`rotate(${m([0.12, 0.85], [-28, 22])} 90 -10)`} />
+            <path d="M310 -10L250 260H360Z" fill="url(#beam)" transform={`rotate(${-m([0.12, 0.85], [-28, 22])} 310 -10)`} />
           </g>
           <line x1="10" y1="246" x2="390" y2="246" stroke="rgba(255,255,255,.12)" />
           <circle cx={200} cy={52} r={26} fill="rgba(143,211,255,.08)" stroke="rgba(143,211,255,.35)" strokeWidth={1.2} />
           <g transform="translate(185 37) scale(1.25)"><path d={"M12 2A10 10 0 0 0 12 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12Z"} fill={C.safe} opacity={0.85} /><path d={"M12 2A10 10 0 0 1 12 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12Z"} fill={C.safe} opacity={0.85} /></g>
-          <text x={200} y={98} fontSize={14} fill={C.ink} textAnchor="middle" fontFamily={F.display} fontWeight={500}>€{Math.round(pool)}</text>
-          <text x={200} y={20} fontSize={7} fill={C.mute} textAnchor="middle" fontFamily={F.mono} letterSpacing="1">HACKMERIDIAN · TONIGHT&apos;S CREW PAY</text>
-          <text x={392} y={24} fontSize={10} fill={C.ink2} textAnchor="end" fontFamily={F.mono} opacity={m([0.3, 0.36, 0.74, 0.78], [0, 1, 1, 0])}>{(() => { const c = m([0.28, 0.76], [22 * 60, 27 * 60]); return `${String(Math.floor(c / 60) % 24).padStart(2, "0")}:${String(Math.floor((c % 60) / 15) * 15).padStart(2, "0")}`; })()}</text>
-          <text x={200} y={114} fontSize={8} fill={C.safe} textAnchor="middle" fontFamily={F.mono} opacity={m([0.92, 0.96], [0, 1])}>€120 BACK TO YOU</text>
+          <text x={200} y={98} fontSize={14} fill={C.ink} textAnchor="middle" fontFamily={F.display} fontWeight={500}>{EUR(String(Math.round(pool / 10) * 10))}</text>
+          <text x={200} y={20} fontSize={7} fill={C.mute} textAnchor="middle" fontFamily={F.mono} letterSpacing="1">LOCKED FOR TONIGHT&apos;S CREW</text>
+          <text x={200} y={114} fontSize={8} fill={C.safe} textAnchor="middle" fontFamily={F.mono} opacity={m([0.86, 0.92], [0, 1])}>{EUR("120")} BACK TO YOU</text>
           {CREW.map((who, i) => {
-            const x0 = 45 + i * 62, show = i !== NO_SHOW, inAt = 0.36 + i * 0.06, payAt = 0.8 + i * 0.012;
-            const cx = m([0.16 + i * 0.015, 0.26 + i * 0.015, 0.84, 0.92], [200, x0, x0, show ? x0 : 200]);
-            const cy = show ? m([0.16 + i * 0.015, 0.26 + i * 0.015, payAt, payAt + 0.05], [52, 150, 150, 186]) : m([0.16 + i * 0.015, 0.26 + i * 0.015, 0.84, 0.92], [52, 150, 150, 52]);
-            const co = show ? m([0.15 + i * 0.015, 0.17 + i * 0.015, payAt + 0.04, payAt + 0.06], [0, 1, 1, 0]) : m([0.15 + i * 0.015, 0.17 + i * 0.015, 0.9, 0.93], [0, 1, 1, 0]);
+            const x0 = 45 + i * 62, show = i !== NO_SHOW, inAt = crewAt(i);
+            const fly = m([inAt + 0.02, inAt + 0.09], [0, 1]);
+            const cx = 200 + (x0 - 200) * fly, cy = 52 + (180 - 52) * fly - Math.sin(Math.PI * fly) * 34;
+            const co = show ? m([inAt, inAt + 0.02, inAt + 0.09, inAt + 0.11], [0, 1, 1, 0]) : 0;
             const lit = show ? m([inAt, inAt + 0.02], [0, 1]) : 0;
-            const hop = show ? m([inAt, inAt + 0.015, inAt + 0.035], [0, -9, 0]) : 0;
-            const walk = show ? m([inAt - 0.05, inAt], [16, 0]) : 0;
-            const dim = show ? m([0.28, 0.3], [0.35, 1]) : m([0.6, 0.66], [0.35, 0.2]);
+            const hop = show ? m([inAt + 0.09, inAt + 0.105, inAt + 0.125], [0, -9, 0]) : 0;
+            const walk = show ? m([inAt - 0.06, inAt], [16, 0]) : 0;
+            const dim = show ? m([inAt - 0.06, inAt - 0.01], [0.35, 1]) : m([0.68, 0.74], [0.35, 0.2]);
             const body = `M${x0 - 17} 236q0 -24 17 -24t17 24`;
             return (
               <g key={i}>
-                <g transform={`translate(${walk} ${hop})`} opacity={dim}>
+                <g transform={`translate(${walk} ${hop})`} opacity={m([0.02 + i * 0.015, 0.08 + i * 0.015], [0, 1]) * dim}>
                   <circle cx={x0} cy={194} r={10} fill="#1a1f26" stroke="rgba(255,255,255,.3)" strokeWidth={1.2} />
                   <path d={body} fill="#1a1f26" stroke="rgba(255,255,255,.3)" strokeWidth={1.2} />
                   <g opacity={lit}><circle cx={x0} cy={194} r={10} fill="none" stroke={C.safe} strokeWidth={1.6} /><path d={body} fill="none" stroke={C.safe} strokeWidth={1.6} /></g>
                   <text x={x0} y={230} fontSize={7} fill={C.ink2} textAnchor="middle" fontFamily={F.mono}>{who.toUpperCase()}</text>
                 </g>
                 {show ? (
-                  <>
-                    <text x={x0} y={266} fontSize={11} fill={C.safe} textAnchor="middle" opacity={m([inAt + 0.01, inAt + 0.03, payAt, payAt + 0.02], [0, 1, 1, 0])}>✓</text>
-                    <text x={x0} y={266} fontSize={9} fill={C.safe} textAnchor="middle" fontFamily={F.mono} opacity={m([payAt + 0.04, payAt + 0.07], [0, 1])}>€120 ✓</text>
-                  </>
+                  <text x={x0} y={266} fontSize={9} fill={C.safe} textAnchor="middle" fontFamily={F.mono} opacity={m([inAt + 0.08, inAt + 0.11], [0, 1])}>{EUR("120")} ✓</text>
                 ) : (
-                  <text x={x0} y={266} fontSize={8} fill={C.mute} textAnchor="middle" fontFamily={F.mono} opacity={m([0.64, 0.68], [0, 1])}>NO-SHOW</text>
+                  <text x={x0} y={266} fontSize={8} fill={C.mute} textAnchor="middle" fontFamily={F.mono} opacity={m([0.72, 0.78], [0, 1])}>NO-SHOW</text>
                 )}
                 <g transform={`translate(${cx} ${cy})`} opacity={co}>
                   <circle r={8} fill="#0d0f12" stroke={C.safe} strokeWidth={1.4} />
@@ -468,34 +574,35 @@ function Crew({ t }: { t: number }) {
           })}
         </svg>
       </div>
+      <Label t={t} a={W("cases", "check")} b={b + 0.3}>They scan in at the door · no-shows come back to you</Label>
     </>
   );
 }
 
-/* ───────── 6 · the end card ───────── */
+/* ───────── 5 · the end card ───────── */
 function End({ t }: { t: number }) {
-  const S = 300, cy = 340, hit = HIT.end;
-  const rush = lerp(t, [hit - 0.5, hit], [0, 1], easeIn);
-  const off = 1300 * (1 - rush);
+  const S = 300, cy = 330, hit = HIT.end;
+  const rush = lerp(t, [hit - 0.55, hit], [0, 1], easeIn);
+  const off = 1000 * (1 - rush);
   const s = t - hit;
   const [sx, sy] = shake(s, 16);
   const logos: [string, string][] = [["stellar", "Stellar"], ["token", "Soroban"], ["openzeppelin", "OpenZeppelin"], ["passkey", "Passkeys"], ["anchor", "SEP-24"], ["proof", "On-chain receipts"]];
-  const bottom = P("v15", 2).end + 0.1;
+  const bottom = W("end", "SHAKE") + 0.55;
   return (
     <AbsoluteFill style={{ transform: `translate(${sx}px, ${sy}px)` }}>
-      <div style={{ position: "absolute", left: 960 - S / 2, top: cy - S / 2 }}>
+      <div style={{ position: "absolute", left: 960 - S / 2, top: cy - S / 2, filter: rush > 0.5 && s < 0 ? `blur(${(rush - 0.5) * 10}px)` : undefined }}>
         <Coin size={S} l={-off} r={off} shut={s >= 0 ? s : undefined} glow={s >= 0 ? 0.9 : 0.5} />
       </div>
       <Burst s={s} x={960} y={cy} />
-      <div style={{ position: "absolute", left: 0, right: 0, top: cy + S / 2 + 40, display: "flex", justifyContent: "center" }}>
+      <div style={{ position: "absolute", left: 0, right: 0, top: cy + S / 2 + 36, display: "flex", justifyContent: "center" }}>
         {"SHAKE".split("").map((ch, i) => {
-          const a = W("v15", "Shake") - 0.05 + i * 0.045, p = spr(t, a, SPR.snappy), o = lerp(t, [a, a + 0.18]);
-          return <span key={i} style={{ fontFamily: F.display, fontWeight: 700, fontSize: 60, letterSpacing: "0.3em", color: C.ink, opacity: o, transform: `translateY(${(1 - p) * 40}px)`, display: "inline-block" }}>{ch}</span>;
+          const a = W("end", "SHAKE") - 0.06 + i * 0.045, p = spr(t, a, SPR.snappy), o = lerp(t, [a, a + 0.18]);
+          return <span key={i} style={{ fontFamily: F.display, fontWeight: 700, fontSize: 62, letterSpacing: "0.32em", marginRight: "-0.32em", color: C.ink, opacity: o, transform: `translateY(${(1 - p) * 40}px)`, display: "inline-block" }}>{ch}</span>;
         })}
       </div>
       <div style={{ position: "absolute", left: 0, right: 0, top: cy + S / 2 + 140, display: "flex", justifyContent: "center", gap: 26 }}>
-        <Say t={t} id="v15" i={1} size={90} />
-        <Say t={t} id="v15" i={2} size={90} grad />
+        <Words t={t} text="Pay a stranger." at={W("end", "Pay") - 0.08} size={92} />
+        <Words t={t} text="Only when you meet." at={W("end", "only") - 0.08} size={92} grad />
       </div>
       <div style={{ position: "absolute", left: 0, right: 0, top: 870, display: "flex", justifyContent: "center", alignItems: "center", gap: 18 }}>
         <Rise t={t} at={bottom}><div style={{ fontFamily: F.mono, fontSize: 28, color: C.ink, padding: "12px 26px", borderRadius: 999, border: `1px solid ${C.line}`, background: "rgba(255,255,255,.05)" }}>shake-lake.vercel.app</div></Rise>
@@ -517,51 +624,66 @@ function End({ t }: { t: number }) {
 /* ───────── sound ───────── */
 type Cue = [keyof typeof sfx, number, number?, number?]; // effect, at (s), volume, rate
 const CUES: Cue[] = [
-  ["whoosh", W("v01", "Sam") - 0.35, 0.45], ["whoosh", W("v02", "Ana") - 0.3, 0.45, 1.1],
-  ["tick", P("v03", 0).start, 0.35], ["tick", P("v03", 1).start, 0.35], ["lock", P("v03", 2).start, 0.4],
-  ["heart", 5.8, 0.55],
-  ["swoosh", 9.35, 0.4], ["glitch", W("v05", "lie") - 0.04, 0.75], ["denied", W("v05", "lie") + 0.08, 0.6],
-  ["riser", HIT.shake - 2.3, 0.5], ["slam", HIT.shake - 0.04, 0.6], ["shimmer", HIT.shake + 0.1, 0.45],
-  ["swoosh", 13.2, 0.45], ["tick", W("v07", "tap") - 0.05, 0.7], ["lock", W("v07", "No") + 0.7, 0.55],
-  ["whoosh", 16.72, 0.45], ["shimmer", W("v08", "Locked"), 0.4],
-  ["whoosh", 20.95, 0.5, 0.9], ["beep", W("v09", "code") + 0.1, 0.55], ["riser", HIT.paid - 2.3, 0.55], ["heart", W("v09", "holds") - 0.3, 0.45],
-  ["slam", HIT.paid - 0.04, 0.55], ["chime", HIT.paid + 0.12, 0.45], ["shimmer", HIT.paid + 0.15, 0.35],
-  ["blip", 27.15, 0.5], ["whoosh", 27.1, 0.4], ["chime", W("v11", "Still"), 0.35, 1.15],
-  ["whoosh", 29.05, 0.4], ["tick", W("v12", "OLX") + 0.15, 0.55],
-  ["whoosh", 31.2, 0.4], ["pop", 31.55, 0.35], ["pop", 32.6, 0.35], ["pop", W("v13", "everything") - 0.4, 0.35], ["denied", W("v13", "except") - 0.05, 0.6],
-  ["whoosh", 36.75, 0.4],
-  ...CREW.map((_, i): Cue => ["tick", 36.85 + (0.36 + i * 0.06) * 2.9, 0.22, 1 + i * 0.05]).filter((_, i) => i !== NO_SHOW),
-  ["riser", HIT.end - 2.3, 0.45], ["slam", HIT.end - 0.04, 0.6], ["shimmer", HIT.end + 0.1, 0.5], ["chime", P("v15", 2).start, 0.35],
-  ["shimmer", P("v15", 2).end + 0.1, 0.4, 0.8], ["heart", P("v15", 2).end + 0.6, 0.25, 0.8],
+  // Sam, the bike, Ana
+  ["pop", W("intro", "Meet") - 0.1, 0.45], ["whoosh", W("intro", "He") - 0.3, 0.35], ["shimmer", W("intro", "He") + 0.2, 0.3], ["pop", W("intro", "from"), 0.45, 1.1],
+  // who pays first?
+  ["tick", W("problem", "who") - 0.15, 0.4], ["coin", W("problem", "upfront") - 0.05, 0.5], ["whoosh", W("problem", "upfront"), 0.35, 1.2], ["dissolve", W("problem", "never") - 0.15, 0.5],
+  ["swoosh", W("problem", "Ana") - 0.35, 0.35], ["pop", W("problem", "Ana") + 0.1, 0.35],
+  ["glitch", W("problem", "fake"), 0.7], ["stamp", W("problem", "fake") + 0.1, 0.6], ["heart", P("problem", 3).end - 0.2, 0.45],
+  // they shake on it
+  ["riser", HIT.shake - 2.4, 0.5], ["slam", HIT.shake - 0.04, 0.55], ["shimmer", HIT.shake + 0.1, 0.45],
+  // lock · see · meet · paid
+  ["whoosh", W("flow", "Sam") - 0.5, 0.4], ["tick", W("flow", "tap") - 0.12, 0.7], ["lock", W("flow", "tap") + 0.9, 0.55],
+  ["whoosh", W("flow", "Ana") - 0.32, 0.45, 1.1], ["shimmer", W("flow", "real"), 0.4],
+  ["whoosh", W("flow", "They") - 0.3, 0.45, 0.9], ["beep", W("flow", "her") - 0.1, 0.55], ["heart", P("flow", 2).end - 0.3, 0.4], ["riser", HIT.paid - 1.6, 0.4, 1.3],
+  ["slam", HIT.paid - 0.04, 0.5], ["chime", HIT.paid + 0.12, 0.45], ["shimmer", HIT.paid + 0.15, 0.35],
+  // no signal · extension · AI
+  ["blip", W("more", "No") - 0.25, 0.5], ["whoosh", W("more", "No") - 0.3, 0.4], ["chime", W("more", "Still") - 0.05, 0.35, 1.15],
+  ["whoosh", W("more", "It's") - 0.3, 0.4], ["pop", W("more", "Vinted") - 0.1, 0.4], ["tick", W("more", "OLX") + 0.35, 0.55],
+  ["whoosh", W("more", "Claude") - 0.4, 0.4], ["pop", W("more", "Claude") - 0.05, 0.35], ["pop", W("more", "set") + 0.1, 0.35], ["pop", W("more", "but") - 0.35, 0.35], ["denied", W("more", "touch") - 0.1, 0.55],
+  // cars, flats, parcels, crew
+  ["whoosh", W("cases", "Cars") - 0.15, 0.4], ["pop", W("cases", "Cars") - 0.05, 0.32], ["pop", W("cases", "flats") - 0.05, 0.32, 1.08], ["pop", W("cases", "parcels") - 0.05, 0.32, 1.16],
+  ["whoosh", W("cases", "even") - 0.25, 0.4],
+  ...CREW.map((_, i): Cue => { const [a, b] = crewSpan(); return ["coin", a + (crewAt(i) + 0.08) * (b - a), 0.3, 1 + i * 0.06]; }).filter((_, i) => i !== NO_SHOW),
+  // the end
+  ["riser", HIT.end - 2.2, 0.45], ["slam", HIT.end - 0.04, 0.42], ["outro", HIT.end - 0.04, 0.4], ["shimmer", HIT.end + 0.1, 0.45], ["chime", W("end", "only"), 0.3],
+  ["shimmer", P("end", 1).end + 0.1, 0.4, 0.8],
 ];
+// mix headroom: voice + effects + score must stay under 0 dBFS where they stack (fake, paid, the end)
+const VOICE = 0.85, SFX = 0.72;
 // the score dips under the voice
 const speaking = (t: number) => Math.max(0, ...LINES.map((l) => Math.min(lerp(t, [l.start - 0.15, l.start]), 1 - lerp(t, [l.start + l.dur, l.start + l.dur + 0.3]))));
-const musicVol = (t: number) => (0.62 - 0.27 * speaking(t)) * (1 - lerp(t, [TOTAL - 0.8, TOTAL]));
+// …and hands over to the outro sting on the final slam
+const musicVol = (t: number) => (0.6 - 0.28 * speaking(t)) * (1 - lerp(t, [HIT.end - 0.15, HIT.end + 0.5]));
 
 export function Film() {
   const t = useCurrentFrame() / FPS;
-  const danger = win(t, W("v05", "lie") - 0.04, 11.75, 0.08, 0.4);
+  const fake = W("problem", "fake");
+  const danger = win(t, fake, P("problem", 3).end + 0.3, 0.08, 0.4);
+  const flowA = W("flow", "Sam") - 0.6, more = W("more", "No") - 0.35;
   return (
     <AbsoluteFill style={{ background: C.bg, fontFamily: F.text }}>
-      <Backdrop t={t} danger={danger} calm={win(t, HIT.paid - 2.2, HIT.paid, 0.8, 0.1) * 0.8} />
-      <Scene t={t} a={0} b={13.75} fin={0.01}><Intro t={t} /></Scene>
-      <Scene t={t} a={13.2} b={16.85}><Lock t={t} /></Scene>
-      <Scene t={t} a={16.72} b={21.05}><Proof t={t} /></Scene>
-      <Scene t={t} a={20.95} b={27.2}><Meet t={t} /></Scene>
-      <Scene t={t} a={27.1} b={29.15}><NoSignal t={t} /></Scene>
-      <Scene t={t} a={29.05} b={31.3}><Extension t={t} /></Scene>
-      <Scene t={t} a={31.2} b={36.8}><Ai t={t} /></Scene>
-      <Scene t={t} a={36.75} b={40.15}><Crew t={t} /></Scene>
-      <Scene t={t} a={39.95} b={TOTAL + 1} fin={0.15}><End t={t} /></Scene>
+      <Backdrop t={t} danger={danger} calm={(1 - lerp(t, [HIT.shake - 0.2, HIT.shake + 0.3])) * 0.55 + win(t, HIT.paid - 1.6, HIT.paid, 0.6, 0.1) * 0.5} />
+      {t < flowA + 0.6 && <Intro t={t} />}
+      <Shot t={t} a={flowA} b={more + 0.3} fin={0.01} fout={0.4}><Flow t={t} /></Shot>
+      <Shot t={t} a={more} b={W("more", "It's") - 0.05}><NoSignal t={t} /></Shot>
+      <Shot t={t} a={W("more", "It's") - 0.4} b={W("more", "Claude") - 0.2}><Extension t={t} /></Shot>
+      <Shot t={t} a={W("more", "Claude") - 0.55} b={W("cases", "Cars") - 0.15}><Ai t={t} /></Shot>
+      <Shot t={t} a={W("cases", "Cars") - 0.3} b={W("cases", "even") + 0.3} fin={0.3}><Cases t={t} /></Shot>
+      <Shot t={t} a={W("cases", "even") - 0.4} b={HIT.end - 0.25}><Crew t={t} /></Shot>
+      <Shot t={t} a={HIT.end - 0.6} b={TOTAL + 1} fin={0.2}><End t={t} /></Shot>
       <Grain t={t} />
-      <AbsoluteFill style={{ background: "#000", opacity: Math.max(1 - lerp(t, [0, 0.4]), lerp(t, [TOTAL - 0.5, TOTAL])) }} />
+      <AbsoluteFill style={{ background: "#000", opacity: Math.max(1 - lerp(t, [0, 0.5]), lerp(t, [TOTAL - 0.5, TOTAL])) }} />
 
-      <Audio src={staticFile(music.file)} volume={(f) => musicVol(f / FPS)} />
+      {/* lead: how late the score's real drop is (scripts/sound.mjs measures it), so its drop lands on the slam */}
+      <Sequence from={Math.max(0, sec(-music.lead))} layout="none">
+        <Audio src={staticFile(music.file)} trimBefore={Math.max(0, sec(music.lead))} volume={(f) => musicVol(f / FPS + Math.max(0, -music.lead))} />
+      </Sequence>
       {LINES.map((l) => (
-        <Sequence key={l.id} from={sec(l.start)} layout="none"><Audio src={staticFile(l.file)} volume={1} /></Sequence>
+        <Sequence key={l.id} from={sec(l.start)} layout="none"><Audio src={staticFile(l.file)} volume={VOICE} /></Sequence>
       ))}
       {CUES.map(([id, at, vol = 0.5, rate = 1], i) => (
-        <Sequence key={i} from={Math.max(0, sec(at))} layout="none"><Audio src={staticFile(sfx[id])} volume={vol} playbackRate={rate} /></Sequence>
+        <Sequence key={i} from={Math.max(0, sec(at))} layout="none"><Audio src={staticFile(sfx[id])} volume={vol * SFX} playbackRate={rate} /></Sequence>
       ))}
     </AbsoluteFill>
   );
