@@ -1,7 +1,7 @@
 "use client";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { COUNTRIES, DEFAULT_COUNTRY, availableCurrencies, moneyParts, type Country, type CurrencyCode } from "@/lib/config";
+import { COUNTRIES, DEFAULT_COUNTRY, availableCurrencies, formatMoney, moneyParts, type Country, type CurrencyCode } from "@/lib/config";
 import { detectCountry } from "@/lib/regions";
 import { GlassSheet } from "./GlassSheet";
 import { NumberTicker } from "./Ticker";
@@ -55,7 +55,7 @@ export function useCountry() {
   return [country, choose] as const;
 }
 
-/** Big amount display: the symbol is quieter but stays where the locale puts it ("400 €", "£400", "R$ 400"). */
+/** Big amount display: the symbol is quieter but stays where the locale puts it ("400€", "£400", "R$ 400"). */
 export function Money({ amount, currency, locale, className = "", tick }: { amount: number; currency: CurrencyCode; locale: string; className?: string; tick?: boolean }) {
   const p = moneyParts(amount, currency, locale);
   const symbol = <span className="relative top-[-0.06em] text-[0.46em] leading-none tracking-[-0.02em] text-ink-2 [text-shadow:none]">{p.symbol}</span>;
@@ -68,7 +68,7 @@ export function Money({ amount, currency, locale, className = "", tick }: { amou
     p.number
   );
   return (
-    <span className={`amount inline-flex items-baseline gap-[0.08em] ${className}`} aria-label={new Intl.NumberFormat(locale, { style: "currency", currency }).format(amount)}>
+    <span className={`amount inline-flex items-baseline ${p.before ? "gap-[0.08em]" : ""} ${className}`} aria-label={formatMoney(amount, currency, locale)}>
       {p.before && symbol}
       <span>{number}</span>
       {!p.before && symbol}

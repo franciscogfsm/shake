@@ -53,7 +53,7 @@ export default function Home() {
     >
       <div className="flex min-h-0 flex-1 flex-col">
       <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,380px)] lg:items-center lg:gap-14">
-      <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
+      <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
           {phase === "idle" && <Hero onStart={start} money={money} />}
@@ -74,11 +74,11 @@ export default function Home() {
             <Stagger className="flex flex-col items-center gap-5 text-center lg:gap-6">
               <Item>
                 <div className="eyebrow">You&apos;re at the meetup</div>
-                <h1 className="display mt-2 text-[34px] leading-[1.02] lg:text-[52px]">It checks out.<br /><span className="glacier-text">Shake on it.</span></h1>
-                <p className="mx-auto mt-3 max-w-[28ch] text-[15px] leading-snug text-ink-2">{money} is locked, and the seller can see it. Hold to pay them.</p>
+                <h1 className="display mt-2 text-[36px] leading-[0.98] lg:text-[64px]">The money moves<br /><span className="glacier-text">only when you meet.</span></h1>
+                <p className="mx-auto mt-4 max-w-[34ch] text-[17px] leading-snug text-ink-2 lg:text-xl">{money} is locked. They can see it&apos;s real, not a screenshot. Hold to pay them.</p>
               </Item>
               <Item>
-                <HoldToShake onShake={shake} disabled={settling} hint="Money moves only now" size={188} />
+                <HoldToShake onShake={shake} disabled={settling} hint="Hold to pay them" size={188} />
               </Item>
               {session.error && <p className="max-w-[32ch] text-sm text-ink-2" role="alert">{session.error}</p>}
               <Item>
@@ -127,7 +127,7 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
       <Item>
         <div className="eyebrow">For deals on OLX, Vinted, WhatsApp</div>
         <h1 className="display mt-2 text-[36px] leading-[1.02] lg:text-[68px] lg:leading-[0.96]">Pay a stranger.<br /><span className="lg:glacier-text">Only when you meet.</span></h1>
-        <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">The money waits, locked, where the seller can see it. It moves only when your two phones are face to face.</p>
+        <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">Lock it first. They see the real money, not a screenshot. It moves only when you meet, face to face.</p>
       </Item>
       <Item className="flex flex-col gap-3 lg:max-w-[400px]">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
@@ -142,9 +142,9 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
         </Link>
         <p className="mt-2 text-[14px] text-ink-2">
           Also for{" "}
-          {([["deposit", "rent deposits"], ["service", "jobs"], ["booking", "bookings and hires"]] as const).map(([k, label], i) => (
+          {([["deposit", "rent deposits"], ["service", "jobs"], ["order", "orders"], ["booking", "bookings and hires"]] as const).map(([k, label], i) => (
             <span key={k}>
-              {i > 0 && (i === 2 ? " and " : ", ")}
+              {i > 0 && (i === 3 ? " and " : ", ")}
               <Link href={`/deal/new?k=${k}`} className="text-safe hover:underline">{label}</Link>
             </span>
           ))}
@@ -153,9 +153,9 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
       </Item>
       <Item className="grid grid-cols-3 gap-2 lg:max-w-[560px] lg:gap-4">
         {[
-          ["Lock", "Not sent. On hold."],
-          ["They check", "Funds verified on-chain."],
-          ["Shake", "Face to face. Paid in 5s."],
+          ["Lock", "You hold it. It isn't sent."],
+          ["They see", "Real money, not a photo."],
+          ["Shake", "You meet. Then it pays."],
         ].map(([t, d], i) => (
           <motion.div key={t} className="flex flex-col items-center gap-1.5 lg:items-start" whileHover={{ y: -3 }} transition={springs.snappy}>
             <span className="step-dot !size-8 font-mono text-xs text-safe">{i + 1}</span>
@@ -265,8 +265,8 @@ function LivePanel({ session, money }: { session: PitchSession; money: string })
           items={[
             { key: "w", title: "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
             { key: "l", title: `${money} locked`, at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
-            { key: "j", title: "Seller verifies locked funds", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
-            { key: "s", title: refunded ? "Refunded to you" : "Released by the handshake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },
+            { key: "j", title: "Seller sees the real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
+            { key: "s", title: refunded ? "Back to you" : "Paid when you shake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },
           ]}
         />
       </div>

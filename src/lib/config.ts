@@ -52,9 +52,11 @@ export const toUnits = (amount: number) => {
 };
 export const fromUnits = (units: bigint | string | number) => Number(BigInt(units)) / 10 ** DECIMALS;
 
-/** Locale-correct money: "400 €" in Portugal, "€400" in Ireland, "R$ 400" in Brazil. Cents only when needed. */
+/** Locale-correct money: "400€" in Portugal, "€400" in Ireland, "R$ 400" in Brazil. Cents only when needed. */
 export function formatMoney(amount: number, currency: CurrencyCode = "EUR", locale = CURRENCIES[currency].homeLocale) {
-  return new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(amount);
+  const formatted = new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(amount);
+  // pt, fr, de and others insert a space before a trailing symbol ("5 €"). Keep it tight: "5€".
+  return formatted.replace(/\s+(?=\p{Sc})/u, "");
 }
 /** Parts for big displays: the symbol is styled separately but keeps the locale's position. */
 export function moneyParts(amount: number, currency: CurrencyCode = "EUR", locale = CURRENCIES[currency].homeLocale) {

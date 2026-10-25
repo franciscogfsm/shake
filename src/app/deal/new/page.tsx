@@ -7,6 +7,7 @@ import { Mark, springs } from "@/components/Mark";
 import { NumberTicker } from "@/components/Ticker";
 import { Item, Screen, Stagger, TestnetNote } from "@/components/ui";
 import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
+import { WORLD_COUNTRIES } from "@/lib/regions";
 import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
@@ -38,13 +39,18 @@ export default function NewDealPage() {
 function NewDeal() {
   const router = useRouter();
   const q = useSearchParams();
-  const [item, setItem] = useState("");
+  // A payment request link (?r=1) comes from the one getting paid: everything is filled in, the payer checks and locks.
+  const request = q.get("r") === "1" && !!q.get("s");
+  const [item, setItem] = useState(() => (q.get("i") ?? "").slice(0, 40));
   const [price, setPrice] = useState("");
-  const [seller, setSeller] = useState("");
+  const [seller, setSeller] = useState(() => (q.get("s") ?? "").slice(0, 32));
+  // The one getting paid makes a reusable link instead of locking; every customer who opens it gets their own deal.
+  const [asking, setAsking] = useState(false);
+  const [linkState, setLinkState] = useState("");
   const [kind, setKindState] = useState<Kind>(() => (KINDS[q.get("k") as Kind] ? (q.get("k") as Kind) : "meet"));
   const k = KINDS[kind];
   const hold = k.mode === "Hold";
-  const [ends, setEnds] = useState(() => dayInput(k.days));
+  const [ends, setEnds] = useState(() => (/^\d{4}-\d{2}-\d{2}$/.test(q.get("e") ?? "") && q.get("e")! > dayInput(0) ? q.get("e")! : dayInput(k.days)));
   const setKind = (v: Kind) => {
     setKindState(v);
     setEnds(dayInput(KINDS[v].days));
@@ -74,10 +80,36 @@ function NewDeal() {
   const [country, setCountry] = useCountry();
   const currency = country.currency;
   const sym = moneyParts(1, currency, country.locale);
+  // the request is in the payee's currency: switch to it rather than reinterpret the amount
+  const asked = { p: q.get("p") ?? "", c: q.get("c") as CurrencyCode };
+  const askedOk = /^\d{1,4}(\.\d{1,2})?$/.test(asked.p) && !!CURRENCIES[asked.c]?.token;
+  useEffect(() => {
+    if (!askedOk) return;
+    if (country.currency !== asked.c) setCountry(WORLD_COUNTRIES.find((x) => x.code === CURRENCIES[asked.c].homeLocale.split("-")[1])!);
+    else setPrice(new Intl.NumberFormat(country.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(Number(asked.p)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [country]);
 
   const amount = parseAmount(price, country.locale);
   const endsAt = Math.floor(new Date(`${ends}T23:59:00`).getTime() / 1000);
-  const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX && (!hold || endsAt > Date.now() / 1000 + 600);
+  const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX && (!hold || endsAt > Date.now() / 1000 + 600) && (!asking || seller.trim().length > 1);
+
+  const askLink = async () => {
+    const params = new URLSearchParams({ r: "1", k: kind, i: item.trim(), p: String(amount), c: currency, s: seller.trim(), ...(hold ? { e: ends } : {}) });
+    const url = `${location.origin}/deal/new?${params}`;
+    const text = `Pay ${money(amount)} for ${item.trim()} with SHAKE. ${hold ? "It comes back to you at the end, unless there's damage." : "It stays safe until you get what you paid for."}`;
+    try {
+      if (navigator.share) return await navigator.share({ text, url });
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(`${text} ${url}`);
+      setLinkState("Link copied. Paste it in your chat, bio or invoice. It works for every customer.");
+    } catch {
+      setLinkState(url);
+    }
+  };
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
   const lock = async (withFaceId = faceId) => {
@@ -113,7 +145,7 @@ function NewDeal() {
   };
 
   return (
-    <Screen wide fit back="/try" right={phase === "form" ? <CountryPicker country={country} onChange={(next) => {
+    <Screen wide fit back="/try" right={phase === "form" && !request ? <CountryPicker country={country} onChange={(next) => {
       if (Number.isFinite(amount)) setPrice(new Intl.NumberFormat(next.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(amount));
       setCountry(next);
     }} /> : undefined}>
@@ -124,15 +156,16 @@ function NewDeal() {
             exit={{ opacity: 0, scale: 0.98 }}
             onSubmit={(e) => {
               e.preventDefault();
-              lock(faceIdOk);
+              if (asking) askLink();
+              else lock(faceIdOk);
             }}
             className="flex flex-1 flex-col"
           >
             <Stagger className="flex min-h-0 flex-1 flex-col gap-8 pt-6 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,440px)] lg:items-center lg:gap-16 lg:pt-0">
               <Item className="flex flex-col gap-8">
               <div>
-                <div className="eyebrow">New safe payment</div>
-                <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
+                <div className="eyebrow">{request ? `${seller} asks for a safe payment` : asking ? "Ask for a safe payment" : "New safe payment"}</div>
+                {!request && <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
                   {KIND_ORDER.map((v) => (
                     <button
                       key={v}
@@ -145,7 +178,7 @@ function NewDeal() {
                       {KINDS[v].label}
                     </button>
                   ))}
-                </div>
+                </div>}
                 <h1 className="display mt-5 text-[40px] lg:text-[64px] lg:leading-[0.96]">{k.ask}</h1>
               </div>
               <div>
@@ -167,7 +200,7 @@ function NewDeal() {
               </div>
               <div>
                 <label htmlFor="price" className="eyebrow">{hold ? "Deposit" : kind === "service" ? "Agreed price" : "Price"}</label>
-                <div className="mt-2 flex items-baseline gap-2">
+                <div className={`mt-2 flex items-baseline ${sym.before ? "gap-2" : ""}`}>
                   {sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                   <input
                     id="price"
@@ -190,11 +223,12 @@ function NewDeal() {
               <div className="halo hidden lg:block" aria-hidden />
               <div className="flex flex-col gap-6 lg:glass lg:gap-7 lg:p-7">
               <div>
-                <label htmlFor="seller" className="eyebrow">{k.payee[0].toUpperCase() + k.payee.slice(1)} (optional)</label>
+                <label htmlFor="seller" className="eyebrow">{asking ? "Your name or business" : `${k.payee[0].toUpperCase() + k.payee.slice(1)}${request ? "" : " (optional)"}`}</label>
                 <input
                   id="seller"
                   value={seller}
                   onChange={(e) => setSeller(e.target.value.slice(0, 32))}
+                  readOnly={request}
                   placeholder={k.payeeHint}
                   autoComplete="off"
                   className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
@@ -216,10 +250,16 @@ function NewDeal() {
               <div className="flex flex-col gap-3">
                 <p className="text-center text-[15px] text-ink-2 lg:text-left">{k.blurb}</p>
                 <Button type="submit" full disabled={!valid}>
-                  {faceIdOk && <FaceIdIcon />}
-                  {valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
+                  {faceIdOk && !asking && <FaceIdIcon />}
+                  {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
                 </Button>
-                {faceIdOk && valid && (
+                {linkState && <p className="break-all text-center text-sm text-safe lg:text-left" role="status">{linkState}</p>}
+                {!request && (
+                  <button type="button" onClick={() => { setAsking(!asking); setLinkState(""); }} className="text-sm text-mute underline-offset-4 hover:underline">
+                    {asking ? "I'm the one paying" : "Getting paid? Send your customer a payment link"}
+                  </button>
+                )}
+                {faceIdOk && valid && !asking && (
                   <button type="button" onClick={() => lock(false)} className="text-sm text-mute underline-offset-4 hover:underline">
                     Lock without Face ID
                   </button>
@@ -297,7 +337,7 @@ function LockMoment({
         </div>
         <motion.div className="mt-5" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.1 }}>
           <div className="eyebrow">{item}</div>
-          <div className="amount mt-2 flex items-baseline justify-center gap-2 text-[68px] leading-none lg:text-[92px]">
+          <div className={`amount mt-2 flex items-baseline justify-center text-[68px] leading-none lg:text-[92px] ${sym.before ? "gap-2" : ""}`}>
             {sym.before && <span className="text-[0.42em] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
             <NumberTicker value={amount} format={(n) => new Intl.NumberFormat(locale, { maximumFractionDigits: amount % 1 ? 2 : 0 }).format(n)} />
             {!sym.before && <span className="text-[0.42em] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}

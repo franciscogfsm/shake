@@ -5,7 +5,7 @@
  *  - Hold: a deposit that goes back to the payer on the end date unless the holder claims part of it.
  * Kinds only change the words, the defaults and which rule is used.
  */
-export type Kind = "meet" | "ship" | "service" | "deposit" | "booking";
+export type Kind = "meet" | "ship" | "service" | "order" | "deposit" | "booking";
 export type Mode = "Meet" | "Ship" | "Hold";
 
 type KindInfo = {
@@ -56,6 +56,17 @@ export const KINDS: Record<Kind, KindInfo> = {
     days: 30,
     blurb: "Paid when the work is done: you approve, or it releases 3 days after they mark it done unless you open a problem.",
   },
+  order: {
+    label: "Made to order",
+    mode: "Ship",
+    fn: "lock_ship",
+    ask: "What are you ordering?",
+    placeholder: "Birthday cake, 2kg",
+    payee: "maker",
+    payeeHint: "Doces da Ana",
+    days: 30,
+    blurb: "Paid when you get it: scan the QR when you collect it or open the box, or it releases 3 days after delivery unless you open a problem.",
+  },
   deposit: {
     label: "Rental deposit",
     mode: "Hold",
@@ -80,7 +91,7 @@ export const KINDS: Record<Kind, KindInfo> = {
   },
 };
 
-export const KIND_ORDER: Kind[] = ["meet", "ship", "deposit", "service", "booking"];
+export const KIND_ORDER: Kind[] = ["meet", "ship", "deposit", "service", "order", "booking"];
 
 /** The status words in link previews, read from the chain. */
 export function previewStatus({ status, mode }: { status: string; mode: Mode }) {

@@ -226,6 +226,7 @@ const SHARE_TEXT: Record<Kind, (money: string, item: string) => string> = {
   meet: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real, then we meet and shake:`,
   ship: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real, then ship it with the QR in the box:`,
   service: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real: it's yours when the job is done:`,
+  order: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real and start making it: it's yours when I get it:`,
   deposit: (m, i) => `I'm holding the ${m} deposit for ${i} with SHAKE. Check it's real and confirm you're the landlord:`,
   booking: (m, i) => `I'm holding the ${m} deposit for ${i} with SHAKE. Check it's real and confirm the booking:`,
 };
