@@ -46,8 +46,8 @@ export default function Home() {
           <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Use cases</Link>
           <Link href="/extension" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">Extension</Link>
           <Link href="/ai" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">For AI</Link>
-          <Link href="/try" onPointerDown={() => haptic.tick()} className="inline-flex h-10 items-center whitespace-nowrap rounded-full bg-safe px-5 text-sm font-semibold text-bg shadow-[0_0_24px_rgba(143,211,255,0.45)] transition-transform hover:scale-105 active:scale-95">Use SHAKE →</Link>
-          {session.status === "idle" && <span className="ml-1 lg:ml-3"><CountryPicker country={country} onChange={setCountry} /></span>}
+          <Link href="/try" onPointerDown={() => haptic.tick()} className="glass inline-flex h-10 items-center whitespace-nowrap rounded-full px-4 text-[14px] font-medium transition-transform active:scale-95">Try SHAKE</Link>
+          {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
         </nav>
       }
     >
