@@ -107,7 +107,38 @@ The judges evaluate a web pitch deck, and **they use SHAKE without realising it*
 - **Plain language:** never say "crypto", "gas" or "seed" in the main UI. Say "locked", "released", "refunded", "proof".
 - The full build prompt with all UI/UX details is in `docs/build-prompt.md`.
 
-## 7. Order of work
+## 7. Official track alignment (from the HackMeridian portal)
+
+**Builder track: Genesis** (assigned). Requirements, and how we meet each one:
+- **A working PoC or MVP, not a mockup.** Real lock, release and refund transactions on testnet, across two phones.
+- **Runs on Stellar Testnet.** Yes. Mainnet is not required.
+- **At least one Stellar protocol feature, standard, primitive or ecosystem integration.** We use several (see below).
+- **Meaningful technical work done during the event, plus an explanation of the problem, target user and value proposition.** The commit history shows the work. The pitch and README explain the rest.
+
+**Thematic track: Stellar Composed** (we must save this on the team or submission page). It means "combine two or more ecosystem tools or projects into something new". SHAKE fits three of the portal's own example ideas:
+- "Wallets people want to use: no seed phrases, no gas, no jargon"
+- "Stablecoins in everyday life: connect Stellar to the ways people already pay"
+- "From onchain to the bank: cash out through a Stellar anchor"
+
+**What we compose** (this replaces the "stretch goal" framing above):
+1. **Escrow:** our own Soroban escrow contract (shows the most technical work). The alternative is plugging into Trustless Work, the live Stellar escrow protocol with a REST API and testnet; that would literally match "plug into a live project such as escrow". Decide at the start. The default is our own contract, with Trustless Work as the fallback if time runs short.
+2. **Wallet:** a passkey smart wallet (OpenZeppelin smart accounts / passkey-kit). Face ID or Touch ID in the browser, with no seed phrase. If it blocks us, fall back to the invisible browser keypair.
+3. **Fees:** fee sponsorship through the OpenZeppelin Relayer (Stellar sponsored transactions), so users never need XLM.
+4. **Money:** a stablecoin, testnet USDC or EURC (through the Stellar Asset Contract).
+5. **Cash-out:** the seller can withdraw to a bank through a SEP-24 testnet anchor (testanchor.stellar.org). This shows the path to MoneyGram and real anchors.
+
+Minimum to count as "Composed": escrow + passkey wallet + fee sponsorship. The anchor cash-out is the bonus.
+
+**Requirements for every project (submission checklist):**
+- [ ] **Public** GitHub repo. *This repo is currently private: make it public before submitting.*
+- [ ] README with the project summary, problem, setup, installation, environment variables and demo instructions.
+- [ ] An architecture overview of how Stellar is used: assets, **contract IDs**, anchors, wallets, integrations and APIs.
+- [ ] A **public live URL** (Vercel) that judges can explore, plus a video walkthrough as a backup.
+- [ ] Evidence of on-chain transactions on testnet: Stellar Expert links in the README and in the app's receipts.
+- [ ] Disclosure of prior work. Before the event we only did ideation and wrote this context document and the build prompt. All code is written during the event.
+- [ ] Read the event rules at app.hackmeridian.com/portal/rules (participation, submission integrity, conduct).
+
+## 8. Order of work
 1. Research the current Stellar stack and choose the simplest reliable path.
 2. 3 visual directions, then the team picks one.
 3. Design tokens, the glass system and the core components.
