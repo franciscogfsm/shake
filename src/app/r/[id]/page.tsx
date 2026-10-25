@@ -8,10 +8,19 @@ import { Screen } from "@/components/ui";
 import { DEAL_CONTRACT_ID, currencyOfToken, dealCode, explorer, fromUnits } from "@/lib/config";
 import { Money, useCountry } from "@/components/Money";
 import { dealMeta } from "@/lib/client/handshake";
-import { eventOf, useDeal } from "@/lib/client/useDeal";
+import { eventOf, useDeal, type Deal } from "@/lib/client/useDeal";
 import { shortHash } from "@/components/Ticker";
 
-const STATUS = { Locked: "Locked", Accepted: "Seller joined", Released: "Released", Refunded: "Refunded" } as const;
+const STATUS = {
+  Locked: "Locked",
+  Accepted: "Seller joined",
+  Released: "Released",
+  Refunded: "Refunded",
+  Shipped: "Shipped",
+  Delivered: "Delivered",
+  Disputed: "Disputed",
+  Resolved: "Resolved",
+} as const satisfies Record<Deal["status"], string>;
 
 /** Public receipt: works for anyone, no wallet needed. Printed-receipt feel on glass. */
 export default function Receipt() {

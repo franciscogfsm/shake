@@ -32,8 +32,9 @@ export function Mark({ size = 28, state = "rest", tension, assemble, className, 
   const off = OFFSET[state];
   const zero = useMotionValue(0);
   const t = tension ?? zero;
-  const fromTensionL = useTransform(t, [0, 1], [-0.6, -2.6]);
-  const fromTensionR = useTransform(t, [0, 1], [0.6, 2.6]);
+  // At rest the halves share the seam (a hair of overlap so the join doesn't show a gap). Holding pulls them apart.
+  const fromTensionL = useTransform(t, [0, 1], [0.2, -2.6]);
+  const fromTensionR = useTransform(t, [0, 1], [-0.2, 2.6]);
   const scale = useTransform(t, [0, 1], [1, 0.92]);
   const shut = state === "shut";
   const transition = shut ? springs.slam : springs.snappy;
