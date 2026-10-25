@@ -18,7 +18,7 @@ import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer } from "@/lib/co
  * the judge shakes (or says "not yet"), then sees every step's on-chain proof.
  */
 export default function Home() {
-  const { session, start, shake, notYet, reset } = usePitchSession();
+  const { session, start, shake, notYet, reset, settling } = usePitchSession();
   const [refunding, setRefunding] = useState(false);
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
   const phaseRef = useRef(phase);
@@ -60,19 +60,23 @@ export default function Home() {
                 <p className="mx-auto mt-3 max-w-[28ch] text-[15px] leading-snug text-ink-2">€5 is locked, and the seller can see it. Hold to pay them.</p>
               </Item>
               <Item>
-                <HoldToShake onShake={shake} hint="Money moves only now" size={188} />
+                <HoldToShake onShake={shake} disabled={settling} hint="Money moves only now" size={188} />
               </Item>
+              {session.error && <p className="max-w-[32ch] text-sm text-ink-2" role="alert">{session.error}</p>}
               <Item>
                 <Button
                   variant="ghost"
                   className="!h-11"
                   loading={refunding}
+                  disabled={settling}
                   onClick={async () => {
                     setRefunding(true);
                     try {
                       await notYet();
                       haptic.success();
                       sfx.confirm();
+                    } catch {
+                      // The session displays the error and keeps the action retryable.
                     } finally {
                       setRefunding(false);
                     }

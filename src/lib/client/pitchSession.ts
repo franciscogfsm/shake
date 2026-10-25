@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { TOKEN_CONTRACT_ID, newDealId, toUnits } from "@/lib/config";
 import { ApiError, callDeal, ensureAccount, getKeypair, pitchApi } from "./wallet";
+import type { Deal, DealEvent } from "./useDeal";
 
 /**
  * The hidden product inside the pitch: pressing Start silently creates a wallet,
@@ -34,6 +35,8 @@ export function usePitchSession() {
   const [s, setS] = useState<PitchSession>({ status: "idle" });
   const ref = useRef(s);
   const running = useRef(false);
+  const settlingRef = useRef(false);
+  const [settling, setSettling] = useState(false);
 
   const update = useCallback((patch: Partial<PitchSession>) => {
     ref.current = { ...ref.current, ...patch };
@@ -44,6 +47,26 @@ export function usePitchSession() {
   }, []);
 
   const now = () => new Date().toISOString();
+
+  // localStorage can outlive a transaction response, a tab, or a deployment.
+  // Always use the chain to decide whether the demo can still be settled.
+  const reconcile = useCallback(async () => {
+    const id = ref.current.dealId;
+    if (!id) throw new ApiError("Start a demo before shaking.");
+    const res = await fetch(`/api/deal/${id}`, { cache: "no-store" });
+    const json = await res.json();
+    if (!res.ok || !json.deal) throw new ApiError(json.error ?? "We couldn't load this deal. Try again.");
+    const deal = json.deal as Deal;
+    if (deal.status === "Released" || deal.status === "Refunded") {
+      const outcome = deal.status === "Released" ? "released" : "refunded";
+      const event = (json.events as DealEvent[] | undefined)?.find((e) => e.type === outcome);
+      update({
+        status: "done", outcome, error: undefined,
+        settled: event ? { at: event.at, hash: event.txHash } : ref.current.settled,
+      });
+    }
+    return deal;
+  }, [update]);
 
   /** Idempotent: resumes from whatever step a previous attempt (or a refresh) reached. */
   const start = useCallback(async () => {
@@ -88,17 +111,39 @@ export function usePitchSession() {
     running.current = false;
   }, [update]);
 
-  const shake = useCallback(async () => {
-    const id = ref.current.dealId!;
-    const { secret } = await pitchApi.secret(id);
-    const res = await callDeal(getKeypair(), "release", { dealId: id, secret });
-    update({ status: "done", outcome: "released", settled: { at: now(), hash: res.hash } });
-  }, [update]);
+  const settle = useCallback(async (outcome: "released" | "refunded") => {
+    if (settlingRef.current) return;
+    settlingRef.current = true;
+    setSettling(true);
+    update({ error: undefined });
+    try {
+      const deal = await reconcile();
+      if (deal.status === "Released" || deal.status === "Refunded") return;
+      let hash: string | null;
+      if (outcome === "released") {
+        const kp = getKeypair();
+        if (deal.buyer !== kp.publicKey()) throw new ApiError("Open this demo in the browser where you started it.");
+        const { secret } = await pitchApi.secret(deal.id);
+        hash = (await callDeal(kp, "release", { dealId: deal.id, secret })).hash;
+      } else {
+        hash = (await pitchApi.refund(deal.id)).hash ?? null;
+      }
+      update({ status: "done", outcome, settled: { at: now(), hash } });
+    } catch (e) {
+      // Another tab may have settled the deal, or a successful submission's
+      // response may have been lost. Recover its actual outcome before retrying.
+      const deal = await reconcile().catch(() => null);
+      if (deal?.status === "Released" || deal?.status === "Refunded") return;
+      update({ error: e instanceof Error ? e.message : "The network is slow. Try again." });
+      throw e;
+    } finally {
+      settlingRef.current = false;
+      setSettling(false);
+    }
+  }, [reconcile, update]);
 
-  const notYet = useCallback(async () => {
-    const res = await pitchApi.refund(ref.current.dealId!);
-    update({ status: "done", outcome: "refunded", settled: { at: now(), hash: res.hash ?? null } });
-  }, [update]);
+  const shake = useCallback(() => settle("released"), [settle]);
+  const notYet = useCallback(() => settle("refunded"), [settle]);
 
   const reset = useCallback(() => {
     ref.current = { status: "idle" };
@@ -113,7 +158,8 @@ export function usePitchSession() {
     ref.current = load();
     setS(ref.current);
     if (ref.current.status === "working" || ref.current.status === "failed") start();
-  }, [start]);
+    if (ref.current.status === "ready") void reconcile().catch(() => {});
+  }, [start, reconcile]);
 
-  return { session: s, start, shake, notYet, reset };
+  return { session: s, start, shake, notYet, reset, settling };
 }
