@@ -60,7 +60,7 @@ function Problem() {
           </h2>
           <motion.div className="mt-6 grid max-w-[460px] grid-cols-2 gap-3" animate={{ opacity: stage === 2 ? 1 : 0, y: stage === 2 ? 0 : 14 }} transition={springs.smooth}>
             <Stat value={4467} label="MB WAY scam complaints in Portugal, 2024" href="https://dinheirovivo.dn.pt/economia/queixas-por-burlas-via-mbway-aumentaram-6-em-2024" />
-            <Stat value={121} prefix="€" suffix="bn" label="second-hand sold in Europe in 2025" href="https://www.retaildetail.eu/news/general/second-hand-marketplaces-drive-innovation-in-e-commerce/" />
+            <Stat value={121} suffix="bn€" label="second-hand sold in Europe in 2025" href="https://www.retaildetail.eu/news/general/second-hand-marketplaces-drive-innovation-in-e-commerce/" />
           </motion.div>
         </div>
         <motion.div className="order-1 flex justify-center lg:order-2" style={reduce ? undefined : { rotate: tilt, y: lift }}>

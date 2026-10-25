@@ -5,7 +5,7 @@ import { Button } from "./Button";
 import { GlassSheet } from "./GlassSheet";
 import { springs } from "./Mark";
 import { CURRENCIES, explorer, type CurrencyCode } from "@/lib/config";
-import { NIDO_BASE, approveNido, checkNido, connectNido, createNidoPasskey, disconnectNido, nidoAddress, nidoStatus, type NidoStatus } from "@/lib/client/nido";
+import { NIDO_BASE, approveNido, checkNido, connectNido, createNidoAccount, createNidoPasskey, disconnectNido, nidoAddress, nidoStatus, type NidoStatus } from "@/lib/client/nido";
 import { haptic } from "@/lib/client/sfx";
 
 /** Nido's nest-ring mark, as its wallet module ships it (Apache-2.0). */
@@ -24,8 +24,8 @@ const STEPS: Exclude<NidoStatus, "ready">[] = ["connect", "passkey", "approve"];
 const COPY: Record<Exclude<NidoStatus, "ready">, { title: string; body: string; cta: string; note: string }> = {
   connect: {
     title: "Set up Face ID payments",
-    body: "Your Face ID wallet is a Nido: a smart account on Stellar that only opens with your face. Pick yours, or create one in seconds.",
-    cta: "Connect Nido",
+    body: "Your Face ID wallet is a Nido: a smart account on Stellar that only opens with your face. Create yours in seconds.",
+    cta: "Create my Nido",
     note: "Only your public address is shared. Nothing is signed.",
   },
   passkey: {
@@ -48,6 +48,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [account, setAccount] = useState<string | null>(null);
+  const [made, setMade] = useState(false); // sign-up window opened: next tap picks the new account
 
   useEffect(() => {
     if (!open) return;
@@ -70,8 +71,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
       else setStatus(s);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong. Try again.";
-      // Nido's "create one first" leaves the picker, so the window closes without an answer
-      setError(status === "connect" && /closed/.test(msg) ? "Made your Nido? Tap Connect Nido again and pick it." : msg);
+      setError(status === "connect" && /closed/.test(msg) ? "Nido's window closed. Tap again to pick your Nido." : msg);
     } finally {
       setBusy(false);
     }
@@ -121,11 +121,32 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
               </button>
             </div>
           )}
-          <Button full className="mt-6" loading={busy} onClick={() => run(status === "connect" ? connectNido : status === "passkey" ? createNidoPasskey : () => approveNido(currency))}>
-            {c.cta}
+          {status === "connect" && made && <p className="mt-5 text-[15px] text-ink-2">Finish with Face ID in Nido's window, then come back here.</p>}
+          <Button
+            full
+            className="mt-6"
+            loading={busy}
+            onClick={() => {
+              if (status === "connect" && !made) {
+                try {
+                  createNidoAccount();
+                  setMade(true);
+                  setError("");
+                } catch (e) {
+                  setError((e as Error).message);
+                }
+              } else run(status === "connect" ? connectNido : status === "passkey" ? createNidoPasskey : () => approveNido(currency));
+            }}
+          >
+            {status === "connect" && made ? "Connect my new Nido" : c.cta}
           </Button>
           {error && <p role="alert" className="mt-3 text-center text-sm text-danger">{error}</p>}
           <p className="mt-3 text-center text-xs text-mute">{c.note}</p>
+          {status === "connect" && (
+            <button type="button" disabled={busy} className="mt-2 text-sm text-mute underline-offset-4 hover:underline" onClick={() => run(made ? async () => createNidoAccount() : connectNido)}>
+              {made ? "Open Nido's sign-up again" : "I already have a Nido"}
+            </button>
+          )}
           {status === "approve" && (
             <button type="button" disabled={busy} className="mt-2 text-sm text-mute underline-offset-4 hover:underline" onClick={() => run(() => checkNido(currency))}>
               Already approved? Check again

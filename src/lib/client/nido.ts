@@ -85,6 +85,12 @@ export async function connectNido() {
   throw new Error(p.get("nido_connect") === "cancelled" ? "You closed Nido without picking an account." : p.get("nido_error") ?? "Nido didn't return an account.");
 }
 
+/** Nido's sign-up, straight to Face ID. It can't hand the address back, so it opens in the window the picker reuses next. */
+export function createNidoAccount() {
+  if (!window.open(new URL("/new-account/?setup=1", apex()).toString(), "nido-wallet", "popup,width=460,height=720"))
+    throw new Error("Your browser blocked Nido's window. Allow pop-ups for this site and try again.");
+}
+
 export function disconnectNido() {
   const a = nidoAddress();
   localStorage.removeItem(ADDRESS_KEY);
