@@ -286,7 +286,7 @@ export async function submitCall(func: string, auth: string[]) {
       if (res.hash) return { hash: res.hash, status: res.status, via: "openzeppelin" as const };
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
-      const contractError = /Error\(Contract, #\d+\)/.test(msg);
+      const contractError = /Error\((Contract, #\d+|Auth,)/.test(msg);
       if (contractError) throw new UserError(explainContractError(msg), 409);
       // budget exhausted or relayer unavailable: use our own pool for a while
       channelsDownUntil = Date.now() + (/budget|FEE_LIMIT|limit/i.test(msg) ? 30 * 60_000 : 60_000);
