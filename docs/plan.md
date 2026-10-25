@@ -2,7 +2,15 @@
 
 The living tracker. **Update the checkboxes and the "Now" line as work lands**, so the next session knows exactly where we are.
 
-**Now:** the research (step 1) and the visual direction (step 2) are done and locked. Next: scaffold the app and contract (step 3 and step 4 in parallel).
+**Now:** the contract is deployed and smoke-tested on testnet, and the Next.js 15 app is scaffolded at the repo root. Next: tokens, the glass system and the core components (step 3), then the server APIs (step 5).
+
+**Testnet deployment (25 Oct 2026, `scripts/deploy.sh`):**
+- Deal contract: `CC7QNWLSP6W6N5F6A6FB53FLGYTO74HGERKOSBOIPDS6KA5GLYDA4BMX`
+- tEUR SAC: `CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`
+- tEUR issuer: `GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ`
+- Team (pitch seller): `GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX`
+- CLI smoke test: [lock](https://stellar.expert/explorer/testnet/tx/f0e4a08c9bec79c6273bea16458bccd0fcfa0c0d7839c931d1dfd0ec309f8abc) → [accept](https://stellar.expert/explorer/testnet/tx/b95ffd9a34ac3c248dc3c140c9b9084ae45f3eff3a362f00cffadc1eac5cf3d5) → [release](https://stellar.expert/explorer/testnet/tx/a1e47d96dea9ec1a87d1e0a5cb695cf39645079afd25f2756f0cf61f6db48956)
+- The secrets (issuer, sponsor, team) are only in `.env.local`. If testnet is reset, re-run `bash scripts/deploy.sh`.
 
 ## Locked decisions (don't reopen without the team)
 - **Design:** Graphite Glacier, Satoshi + Inter + JetBrains Mono. See [design-system.md](design-system.md) and `design/reference.html`.
@@ -43,7 +51,7 @@ events: ("locked"|"accepted"|"released"|"refunded", deal_id) with amount / addre
 - [x] 2. Visual direction picked: Graphite Glacier
 - [ ] 3. Next.js scaffold, tokens, fonts, glass system, mark, and the core components on `/lab`:
   - DealCapsule, HoldToShake, Seal, LiveReceipt, Scanner, GlassSheet, Button, NumberTicker, HashTyper.
-- [ ] 4. Contract plus tests, then a deploy script (`scripts/deploy.ts`):
+- [x] 4. Contract plus tests (11 passing), deployed. Was:, then a deploy script (`scripts/deploy.ts`):
   - issue tEUR, deploy the SAC, deploy the contract, write the IDs to `.env.local`.
 - [ ] 5. Server APIs:
   - create a sponsored account plus trustline, fund tEUR, build and simulate a call, submit through Channels, read the deal, poll events.
