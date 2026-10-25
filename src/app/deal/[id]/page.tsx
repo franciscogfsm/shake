@@ -144,7 +144,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency,
         : s === "Shipped"
           ? job ? "Work in progress." : `On its way${deal.tracking ? ` · ${deal.tracking}` : ""}`
           : s === "Delivered"
-            ? job ? "Marked done. Check the work." : "Delivered. Scan the QR inside the box."
+            ? job ? "Marked done. Check the work." : "Delivered. Check it, then scan the QR in the box."
             : "Problem opened. The money is frozen.";
 
   if (scan && joined && !ship && !expired) return <ScanFlow deal={deal} onBack={() => setScan(false)} onReleased={refresh} onOffline={onShaken} />;
@@ -193,12 +193,12 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency,
               </Link>
             )}
             {canDispute && (
-              <Button variant="ghost" full loading={cancelling} onClick={() => run("dispute")}>Open a problem</Button>
+              <Button variant="ghost" full loading={cancelling} onClick={() => run("dispute")}>{job ? "Open a problem" : "It didn't arrive, or it's wrong"}</Button>
             )}
             {expired && <Button variant="ghost" full loading={cancelling} onClick={cancel}>Refund me now</Button>}
             <p className="text-center text-sm text-mute">
               {s === "Accepted"
-                ? job ? "Once they start you can't pull the money back. You approve when it's done." : "Once it's shipped you can't pull the money back. Scan the QR when you open the box."
+                ? job ? "Once they start you can't pull the money back. You approve when it's done." : "Once it's shipped you can't pull the money back. Check the item first: scanning the QR in the box pays the seller."
                 : s === "Disputed"
                   ? "A neutral resolver looks at it. They can only split the money between you two, never keep it."
                   : job ? "Happy with it? Approve. Problem? Open it before the 3 days after they mark it done run out." : "Nothing wrong? Scan the QR. Problem? Open it before the 3 days after delivery run out."}

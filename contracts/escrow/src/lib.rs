@@ -31,6 +31,9 @@ const BUMP_TO: u32 = 30 * DAY_IN_LEDGERS;
 const MAX_MEMO: u32 = 64;
 /// Ship mode: how long the buyer has after delivery to scan or open a problem.
 pub const GRACE_SECS: u64 = 3 * 24 * 60 * 60;
+/// Ship mode: the buyer's 3 days never start sooner than this after shipping, so a seller
+/// who marks "delivered" right away can't run the clock out before the box arrives.
+pub const MIN_TRANSIT_SECS: u64 = 2 * 24 * 60 * 60;
 
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -69,7 +72,8 @@ pub struct Deal {
     /// Ship mode only: the neutral party who can split a disputed deal (never keep it).
     pub resolver: Option<Address>,
     pub tracking: String,
-    /// Ship mode: after this time anyone can release to the seller (0 until delivered).
+    /// Ship mode: after this time anyone can release to the seller (0 until shipped;
+    /// while shipped, the earliest the buyer's 3 days can start).
     pub release_after: u64,
     /// Hold mode: what the holder claimed from the deposit (the rest goes back to the payer).
     pub claimed: i128,
@@ -423,11 +427,13 @@ impl ShakeDeal {
         }
         deal.status = Status::Shipped;
         deal.tracking = tracking.clone();
+        deal.release_after = env.ledger().timestamp() + MIN_TRANSIT_SECS;
         save(&env, deal_id, &deal);
         Shipped { deal_id, seller, tracking }.publish(&env);
     }
 
-    /// Ship mode: the package arrived. Starts the buyer's 3 days to scan the QR or open a problem.
+    /// Ship mode: the package arrived. Starts the buyer's 3 days to scan the QR or open a problem,
+    /// but never before the minimum transit time since shipping has passed.
     pub fn mark_delivered(env: Env, deal_id: u64) {
         let mut deal = load(&env, deal_id);
         let seller = ship_seller(&env, &deal);
@@ -436,7 +442,7 @@ impl ShakeDeal {
             panic_with_error!(&env, Error::WrongStage);
         }
         deal.status = Status::Delivered;
-        deal.release_after = env.ledger().timestamp() + GRACE_SECS;
+        deal.release_after = env.ledger().timestamp().max(deal.release_after) + GRACE_SECS;
         save(&env, deal_id, &deal);
         Delivered { deal_id, seller, release_after: deal.release_after }.publish(&env);
     }

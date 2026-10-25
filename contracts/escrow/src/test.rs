@@ -231,7 +231,7 @@ fn ship_silent_buyer_releases_to_seller_three_days_after_delivery() {
     s.client.mark_shipped(&DEAL, &tracking(&s.env));
     s.client.mark_delivered(&DEAL);
     let after = s.client.get(&DEAL).release_after;
-    assert_eq!(after, 1_000 + GRACE_SECS);
+    assert_eq!(after, 1_000 + MIN_TRANSIT_SECS + GRACE_SECS);
     s.env.ledger().set_timestamp(after - 1);
     assert_eq!(s.client.try_claim(&DEAL), Err(Ok(err(Error::TooEarly))));
     s.env.ledger().set_timestamp(after);
@@ -249,7 +249,7 @@ fn ship_dispute_freezes_and_resolver_can_only_split() {
     s.client.mark_delivered(&DEAL);
     s.client.dispute(&DEAL);
     assert_eq!(last_signer(&s.env), s.buyer);
-    s.env.ledger().set_timestamp(1_000 + GRACE_SECS + 1);
+    s.env.ledger().set_timestamp(1_000 + MIN_TRANSIT_SECS + GRACE_SECS + 1);
     assert_eq!(s.client.try_claim(&DEAL), Err(Ok(err(Error::WrongStage))));
     assert_eq!(s.client.try_release(&DEAL, &secret(&s.env)), Err(Ok(err(Error::NotOpen))));
     assert_eq!(s.client.try_resolve(&DEAL, &(AMOUNT + 1)), Err(Ok(err(Error::BadSplit))));
@@ -268,8 +268,22 @@ fn ship_dispute_window_closes_after_three_days() {
     ship_and_accept(&s);
     s.client.mark_shipped(&DEAL, &tracking(&s.env));
     s.client.mark_delivered(&DEAL);
-    s.env.ledger().set_timestamp(1_000 + GRACE_SECS);
+    s.env.ledger().set_timestamp(1_000 + MIN_TRANSIT_SECS + GRACE_SECS);
     assert_eq!(s.client.try_dispute(&DEAL), Err(Ok(err(Error::TooLate))));
+}
+
+#[test]
+fn ship_late_delivery_still_gives_the_buyer_three_full_days() {
+    let s = setup();
+    ship_and_accept(&s);
+    s.client.mark_shipped(&DEAL, &tracking(&s.env));
+    let arrived = 1_000 + 5 * 24 * 60 * 60;
+    s.env.ledger().set_timestamp(arrived);
+    s.client.mark_delivered(&DEAL);
+    assert_eq!(s.client.get(&DEAL).release_after, arrived + GRACE_SECS);
+    s.env.ledger().set_timestamp(arrived + GRACE_SECS - 1);
+    s.client.dispute(&DEAL);
+    assert_eq!(s.client.get(&DEAL).status, Status::Disputed);
 }
 
 #[test]

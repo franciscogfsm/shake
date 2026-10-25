@@ -123,8 +123,8 @@ function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; mo
   return (
     <Stagger className="flex flex-col justify-center gap-6 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
       <Item>
-        <h1 className="display text-[40px] leading-[0.98] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
-        <p className="mx-auto mt-3 max-w-[28ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-none lg:text-lg">Lock the money. They see it&apos;s real. It pays only when you meet.</p>
+        <h1 className="display text-[40px] leading-[0.96] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
+        <p className="mx-auto mt-3 max-w-[26ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-[28ch] lg:text-lg">Lock the money. They see it&apos;s real, not a screenshot.</p>
       </Item>
       <Item className="flex flex-col items-center gap-3 lg:hidden">
         <div className="origin-top max-[380px]:scale-[0.86]">
@@ -217,7 +217,7 @@ function StoryPanel({ beat, nonce, onBeat, money }: { beat: number; nonce: numbe
     <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
       <div className="halo" aria-hidden />
       <HowItWorks beat={beat} money={money} big className="relative" />
-      <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="relative mx-auto mt-8 max-w-[440px]" />
+      <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="relative mx-auto mt-6 max-w-[456px]" />
     </motion.div>
   );
 }

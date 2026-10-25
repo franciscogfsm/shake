@@ -41,8 +41,8 @@ const QR = Array.from({ length: 121 }, (_, i) => {
 
 const SIZES = {
   // stage width, phone width/height/radius, coin, gap between phones when they meet
-  small: { w: 332, pw: 112, ph: 226, r: 26, coin: 46, gap: 8, amount: "text-[28px]", label: "text-[10px]", qr: 64 },
-  big: { w: 440, pw: 152, ph: 308, r: 34, coin: 62, gap: 10, amount: "text-[38px]", label: "text-[12px]", qr: 92 },
+  small: { w: 332, pw: 120, ph: 214, r: 28, coin: 44, gap: 10, amount: "text-[30px]", label: "text-[11px]", qr: 72 },
+  big: { w: 456, pw: 164, ph: 324, r: 36, coin: 72, gap: 14, amount: "text-[44px]", label: "text-[13px]", qr: 104 },
 };
 
 function Phone({ who, children, s, lit, sweep }: { who: string; children: React.ReactNode; s: (typeof SIZES)["big"]; lit?: boolean; sweep?: boolean }) {
@@ -57,7 +57,7 @@ function Phone({ who, children, s, lit, sweep }: { who: string; children: React.
         <span className="absolute left-1/2 top-[6px] h-[13px] w-[34%] -translate-x-1/2 rounded-full bg-black" />
         <span className="h-[6px] w-[12px] rounded-[2px] border border-ink-2/60" />
       </div>
-      <div className="mt-3 text-center font-mono text-[8px] uppercase tracking-[0.2em] text-mute">{who}</div>
+      <div className="mt-2.5 text-center font-mono text-[9px] uppercase tracking-[0.2em] text-mute">{who}</div>
       <div className="relative flex flex-1 items-center justify-center px-3 pb-6 text-center">{children}</div>
       {/* glass glare, plus a light sweep the moment money lands */}
       <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,.07),transparent_38%)]" />
@@ -102,8 +102,9 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
   const near = meet && !reduce ? (rest - s.gap) / 2 : 0;
   const side = s.pw / 2 + (meet ? s.gap : rest) / 2; // phone centre, measured from the stage centre
   const tilt = reduce ? 0 : meet ? 0 : 14;
-  const fade = { initial: { opacity: 0, scale: reduce ? 1 : 0.88, filter: "blur(8px)" }, animate: { opacity: 1, scale: 1, filter: "blur(0px)" }, exit: { opacity: 0, scale: reduce ? 1 : 1.08, filter: "blur(8px)" }, transition: springs.smooth };
-  const flip = (k: string, a: React.ReactNode) => <motion.div key={k} {...fade} className="flex flex-col items-center gap-1.5">{a}</motion.div>;
+  const fade = { initial: { opacity: 0, scale: reduce ? 1 : 0.92 }, animate: { opacity: 1, scale: 1 }, exit: { opacity: 0, scale: reduce ? 1 : 1.06 }, transition: springs.smooth };
+  const pop = { ...fade, transition: springs.slam };
+  const flip = (k: string, a: React.ReactNode, slam = false) => <motion.div key={k} {...(slam ? pop : fade)} className="flex flex-col items-center gap-1.5">{a}</motion.div>;
   // the coin waits in the gap, rises over the seam while you scan, then slams down onto it
   const coinY = reduce ? 0 : beat === 2 ? -s.ph / 2 + s.coin / 2 + 4 : 0;
 
@@ -116,9 +117,9 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
         <Phone who="You" s={s} lit={paid && sub} sweep={paid && sub}>
           <AnimatePresence mode="popLayout" initial={false}>
             {beat === 0 && flip(sub ? "lock-sent" : "lock", <>
-              <span className={`amount ${s.amount} ${sub ? "text-ink-2" : ""}`}>{money}</span>
-              {sub ? <span className={`text-safe ${s.label}`}>Locked ✓</span> : <span className={`rounded-full bg-safe px-2.5 py-0.5 font-medium text-on-safe ${s.label}`}>Face ID</span>}
-            </>)}
+              <span className={`amount ${s.amount} ${sub ? "glacier-text" : ""}`}>{money}</span>
+              {sub ? <span className={`text-safe ${s.label}`}>Locked ✓</span> : <span className={`rounded-full bg-safe px-2.5 py-1 font-medium text-on-safe ${s.label}`}>Face ID</span>}
+            </>, sub)}
             {beat === 1 && flip("held", <>
               <span className={`text-safe ${s.label}`}>Locked ✓</span>
               <span className={`text-ink-2 ${s.label}`}>Not sent yet</span>
@@ -129,13 +130,13 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
                   <span key={c} className={`absolute size-4 rounded-[4px] ${sub ? "border-safe" : "border-white/60"} ${c}`} />
                 ))}
                 {!reduce && !sub && <motion.span className="absolute inset-x-1.5 h-[2px] rounded-full bg-safe shadow-[0_0_12px_var(--safe)]" initial={{ top: "10%" }} animate={{ top: ["10%", "90%", "10%"] }} transition={{ duration: 1.4, ease: "easeInOut" }} />}
-                {sub && <motion.span className={`absolute inset-0 grid place-items-center text-safe ${s.label}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>Match ✓</motion.span>}
+                {sub && <motion.span className={`absolute inset-0 grid place-items-center text-safe ${s.label}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>It's them ✓</motion.span>}
               </motion.div>
             )}
             {paid && flip("paid", <>
               <span className={`amount ${s.amount}`}>Paid</span>
               <span className={`text-safe ${s.label}`}>✓ in 5 seconds</span>
-            </>)}
+            </>, true)}
           </AnimatePresence>
         </Phone>
       </motion.div>
@@ -146,6 +147,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
             {beat === 0 && flip("wait", <>
               <span className="block h-1.5 w-12 rounded-full bg-white/[0.07]" />
               <span className="block h-1.5 w-8 rounded-full bg-white/[0.05]" />
+              <span className={`mt-1 text-mute ${s.label}`}>Waiting</span>
             </>)}
             {beat === 1 && !sub && flip("fake", <>
               {/* the screenshot scam: it flickers, splits, and is struck off */}
@@ -162,7 +164,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
             {beat === 1 && sub && flip("real", <>
               <span className={`amount ${s.amount} glacier-text`}>{money}</span>
               <span className={`text-ink ${s.label}`}>locked for you ✓</span>
-            </>)}
+            </>, true)}
             {beat === 2 && (
               <motion.div key="qr" {...fade}>
                 <svg viewBox="0 0 11 11" className="rounded-[6px] bg-white p-[4px]" style={{ width: s.qr, height: s.qr }} shapeRendering="crispEdges">
@@ -174,7 +176,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
             {paid && sub && flip("got", <>
               <span className={`amount ${s.amount} text-safe`}>+{money}</span>
               <span className={`text-ink ${s.label}`}>Yours</span>
-            </>)}
+            </>, true)}
           </AnimatePresence>
         </Phone>
       </motion.div>
@@ -194,11 +196,11 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
             transition={beat === 0 ? { duration: 0.6 } : { duration: 2.4, repeat: Infinity }}
           />
         )}
-        <Mark size={s.coin} state={paid ? "shut" : beat === 0 && !sub ? "open" : "rest"} />
+        <Mark size={s.coin} state={paid ? "shut" : (beat === 0 && !sub) || (beat === 2 && !sub) ? "open" : "rest"} />
         <AnimatePresence>
           {beat < 2 && (
-            <motion.span className="absolute top-full mt-2 whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.16em] text-mute" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-              {beat === 0 && !sub ? "Locking" : "Held on Stellar"}
+            <motion.span className="absolute top-full mt-2 whitespace-nowrap font-mono text-[9px] uppercase tracking-[0.14em] text-mute lg:text-[10px]" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {beat === 0 && !sub ? "Locking" : big ? "Held on Stellar" : "Held"}
             </motion.span>
           )}
         </AnimatePresence>
@@ -259,13 +261,13 @@ export function StoryCaption({ beat, nonce, money, onBeat, className = "" }: { b
                 transition={beat === i && !reduce ? { duration: BEAT_MS[i] / 1000, ease: "linear" } : { duration: 0.2 }}
               />
             </span>
-            <span className={`font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${beat === i ? "text-ink" : "text-mute group-hover:text-ink-2"}`}>{t}</span>
+            <span className={`font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${beat === i ? "text-safe" : "text-mute group-hover:text-ink-2"}`}>{t}</span>
           </button>
         ))}
       </div>
       <div className="relative mt-2 h-12 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.p key={beat} className="font-display text-[15px] font-medium leading-snug text-ink sm:text-[17px] lg:whitespace-nowrap lg:text-[19px]" initial={{ opacity: 0, y: 12, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} transition={springs.snappy}>
+          <motion.p key={beat} className="font-display text-[15px] font-medium leading-snug text-ink sm:text-[17px] lg:text-[19px]" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.snappy}>
             {beatLine(beat, money)}
           </motion.p>
         </AnimatePresence>
