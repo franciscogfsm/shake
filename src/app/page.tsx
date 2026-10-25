@@ -50,7 +50,7 @@ export default function Home() {
       }
     >
       <div className="flex min-h-0 flex-1 flex-col">
-      <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,380px)] lg:items-center lg:gap-14">
+      <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-12 xl:gap-16">
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
@@ -122,10 +122,10 @@ function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; mo
     <Stagger className="flex flex-col justify-center gap-7 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
       <Item className="flex flex-col items-center gap-4 lg:hidden">
         <HowItWorks beat={beat} money={money} />
-        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[320px]" />
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
       </Item>
       <Item>
-        <h1 className="display text-[40px] leading-[1.0] lg:text-[76px] lg:leading-[0.94]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
+        <h1 className="display text-[40px] leading-[1.0] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
         <p className="mt-3 text-[15px] text-mute lg:mt-5 lg:text-lg">For deals on OLX, Vinted and WhatsApp.</p>
       </Item>
       <Item className="flex flex-col gap-4 lg:max-w-[400px]">
@@ -212,11 +212,8 @@ function StoryPanel({ beat, nonce, onBeat, money }: { beat: number; nonce: numbe
   return (
     <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
       <div className="halo" aria-hidden />
-      <aside className="glass px-6 pb-5 pt-7">
-        <HowItWorks beat={beat} money={money} big />
-        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="mt-6" />
-        <p className="mt-3 border-t border-white/10 pt-3 text-[13px] text-mute">Tap “Try it now” and you do exactly this, for real, on Stellar.</p>
-      </aside>
+      <HowItWorks beat={beat} money={money} big className="relative" />
+      <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="relative mx-auto mt-8 max-w-[440px]" />
     </motion.div>
   );
 }

@@ -6,14 +6,17 @@ import { haptic } from "@/lib/client/sfx";
 
 /** The four beats of every deal, in the order the hero tells them. */
 export const BEATS = ["Lock", "Verify", "Meet", "Shake"] as const;
-export const BEAT_MS = 3200;
+/** How long each beat plays; the shake gets room to land. */
+export const BEAT_MS = [3000, 3400, 3000, 4000];
+// when the second half of each beat happens: Face ID passes, the real money replaces the fake, the scan matches, the money lands
+const SUB_MS = [850, 1100, 1500, 650];
 
 /** Cycles through the beats; picking one jumps there and the story carries on from it. */
 export function useBeat() {
   const [beat, setBeat] = useState(0);
   const [nonce, setNonce] = useState(0);
   useEffect(() => {
-    const t = setTimeout(() => setBeat((b) => (b + 1) % BEATS.length), BEAT_MS);
+    const t = setTimeout(() => setBeat((b) => (b + 1) % BEATS.length), BEAT_MS[beat]);
     return () => clearTimeout(t);
   }, [beat, nonce]);
   return [beat, (b: number) => { setBeat(b); setNonce((n) => n + 1); }, nonce] as const;
@@ -36,156 +39,198 @@ const QR = Array.from({ length: 121 }, (_, i) => {
   return finder ? !(x % 10 === 1 && y % 10 === 1) && !(x === 9 && y === 1) && !(x === 1 && y === 9) : (x * 7 + y * 13 + x * y) % 5 < 2;
 });
 
-function Phone({ who, children, big, lit }: { who: string; children: React.ReactNode; big?: boolean; lit?: boolean }) {
+const SIZES = {
+  // stage width, phone width/height/radius, coin, gap between phones when they meet
+  small: { w: 332, pw: 112, ph: 226, r: 26, coin: 46, gap: 8, amount: "text-[28px]", label: "text-[10px]", qr: 64 },
+  big: { w: 440, pw: 152, ph: 308, r: 34, coin: 62, gap: 10, amount: "text-[38px]", label: "text-[12px]", qr: 92 },
+};
+
+function Phone({ who, children, s, lit, sweep }: { who: string; children: React.ReactNode; s: (typeof SIZES)["big"]; lit?: boolean; sweep?: boolean }) {
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className={`relative flex shrink-0 flex-col overflow-hidden border bg-[#0f1216] shadow-[0_24px_50px_-24px_rgba(0,0,0,.9)] transition-colors duration-500 ${lit ? "border-safe/40" : "border-white/[0.1]"} ${big ? "h-[226px] w-[128px] rounded-[28px]" : "h-[184px] w-[106px] rounded-[24px]"}`}>
-        <div className={`mx-auto mt-2 shrink-0 rounded-full bg-black ${big ? "h-[15px] w-[46px]" : "h-[11px] w-[34px]"}`} />
-        <div className="relative flex flex-1 items-center justify-center px-2 text-center">{children}</div>
+    <div
+      className={`relative flex flex-col overflow-hidden border-[1.5px] bg-[#0e1115] transition-[border-color,box-shadow] duration-500 ${lit ? "border-safe/50 shadow-[0_0_60px_-18px_var(--safe),0_40px_70px_-30px_rgba(0,0,0,.95),inset_0_0_0_4px_#05070a]" : "border-white/[0.14] shadow-[0_40px_70px_-30px_rgba(0,0,0,.95),inset_0_0_0_4px_#05070a]"}`}
+      style={{ width: s.pw, height: s.ph, borderRadius: s.r }}
+    >
+      {/* status bar and island, so it reads as a real phone at a glance */}
+      <div className="relative flex shrink-0 items-center justify-between px-[14%] pt-[7px] font-mono text-[8px] text-ink-2">
+        <span>9:41</span>
+        <span className="absolute left-1/2 top-[6px] h-[13px] w-[34%] -translate-x-1/2 rounded-full bg-black" />
+        <span className="h-[6px] w-[12px] rounded-[2px] border border-ink-2/60" />
       </div>
-      <div className="font-mono text-[9px] uppercase tracking-[0.18em] text-mute">{who}</div>
+      <div className="mt-3 text-center font-mono text-[8px] uppercase tracking-[0.2em] text-mute">{who}</div>
+      <div className="relative flex flex-1 items-center justify-center px-3 pb-6 text-center">{children}</div>
+      {/* glass glare, plus a light sweep the moment money lands */}
+      <span className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(255,255,255,.07),transparent_38%)]" />
+      {sweep && <motion.span className="pointer-events-none absolute inset-y-0 w-1/2 bg-[linear-gradient(90deg,transparent,rgba(143,211,255,.22),transparent)]" initial={{ x: "-120%" }} animate={{ x: "320%" }} transition={{ duration: 0.9, ease: "easeOut", delay: 0.1 }} />}
     </div>
+  );
+}
+
+/** The money in flight between phones: a small glowing chip on an arc. */
+function Flight({ from, to, top, money, delay = 0 }: { from: number; to: number; top: number; money: string; delay?: number }) {
+  return (
+    <motion.span
+      className="amount pointer-events-none absolute left-1/2 z-30 -ml-6 -mt-3.5 flex h-7 w-12 items-center justify-center rounded-full bg-safe text-[13px] text-on-safe shadow-[0_0_30px_var(--safe)]"
+      style={{ top }}
+      initial={{ x: from, y: 0, opacity: 0, scale: 0.6 }}
+      animate={{ x: [from, (from + to) / 2, to], y: [0, -46, 0], opacity: [0, 1, 0], scale: [0.6, 1.1, 0.4] }}
+      transition={{ duration: 0.75, delay, ease: [0.5, 0, 0.3, 1], times: [0, 0.5, 1] }}
+    >
+      {money}
+    </motion.span>
   );
 }
 
 /**
  * The whole product as one short film: your phone, the money held in the middle, their phone.
- * One thing on each screen per beat. Purely illustrative (the real deal runs when you tap Try it).
+ * Purely illustrative (the real deal runs when you tap Try it).
  */
 export function HowItWorks({ beat, money, big, className = "" }: { beat: number; money: string; big?: boolean; className?: string }) {
   const reduce = useReducedMotion();
-  // within Verify: a faked screenshot glitches first, then the real locked money replaces it
-  const [real, setReal] = useState(false);
+  const s = SIZES[big ? "big" : "small"];
+  // the second half of each beat (see SUB_MS)
+  const [sub, setSub] = useState(false);
   useEffect(() => {
-    setReal(false);
-    if (beat !== 1) return;
-    const t = setTimeout(() => setReal(true), 1000);
+    setSub(false);
+    const t = setTimeout(() => setSub(true), SUB_MS[beat]);
     return () => clearTimeout(t);
   }, [beat]);
   const paid = beat === 3;
+  const meet = beat >= 2;
 
-  const amount = big ? "text-[36px]" : "text-[30px]";
-  const label = big ? "text-[12px]" : "text-[10px]";
-  const fade = { initial: { opacity: 0, scale: reduce ? 1 : 0.9, filter: "blur(6px)" }, animate: { opacity: 1, scale: 1, filter: "blur(0px)" }, exit: { opacity: 0, scale: reduce ? 1 : 1.06, filter: "blur(6px)" }, transition: springs.smooth };
-  const near = beat >= 2 && !reduce ? (big ? 22 : 16) : 0;
-  const qr = big ? "size-[84px]" : "size-[68px]";
+  const rest = s.w - 2 * s.pw; // the gap while the money waits in the middle
+  const near = meet && !reduce ? (rest - s.gap) / 2 : 0;
+  const side = s.pw / 2 + (meet ? s.gap : rest) / 2; // phone centre, measured from the stage centre
+  const tilt = reduce ? 0 : meet ? 0 : 14;
+  const fade = { initial: { opacity: 0, scale: reduce ? 1 : 0.88, filter: "blur(8px)" }, animate: { opacity: 1, scale: 1, filter: "blur(0px)" }, exit: { opacity: 0, scale: reduce ? 1 : 1.08, filter: "blur(8px)" }, transition: springs.smooth };
+  const flip = (k: string, a: React.ReactNode) => <motion.div key={k} {...fade} className="flex flex-col items-center gap-1.5">{a}</motion.div>;
+  // the coin waits in the gap, rises over the seam while you scan, then slams down onto it
+  const coinY = reduce ? 0 : beat === 2 ? -s.ph / 2 + s.coin / 2 + 4 : 0;
 
   return (
-    <div className={`relative ${className}`} aria-hidden>
-      <div className="relative flex items-start justify-center">
-        <motion.div animate={{ x: near }} transition={springs.smooth}>
-          <Phone who="You" big={big} lit={paid}>
-            <AnimatePresence mode="popLayout" initial={false}>
-              {beat === 0 && (
-                <motion.div key="lock" {...fade} className="flex flex-col items-center gap-2">
-                  {/* the money leaves your phone for the hold in the middle */}
-                  <motion.span className={`amount ${amount}`} animate={reduce ? undefined : { x: [0, 0, big ? 80 : 70], opacity: [1, 1, 0], scale: [1, 1, 0.4] }} transition={{ duration: 1.6, times: [0, 0.55, 1], ease: [0.6, 0, 0.3, 1] }}>
-                    {money}
-                  </motion.span>
-                  <span className={`rounded-full bg-safe px-2.5 py-0.5 font-medium text-on-safe ${label}`}>Face ID</span>
-                </motion.div>
-              )}
-              {beat === 1 && (
-                <motion.div key="held" {...fade} className={`flex flex-col items-center gap-1 text-ink-2 ${label}`}>
-                  <span className="text-safe">Locked ✓</span>
-                  <span>Not sent yet</span>
-                </motion.div>
-              )}
-              {beat === 2 && (
-                <motion.div key="scan" {...fade} className={`relative ${qr}`}>
-                  {["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"].map((c) => (
-                    <span key={c} className={`absolute size-4 rounded-[4px] border-safe ${c}`} />
-                  ))}
-                  {!reduce && <motion.span className="absolute inset-x-1.5 h-[2px] rounded-full bg-safe shadow-[0_0_10px_var(--safe)]" initial={{ top: "12%" }} animate={{ top: ["12%", "88%", "12%"] }} transition={{ duration: 1.5, ease: "easeInOut", repeat: 1 }} />}
-                </motion.div>
-              )}
-              {paid && (
-                <motion.div key="paid" {...fade} className="flex flex-col items-center gap-1">
-                  <span className={`amount ${big ? "text-[34px]" : "text-[26px]"}`}>Paid</span>
-                  <span className={`text-safe ${label}`}>✓ in 5 seconds</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Phone>
-        </motion.div>
+    <div className={`relative mx-auto ${className}`} style={{ width: s.w, height: s.ph + 24 }} aria-hidden>
+      {/* floor light under the pair, brighter when they meet */}
+      <motion.span className="absolute bottom-0 left-1/2 h-10 w-[80%] -translate-x-1/2 rounded-[50%] bg-safe/25 blur-2xl" animate={{ opacity: paid ? 1 : meet ? 0.6 : 0.3, scaleX: meet ? 0.7 : 1 }} transition={springs.smooth} />
 
-        {/* the hold: the coin's two halves, apart while the money is safe, slammed shut when you meet */}
-        <div className={`relative flex flex-col items-center justify-center self-stretch pb-6 ${big ? "w-[72px]" : "w-[64px]"}`}>
-          {!reduce && beat < 3 && (
-            <motion.span
-              className="absolute rounded-full bg-safe/20 blur-xl"
-              style={{ width: big ? 70 : 54, height: big ? 70 : 54 }}
-              animate={{ opacity: beat === 0 ? [0, 0, 1] : [0.6, 1, 0.6], scale: [0.9, 1.05, 0.9] }}
-              transition={beat === 0 ? { duration: 1.8, times: [0, 0.7, 1] } : { duration: 2.4, repeat: Infinity }}
-            />
-          )}
-          <Mark size={big ? 56 : 42} state={paid ? "shut" : beat === 0 ? "open" : "rest"} />
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.div
-              key={paid ? "seal" : "label"}
-              initial={paid && !reduce ? { opacity: 0, scale: 1.8, rotate: -14 } : { opacity: 0 }}
-              animate={{ opacity: 1, scale: 1, rotate: paid ? -6 : 0 }}
-              exit={{ opacity: 0 }}
-              transition={paid ? { type: "spring", stiffness: 520, damping: 22, delay: 0.3 } : springs.snappy}
-              className={`absolute bottom-0 whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.14em] ${paid ? "rounded-full border border-safe px-1.5 py-0.5 text-safe shadow-[0_0_16px_-4px_var(--safe)]" : "text-mute"}`}
-            >
-              {paid ? "Released" : "On Stellar"}
-            </motion.div>
+      <motion.div className="absolute left-0 top-0 z-10" animate={{ x: paid && !reduce ? [near, near + 5, near] : near, rotateY: tilt }} transition={paid ? { duration: 0.45, delay: 0.1 } : springs.smooth} style={{ transformPerspective: 900 }}>
+        <Phone who="You" s={s} lit={paid && sub} sweep={paid && sub}>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {beat === 0 && flip(sub ? "lock-sent" : "lock", <>
+              <span className={`amount ${s.amount} ${sub ? "text-ink-2" : ""}`}>{money}</span>
+              {sub ? <span className={`text-safe ${s.label}`}>Locked ✓</span> : <span className={`rounded-full bg-safe px-2.5 py-0.5 font-medium text-on-safe ${s.label}`}>Face ID</span>}
+            </>)}
+            {beat === 1 && flip("held", <>
+              <span className={`text-safe ${s.label}`}>Locked ✓</span>
+              <span className={`text-ink-2 ${s.label}`}>Not sent yet</span>
+            </>)}
+            {beat === 2 && (
+              <motion.div key="scan" {...fade} className="relative" style={{ width: s.qr, height: s.qr }}>
+                {["left-0 top-0 border-l-2 border-t-2", "right-0 top-0 border-r-2 border-t-2", "left-0 bottom-0 border-l-2 border-b-2", "right-0 bottom-0 border-r-2 border-b-2"].map((c) => (
+                  <span key={c} className={`absolute size-4 rounded-[4px] ${sub ? "border-safe" : "border-white/60"} ${c}`} />
+                ))}
+                {!reduce && !sub && <motion.span className="absolute inset-x-1.5 h-[2px] rounded-full bg-safe shadow-[0_0_12px_var(--safe)]" initial={{ top: "10%" }} animate={{ top: ["10%", "90%", "10%"] }} transition={{ duration: 1.4, ease: "easeInOut" }} />}
+                {sub && <motion.span className={`absolute inset-0 grid place-items-center text-safe ${s.label}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>Match ✓</motion.span>}
+              </motion.div>
+            )}
+            {paid && flip("paid", <>
+              <span className={`amount ${s.amount}`}>Paid</span>
+              <span className={`text-safe ${s.label}`}>✓ in 5 seconds</span>
+            </>)}
           </AnimatePresence>
-          {paid && !reduce && (
-            <>
-              <motion.span className="pointer-events-none absolute size-28 rounded-full bg-safe/40 blur-2xl" initial={{ scale: 0.2, opacity: 1 }} animate={{ scale: 2.2, opacity: 0 }} transition={{ duration: 0.9, ease: "easeOut" }} />
-              <motion.span className="pointer-events-none absolute size-16 rounded-full border border-safe" initial={{ scale: 0.6, opacity: 0.9 }} animate={{ scale: 3, opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} />
-            </>
-          )}
-        </div>
+        </Phone>
+      </motion.div>
 
-        <motion.div animate={{ x: -near }} transition={springs.smooth}>
-          <Phone who="Seller" big={big} lit={beat === 1 && real}>
-            <AnimatePresence mode="popLayout" initial={false}>
-              {beat === 0 && (
-                <motion.div key="wait" {...fade} className="flex flex-col items-center gap-2">
-                  <span className="block h-1.5 w-12 rounded-full bg-white/[0.07]" />
-                  <span className="block h-1.5 w-8 rounded-full bg-white/[0.05]" />
-                </motion.div>
-              )}
-              {beat === 1 && !real && (
-                <motion.div key="fake" {...fade} className="flex flex-col items-center gap-1.5">
-                  {/* the screenshot scam: it flickers, splits, and is struck off */}
-                  <motion.span
-                    className={`amount ${amount} text-ink-2`}
-                    style={{ textShadow: reduce ? undefined : "2px 0 rgba(255,80,120,.55), -2px 0 rgba(80,200,255,.55)" }}
-                    animate={reduce ? undefined : { x: [0, -3, 3, -2, 0, 2, 0], opacity: [1, 0.5, 1, 0.3, 1, 0.6, 1], skewX: [0, 8, -6, 0, 4, 0, 0] }}
-                    transition={{ duration: 0.7, delay: 0.15 }}
-                  >
-                    <span className="line-through decoration-2">{money}</span>
-                  </motion.span>
-                  <span className={`text-mute ${label}`}>Screenshot ✕</span>
-                </motion.div>
-              )}
-              {beat === 1 && real && (
-                <motion.div key="real" {...fade} className="flex flex-col items-center gap-1">
-                  <span className={`amount ${amount} glacier-text`}>{money}</span>
-                  <span className={`text-ink ${label}`}>locked for you ✓</span>
-                </motion.div>
-              )}
-              {beat === 2 && (
-                <motion.div key="qr" {...fade}>
-                  <svg viewBox="0 0 11 11" className={`rounded-[6px] bg-white p-[4px] ${qr}`} shapeRendering="crispEdges">
-                    {QR.map((on, i) => on && <rect key={i} x={i % 11} y={Math.floor(i / 11)} width="1" height="1" fill="#0d0f12" />)}
-                  </svg>
-                </motion.div>
-              )}
-              {paid && (
-                <motion.div key="got" {...fade} className="flex flex-col items-center gap-1">
-                  <span className={`amount ${big ? "text-[34px]" : "text-[26px]"} text-safe`}>+{money}</span>
-                  <span className={`text-ink ${label}`}>Yours</span>
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </Phone>
-        </motion.div>
-      </div>
+      <motion.div className="absolute right-0 top-0 z-10" animate={{ x: paid && !reduce ? [-near, -near - 5, -near] : -near, rotateY: -tilt }} transition={paid ? { duration: 0.45, delay: 0.1 } : springs.smooth} style={{ transformPerspective: 900 }}>
+        <Phone who="Seller" s={s} lit={(beat === 1 && sub) || (paid && sub)} sweep={(beat === 1 && sub) || (paid && sub)}>
+          <AnimatePresence mode="popLayout" initial={false}>
+            {beat === 0 && flip("wait", <>
+              <span className="block h-1.5 w-12 rounded-full bg-white/[0.07]" />
+              <span className="block h-1.5 w-8 rounded-full bg-white/[0.05]" />
+            </>)}
+            {beat === 1 && !sub && flip("fake", <>
+              {/* the screenshot scam: it flickers, splits, and is struck off */}
+              <motion.span
+                className={`amount ${s.amount} text-ink-2`}
+                style={{ textShadow: reduce ? undefined : "2px 0 rgba(255,80,120,.6), -2px 0 rgba(80,200,255,.6)" }}
+                animate={reduce ? undefined : { x: [0, -4, 4, -2, 0, 3, 0], opacity: [1, 0.4, 1, 0.25, 1, 0.6, 1], skewX: [0, 10, -8, 0, 5, 0, 0] }}
+                transition={{ duration: 0.75, delay: 0.1 }}
+              >
+                <span className="line-through decoration-2">{money}</span>
+              </motion.span>
+              <span className={`text-mute ${s.label}`}>Screenshot ✕</span>
+            </>)}
+            {beat === 1 && sub && flip("real", <>
+              <span className={`amount ${s.amount} glacier-text`}>{money}</span>
+              <span className={`text-ink ${s.label}`}>locked for you ✓</span>
+            </>)}
+            {beat === 2 && (
+              <motion.div key="qr" {...fade}>
+                <svg viewBox="0 0 11 11" className="rounded-[6px] bg-white p-[4px]" style={{ width: s.qr, height: s.qr }} shapeRendering="crispEdges">
+                  {QR.map((on, i) => on && <rect key={i} x={i % 11} y={Math.floor(i / 11)} width="1" height="1" fill="#0d0f12" />)}
+                </svg>
+              </motion.div>
+            )}
+            {paid && !sub && flip("coming", <span className="block h-1.5 w-10 rounded-full bg-white/[0.07]" />)}
+            {paid && sub && flip("got", <>
+              <span className={`amount ${s.amount} text-safe`}>+{money}</span>
+              <span className={`text-ink ${s.label}`}>Yours</span>
+            </>)}
+          </AnimatePresence>
+        </Phone>
+      </motion.div>
+
+      {/* proof beam: the seller reads the locked money straight from the chain */}
+      {beat === 1 && sub && !reduce && (
+        <motion.span className="absolute left-1/2 z-0 h-px origin-left bg-gradient-to-r from-safe to-transparent" style={{ top: s.ph / 2, width: rest / 2 + 8 }} initial={{ scaleX: 0, opacity: 1 }} animate={{ scaleX: 1, opacity: [1, 1, 0.4] }} transition={{ duration: 0.5, ease: "easeOut" }} />
+      )}
+
+      {/* the coin: the money held on Stellar */}
+      <motion.div className="absolute left-1/2 z-20 flex flex-col items-center" style={{ top: s.ph / 2 - s.coin / 2, marginLeft: -s.coin / 2 }} animate={{ y: coinY, scale: beat === 2 && !reduce ? 0.82 : 1 }} transition={paid ? springs.slam : springs.smooth}>
+        {!reduce && !paid && (
+          <motion.span
+            className="absolute rounded-full bg-safe/30 blur-xl"
+            style={{ width: s.coin * 1.4, height: s.coin * 1.4, left: -s.coin * 0.2, top: -s.coin * 0.2 }}
+            animate={{ opacity: beat === 0 ? (sub ? [0.4, 1] : 0.2) : [0.5, 0.9, 0.5] }}
+            transition={beat === 0 ? { duration: 0.6 } : { duration: 2.4, repeat: Infinity }}
+          />
+        )}
+        <Mark size={s.coin} state={paid ? "shut" : beat === 0 && !sub ? "open" : "rest"} />
+        <AnimatePresence>
+          {beat < 2 && (
+            <motion.span className="absolute top-full mt-2 whitespace-nowrap font-mono text-[8px] uppercase tracking-[0.16em] text-mute" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+              {beat === 0 && !sub ? "Locking" : "Held on Stellar"}
+            </motion.span>
+          )}
+        </AnimatePresence>
+        {paid && !reduce && (
+          <>
+            <motion.span className="pointer-events-none absolute rounded-full bg-safe/50 blur-2xl" style={{ width: s.coin * 2, height: s.coin * 2, left: -s.coin / 2, top: -s.coin / 2 }} initial={{ scale: 0.2, opacity: 1 }} animate={{ scale: 2.6, opacity: 0 }} transition={{ duration: 1, ease: "easeOut", delay: 0.12 }} />
+            {[0, 0.12].map((d) => (
+              <motion.span key={d} className="pointer-events-none absolute inset-0 rounded-full border border-safe" initial={{ scale: 0.8, opacity: 0.9 }} animate={{ scale: 4, opacity: 0 }} transition={{ duration: 0.9, ease: "easeOut", delay: 0.12 + d }} />
+            ))}
+          </>
+        )}
+      </motion.div>
+
+      {/* the money's journey: into the hold when you lock, out to them when you shake */}
+      {!reduce && beat === 0 && sub && <Flight key="in" from={-side} to={0} top={s.ph / 2} money={money} />}
+      {!reduce && paid && <Flight key="out" from={0} to={side} top={s.ph / 2} money={money} delay={0.2} />}
+
+      {/* the stamp across both phones */}
+      <AnimatePresence>
+        {paid && (
+          <motion.div
+            className="absolute left-1/2 z-30 -translate-x-1/2 whitespace-nowrap rounded-full border border-safe bg-[#0d0f12]/80 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.18em] text-safe shadow-[0_0_24px_-6px_var(--safe)] backdrop-blur"
+            style={{ top: s.ph - 52 }}
+            initial={reduce ? { opacity: 0 } : { opacity: 0, scale: 2.2, rotate: -16 }}
+            animate={{ opacity: 1, scale: 1, rotate: -6 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", stiffness: 520, damping: 20, delay: 0.55 }}
+          >
+            Released ✓
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -211,16 +256,16 @@ export function StoryCaption({ beat, nonce, money, onBeat, className = "" }: { b
                 className="absolute inset-0 origin-left rounded-full bg-safe"
                 initial={{ scaleX: i < beat ? 1 : 0 }}
                 animate={{ scaleX: i <= beat ? 1 : 0 }}
-                transition={beat === i && !reduce ? { duration: BEAT_MS / 1000, ease: "linear" } : { duration: 0.2 }}
+                transition={beat === i && !reduce ? { duration: BEAT_MS[i] / 1000, ease: "linear" } : { duration: 0.2 }}
               />
             </span>
             <span className={`font-mono text-[10px] uppercase tracking-[0.14em] transition-colors ${beat === i ? "text-ink" : "text-mute group-hover:text-ink-2"}`}>{t}</span>
           </button>
         ))}
       </div>
-      <div className="relative mt-1 h-11 overflow-hidden">
+      <div className="relative mt-2 h-12 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.p key={beat} className="text-[15px] leading-snug text-ink-2 lg:text-[16px]" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.snappy}>
+          <motion.p key={beat} className="font-display text-[17px] font-medium leading-snug text-ink lg:text-[19px]" initial={{ opacity: 0, y: 12, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} transition={springs.snappy}>
             {beatLine(beat, money)}
           </motion.p>
         </AnimatePresence>

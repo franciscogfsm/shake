@@ -7,7 +7,7 @@ import { Mark, springs } from "@/components/Mark";
 import { NumberTicker } from "@/components/Ticker";
 import { Item, Screen, Stagger, TestnetNote } from "@/components/ui";
 import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
-import { WORLD_COUNTRIES } from "@/lib/regions";
+import { listingSource } from "@/lib/listingImport";
 import { SafetyPromise } from "@/components/SafetyPromise";
 import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
@@ -40,6 +40,7 @@ export default function NewDealPage() {
 function NewDeal() {
   const router = useRouter();
   const q = useSearchParams();
+  const source = listingSource(q.get("source"));
   // A payment request link (?r=1) comes from the one getting paid: everything is filled in, the payer checks and locks.
   const request = q.get("r") === "1" && !!q.get("s");
   const [item, setItem] = useState(() => (q.get("i") ?? "").slice(0, 40));
@@ -84,12 +85,17 @@ function NewDeal() {
   // the request is in the payee's currency: switch to it rather than reinterpret the amount
   const asked = { p: q.get("p") ?? "", c: q.get("c") as CurrencyCode };
   const askedOk = /^\d{1,4}(\.\d{1,2})?$/.test(asked.p) && !!CURRENCIES[asked.c]?.token;
+  const [preferencesReady, setPreferencesReady] = useState(false);
+  useEffect(() => setPreferencesReady(true), []);
+  const imported = useRef("");
   useEffect(() => {
-    if (!askedOk) return;
-    if (country.currency !== asked.c) setCountry(WORLD_COUNTRIES.find((x) => x.code === CURRENCIES[asked.c].homeLocale.split("-")[1])!);
-    else setPrice(new Intl.NumberFormat(country.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(Number(asked.p)));
+    const key = `${asked.p}:${asked.c}`;
+    if (!preferencesReady || !askedOk || imported.current === key) return;
+    imported.current = key;
+    if (country.currency !== asked.c) setCountry({ ...country, currency: asked.c });
+    setPrice(new Intl.NumberFormat(country.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(Number(asked.p)));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [country]);
+  }, [preferencesReady, country, asked.p, asked.c, askedOk]);
 
   const amount = parseAmount(price, country.locale);
   const endsAt = Math.floor(new Date(`${ends}T23:59:00`).getTime() / 1000);
@@ -134,7 +140,7 @@ function NewDeal() {
       // the memo is public on-chain: it is what the link preview and receipt show
       const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
       await callDeal(kp, k.fn, { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
-      dealMeta.set(dealId, { item: item.trim(), seller: seller.trim(), kind });
+      dealMeta.set(dealId, { item: item.trim(), seller: seller.trim(), kind, ...(source ? { listingUrl: source.url } : {}) });
       const link = new URLSearchParams({ i: item.trim(), k: kind, ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${link}&new=1`);
     } catch (e) {
@@ -166,6 +172,11 @@ function NewDeal() {
               <Item className="flex flex-col gap-8">
               <div>
                 <div className="eyebrow">{request ? `${seller} asks for a safe payment` : asking ? "Ask for a safe payment" : "New safe payment"}</div>
+                {source && <div className="glass mt-4 max-w-[480px] p-4">
+                  <div className="eyebrow text-safe">From your marketplace listing</div>
+                  <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-sm text-ink underline underline-offset-4">{source.host} · view original listing ↗</a>
+                  <p className="mt-2 text-sm text-ink-2">Check the item and agree the amount with the seller. SHAKE is independent of this marketplace; importing a listing does not verify its seller.</p>
+                </div>}
                 {!request && <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
                   {KIND_ORDER.map((v) => (
                     <button

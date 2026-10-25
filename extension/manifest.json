@@ -1,0 +1,99 @@
+{
+  "manifest_version": 3,
+  "name": "SHAKE — Pay safely",
+  "version": "1.0.0",
+  "description": "Bring marketplace listings into SHAKE. Review the price, lock test funds, inspect the item and release on Stellar Testnet.",
+  "permissions": [
+    "activeTab",
+    "scripting"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_title": "Pay safely with SHAKE",
+    "default_icon": {
+      "16": "icons/16.png",
+      "32": "icons/32.png",
+      "48": "icons/48.png",
+      "128": "icons/128.png"
+    }
+  },
+  "icons": {
+    "16": "icons/16.png",
+    "32": "icons/32.png",
+    "48": "icons/48.png",
+    "128": "icons/128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://*.vinted.com/*",
+        "https://*.vinted.co.uk/*",
+        "https://*.vinted.pt/*",
+        "https://*.vinted.fr/*",
+        "https://*.vinted.de/*",
+        "https://*.vinted.es/*",
+        "https://*.vinted.it/*",
+        "https://*.vinted.nl/*",
+        "https://*.vinted.be/*",
+        "https://*.vinted.at/*",
+        "https://*.vinted.pl/*",
+        "https://*.vinted.cz/*",
+        "https://*.vinted.sk/*",
+        "https://*.vinted.lt/*",
+        "https://*.vinted.lu/*",
+        "https://*.vinted.ie/*",
+        "https://*.vinted.se/*",
+        "https://*.vinted.dk/*",
+        "https://*.vinted.fi/*",
+        "https://*.vinted.ro/*",
+        "https://*.vinted.hu/*",
+        "https://*.vinted.hr/*",
+        "https://*.vinted.gr/*",
+        "https://*.olx.pt/*",
+        "https://*.olx.pl/*",
+        "https://*.olx.ro/*",
+        "https://*.olx.bg/*",
+        "https://*.olx.ua/*",
+        "https://*.olx.com.br/*",
+        "https://*.olx.in/*",
+        "https://*.wallapop.com/*",
+        "https://*.depop.com/*",
+        "https://*.ebay.com/*",
+        "https://*.ebay.co.uk/*",
+        "https://*.ebay.de/*",
+        "https://*.ebay.fr/*",
+        "https://*.ebay.es/*",
+        "https://*.ebay.it/*",
+        "https://*.ebay.nl/*",
+        "https://*.ebay.ie/*",
+        "https://*.ebay.at/*",
+        "https://*.ebay.be/*",
+        "https://*.ebay.ca/*",
+        "https://*.ebay.com.au/*",
+        "https://*.etsy.com/*",
+        "https://*.gumtree.com/*",
+        "https://*.leboncoin.fr/*",
+        "https://*.marktplaats.nl/*",
+        "https://*.kleinanzeigen.de/*",
+        "https://*.facebook.com/*",
+        "https://*.mercari.com/*",
+        "https://*.poshmark.com/*",
+        "https://*.poshmark.ca/*",
+        "https://*.offerup.com/*",
+        "https://*.craigslist.org/*",
+        "https://*.carousell.sg/*",
+        "https://*.carousell.com.hk/*",
+        "https://*.carousell.com.my/*",
+        "https://*.carousell.com.ph/*",
+        "https://*.carousell.com.tw/*"
+      ],
+      "js": [
+        "extract.js",
+        "content.js"
+      ],
+      "run_at": "document_idle"
+    }
+  ]
+}

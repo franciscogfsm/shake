@@ -43,14 +43,14 @@ export const sellerCode = {
 
 /** What the buyer typed when they created the deal (not on-chain). */
 export const dealMeta = {
-  get: (dealId: string): { item?: string; seller?: string; kind?: string } => {
+  get: (dealId: string): { item?: string; seller?: string; kind?: string; listingUrl?: string } => {
     try {
       return JSON.parse(localStorage.getItem(`shake.meta.${dealId}`) ?? "{}");
     } catch {
       return {};
     }
   },
-  set: (dealId: string, meta: { item?: string; seller?: string; kind?: string }) => {
+  set: (dealId: string, meta: { item?: string; seller?: string; kind?: string; listingUrl?: string }) => {
     try {
       localStorage.setItem(`shake.meta.${dealId}`, JSON.stringify(meta));
     } catch {}

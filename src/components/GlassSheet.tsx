@@ -51,7 +51,7 @@ export function GlassSheet({ open, onClose, children, label, fill = false, wide 
           <motion.div
             className={`glass glass-strong relative z-10 flex w-full flex-col overflow-hidden ${
               phone
-                ? "max-h-[92dvh] max-w-[480px] rounded-t-[28px] rounded-b-none"
+                ? `max-w-[480px] rounded-t-[28px] rounded-b-none ${fill ? "h-[min(92dvh,760px)]" : "max-h-[92dvh]"}`
                 : `max-h-[min(760px,calc(100dvh-4rem))] rounded-[28px] ${fill ? "h-[min(720px,calc(100dvh-4rem))] max-w-[720px]" : wide ? "max-w-[640px]" : "max-w-[480px]"}`
             }`}
             initial={phone ? { y: "100%" } : { opacity: 0, y: 16, scale: 0.98 }}
@@ -74,7 +74,7 @@ export function GlassSheet({ open, onClose, children, label, fill = false, wide 
                 <CloseButton onClose={onClose} />
               </div>
             </div>
-            <div className={`min-h-0 px-6 lg:px-8 ${phone ? "pb-safe" : "pb-8"} ${fill ? "flex flex-1 flex-col overflow-hidden" : "max-h-[min(680px,calc(100dvh-8rem))] overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin]"}`}>
+            <div className={`min-h-0 px-6 lg:px-8 ${phone ? "pb-safe" : "pb-8"} ${fill ? "flex flex-1 flex-col overflow-hidden" : `overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin] ${phone ? "max-h-[calc(92dvh-4.5rem)]" : "max-h-[min(680px,calc(100dvh-8rem))]"}`}`}>
               {fill ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
             </div>
           </motion.div>
