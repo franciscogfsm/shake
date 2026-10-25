@@ -105,7 +105,11 @@ const TOOLS: Record<string, Tool> = {
         price: { type: "number", description: "Agreed price, 1 to 2000" },
         currency: { type: "string", enum: ["EUR", "USD", "GBP", "BRL"], description: "Default EUR" },
         seller: { type: "string", description: "Seller's name or username, optional" },
-        kind: { type: "string", enum: ["meet", "ship"], description: "meet (hand over in person, default) or ship (the QR travels in the box)" },
+        kind: {
+          type: "string",
+          enum: ["meet", "ship", "service", "order", "deposit", "booking"],
+          description: "meet: hand over in person (default). ship: the QR travels in the box. service: a job, paid when done. order: made to order. deposit: rental deposit (caução), comes back on the end date unless the landlord claims damage. booking: hire/venue deposit.",
+        },
         message: { type: "string", description: "The seller's message, optional; checked for scam patterns" },
       },
       required: ["item", "price"],
