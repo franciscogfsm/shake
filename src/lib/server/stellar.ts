@@ -17,7 +17,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { ChannelsClient } from "@openzeppelin/relayer-plugin-channels";
 import { createHash, createHmac } from "node:crypto";
-import { DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL, TEAM_ADDRESS, TOKEN_CODE, TOKEN_ISSUER } from "@/lib/config";
+import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, type CurrencyCode } from "@/lib/config";
 
 const need = (k: string) => {
   const v = process.env[k];
@@ -29,7 +29,9 @@ export const server = new rpc.Server(RPC_URL);
 export const sponsor = () => Keypair.fromSecret(need("SPONSOR_SECRET"));
 export const issuer = () => Keypair.fromSecret(need("ISSUER_SECRET"));
 export const team = () => Keypair.fromSecret(need("TEAM_SECRET"));
-export const tEUR = () => new Asset(TOKEN_CODE, TOKEN_ISSUER);
+export const assetOf = (c: CurrencyCode) => new Asset(CURRENCIES[c].asset, TOKEN_ISSUER);
+const ALL_ASSETS = () => (Object.keys(CURRENCIES) as CurrencyCode[]).map(assetOf);
+export const isCurrency = (c: unknown): c is CurrencyCode => typeof c === "string" && c in CURRENCIES;
 const channels = () =>
   new ChannelsClient({ baseUrl: "https://channels.openzeppelin.com/testnet", apiKey: need("CHANNELS_API_KEY") });
 
@@ -87,36 +89,54 @@ export async function accountExists(pk: string) {
   }
 }
 
+/** Which of our currencies this account can't hold yet (it needs a trustline per classic asset). */
+async function missingTrustlines(pk: string) {
+  const res = await server.getLedgerEntries(...ALL_ASSETS().map((a) => xdr.LedgerKey.trustline(new xdr.LedgerKeyTrustLine({ accountId: Keypair.fromPublicKey(pk).xdrAccountId(), asset: a.toTrustLineXDRObject() }))));
+  const have = new Set(res.entries.map((e) => e.val.trustLine().asset().alphaNum4().assetCode().toString("ascii").replace(/[^A-Za-z0-9]/g, "")));
+  return ALL_ASSETS().filter((a) => !have.has(a.code));
+}
+
 /**
- * Builds the one transaction that opens a user's account with zero XLM:
- * our sponsor pays the account + trustline reserves and the fee, the issuer sends test euros.
- * The user co-signs (their key must approve the trustline), then we add our signatures.
+ * One transaction opens (or completes) a user's account with zero XLM: our sponsor pays the reserves
+ * for the account and a trustline per currency, a channel account pays the fee, the issuer sends test money.
+ * The user co-signs (their key must approve the trustlines), then we add our signatures.
+ * Returns null when nothing needs the user's signature (existing account, just topped up).
  */
-export async function buildOnboardTx(userPk: string, euros: number) {
+export async function buildOnboardTx(userPk: string, amount: number, currency: CurrencyCode) {
+  const exists = await accountExists(userPk);
+  const missing = exists ? await missingTrustlines(userPk) : ALL_ASSETS();
+  if (exists && missing.length === 0) return null;
   const s = sponsor();
   const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
   const account = await server.getAccount(ch.publicKey());
-  const b = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
-    .addOperation(Operation.beginSponsoringFutureReserves({ sponsoredId: userPk, source: s.publicKey() }))
-    .addOperation(Operation.createAccount({ destination: userPk, startingBalance: "0", source: s.publicKey() }))
-    .addOperation(Operation.changeTrust({ asset: tEUR(), source: userPk }))
-    .addOperation(Operation.endSponsoringFutureReserves({ source: userPk }));
-  if (euros > 0) b.addOperation(Operation.payment({ destination: userPk, asset: tEUR(), amount: euros.toFixed(2), source: issuer().publicKey() }));
+  const b = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 20), networkPassphrase: NETWORK_PASSPHRASE }).addOperation(
+    Operation.beginSponsoringFutureReserves({ sponsoredId: userPk, source: s.publicKey() }),
+  );
+  if (!exists) b.addOperation(Operation.createAccount({ destination: userPk, startingBalance: "0", source: s.publicKey() }));
+  for (const asset of missing) b.addOperation(Operation.changeTrust({ asset, source: userPk }));
+  b.addOperation(Operation.endSponsoringFutureReserves({ source: userPk }));
+  if (amount > 0) b.addOperation(Operation.payment({ destination: userPk, asset: assetOf(currency), amount: amount.toFixed(2), source: issuer().publicKey() }));
   return b.setTimeout(120).build();
 }
 
 export async function submitOnboardTx(signedXdr: string, userPk: string) {
   const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
-  // only accept the exact shape we built: our sponsor as source, user ops for this user only
+  // only accept the exact shape we build: a channel as source, our sponsor first, user ops for this user only
   if (!isChannel(tx.source)) throw new UserError("Unexpected transaction source");
-  if (tx.operations[0].source !== sponsor().publicKey()) throw new UserError("Unexpected sponsor");
-  const types = tx.operations.map((o) => o.type).join(",");
-  if (!/^beginSponsoringFutureReserves,createAccount,changeTrust,endSponsoringFutureReserves(,payment)?$/.test(types))
-    throw new UserError("Unexpected transaction shape");
-  if ((tx.operations[1] as Operation.CreateAccount).destination !== userPk) throw new UserError("Wrong account");
+  const ops = tx.operations;
+  if (ops[0].type !== "beginSponsoringFutureReserves" || ops[0].source !== sponsor().publicKey()) throw new UserError("Unexpected sponsor");
+  const ourAssets = new Set(ALL_ASSETS().map((a) => a.code));
+  for (const op of ops.slice(1)) {
+    const ok =
+      (op.type === "createAccount" && op.destination === userPk && op.source === sponsor().publicKey()) ||
+      (op.type === "changeTrust" && op.source === userPk && "code" in op.line && ourAssets.has(op.line.code) && op.line.issuer === TOKEN_ISSUER) ||
+      (op.type === "endSponsoringFutureReserves" && op.source === userPk) ||
+      (op.type === "payment" && op.destination === userPk && op.source === issuer().publicKey() && Number(op.amount) <= 2000);
+    if (!ok) throw new UserError("Unexpected transaction shape");
+  }
   const ch = Array.from({ length: CHANNEL_COUNT }, (_, i) => channel(i)).find((k) => k.publicKey() === tx.source)!;
   tx.sign(ch, sponsor());
-  if (tx.operations.length === 5) tx.sign(issuer());
+  if (ops.some((o) => o.type === "payment")) tx.sign(issuer());
   try {
     return await sendClassic(tx);
   } catch (e) {
@@ -126,13 +146,13 @@ export async function submitOnboardTx(signedXdr: string, userPk: string) {
 }
 
 /** Top up an existing account with test euros (used for deals above the starter amount). */
-export async function fund(userPk: string, euros: number) {
+export async function fund(userPk: string, amount: number, currency: CurrencyCode = "EUR") {
   const i = issuer();
   for (let attempt = 0; ; attempt++) {
     const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
     const account = await server.getAccount(ch.publicKey());
     const tx = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
-      .addOperation(Operation.payment({ destination: userPk, asset: tEUR(), amount: euros.toFixed(2), source: i.publicKey() }))
+      .addOperation(Operation.payment({ destination: userPk, asset: assetOf(currency), amount: amount.toFixed(2), source: i.publicKey() }))
       .setTimeout(120)
       .build();
     tx.sign(ch, i);
@@ -157,6 +177,7 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
   };
   switch (fn) {
     case "lock":
+      if (!Object.values(CURRENCIES).some((c) => c.token === a.token)) throw new UserError("Unsupported currency");
       const memo = (a.memo ?? "").trim();
       if (Buffer.byteLength(memo) > 64) throw new UserError("Keep the item name under 64 characters");
       return [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
@@ -283,6 +304,7 @@ export type DealView = {
   status: "Locked" | "Accepted" | "Released" | "Refunded";
   hash: string | null;
   memo: string;
+  token: string;
 };
 
 export async function readDeal(dealId: string): Promise<DealView | null> {
@@ -305,6 +327,7 @@ export async function readDeal(dealId: string): Promise<DealView | null> {
     status: Array.isArray(d.status) ? d.status[0] : d.status,
     hash: d.hash ? Buffer.from(d.hash).toString("hex") : null,
     memo: String(d.memo ?? ""),
+    token: String(d.token),
   };
 }
 

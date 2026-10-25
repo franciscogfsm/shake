@@ -11,7 +11,8 @@ import { SellerQR } from "@/components/SellerQR";
 import { ShakeBurst } from "@/components/ShakeBurst";
 import { HashTyper, NumberTicker } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
-import { explorer, formatEuro, fromUnits } from "@/lib/config";
+import { currencyOfToken, explorer, formatMoney, fromUnits } from "@/lib/config";
+import { Money, useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/client/handshake";
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
 import { ApiError, callDeal, ensureAccount, getKeypair, sha256Hex } from "@/lib/client/wallet";
@@ -29,6 +30,7 @@ function DealScreen() {
   const q = useSearchParams();
   const { deal, events, state, refresh } = useDeal(id);
   const [me, setMe] = useState<string | null>(null);
+  const [country] = useCountry();
   useEffect(() => setMe(getKeypair().publicKey()), []);
   const local = useMemo(() => ({ ...dealMeta.get(id), ...(q.get("s") ? { seller: q.get("s")! } : {}) }), [id, q]);
 
@@ -39,7 +41,7 @@ function DealScreen() {
 
   const role = deal.buyer === me ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
-  const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1" };
+  const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
   return (
     <Screen right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
@@ -61,11 +63,11 @@ function DealScreen() {
   );
 }
 
-type ViewProps = { deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string }; me: string; refresh: () => Promise<void>; isNew: boolean };
+type ViewProps = { deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
 
 /* ------------------------------ buyer ------------------------------ */
 
-function BuyerView({ deal, events, meta, refresh, isNew }: ViewProps) {
+function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: ViewProps) {
   const euros = fromUnits(deal.amount);
   const now = useNow();
   const expired = now >= deal.expiry;
@@ -100,7 +102,7 @@ function BuyerView({ deal, events, meta, refresh, isNew }: ViewProps) {
       </Item>
       <Item className="glass p-6">
         <div className="eyebrow">Locked by you</div>
-        <div className="amount mt-3 text-[76px]">{formatEuro(euros)}</div>
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[76px]" />
         {lockEv && (
           <a href={explorer.tx(lockEv.txHash)} target="_blank" rel="noreferrer" className="mt-3 block text-xs text-mute hover:text-safe">
             proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
@@ -131,15 +133,15 @@ function BuyerView({ deal, events, meta, refresh, isNew }: ViewProps) {
       </Item>
 
       <GlassSheet open={share} onClose={() => setShare(false)} label="Send the link">
-        <ShareSheet link={link} euros={euros} item={meta.item} />
+        <ShareSheet link={link} money={formatMoney(euros, currency, locale)} item={meta.item} />
       </GlassSheet>
     </Stagger>
   );
 }
 
-function ShareSheet({ link, euros, item }: { link: string; euros: number; item?: string }) {
+function ShareSheet({ link, money, item }: { link: string; money: string; item?: string }) {
   const [copied, setCopied] = useState(false);
-  const text = `I locked ${formatEuro(euros)} for ${item || "your item"} with SHAKE. Check it's real, then we meet and shake:`;
+  const text = `I locked ${money} for ${item || "your item"} with SHAKE. Check it's real, then we meet and shake:`;
   const share = async () => {
     try {
       if (navigator.share) return await navigator.share({ title: "SHAKE", text, url: link });
@@ -171,7 +173,7 @@ function ShareSheet({ link, euros, item }: { link: string; euros: number; item?:
 
 /* ------------------------------ seller ------------------------------ */
 
-function SellerView({ deal, events, meta, me, refresh }: ViewProps) {
+function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewProps) {
   const euros = fromUnits(deal.amount);
   const now = useNow();
   const expired = now >= deal.expiry;
@@ -233,9 +235,7 @@ function SellerView({ deal, events, meta, me, refresh }: ViewProps) {
           <span className="eyebrow">Locked for you</span>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M5 12.5l4.5 4.5L19 7" /></svg>
         </div>
-        <div className="amount mt-3 text-[84px]">
-          €<NumberTicker value={euros} format={(n) => (euros % 1 ? n.toFixed(2) : Math.round(n).toString())} />
-        </div>
+        <Money amount={euros} currency={currency} locale={locale} tick className="mt-3 text-[84px]" />
         <div className="mt-4 flex items-center gap-2 text-[15px] font-medium text-safe">
           <span className="pulse-dot" /> Verified on the Stellar network
         </div>
@@ -279,7 +279,7 @@ function SellerView({ deal, events, meta, me, refresh }: ViewProps) {
 
 /* ------------------------------ endings ------------------------------ */
 
-function Released({ deal, events, role }: ViewProps & { role: string }) {
+function Released({ deal, events, role, locale, currency }: ViewProps & { role: string }) {
   const euros = fromUnits(deal.amount);
   const rel = eventOf(events, "released");
   const [burst, setBurst] = useState(false);
@@ -296,7 +296,7 @@ function Released({ deal, events, role }: ViewProps & { role: string }) {
       </div>
       <div>
         <div className="eyebrow">{role === "seller" ? "Paid to you" : "Released to the seller"}</div>
-        <div className="amount mt-3 text-[80px]">{formatEuro(euros)}</div>
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px]" />
         <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2">Final. No chargebacks. No screenshots.</p>
       </div>
       <Seal />
@@ -308,13 +308,13 @@ function Released({ deal, events, role }: ViewProps & { role: string }) {
   );
 }
 
-function Refunded({ deal }: ViewProps) {
+function Refunded({ deal, locale, currency }: ViewProps) {
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
       <Mark size={110} state="open" />
       <div>
         <div className="eyebrow">Refunded</div>
-        <div className="amount mt-3 text-[72px] text-ink-2" style={{ textShadow: "none" }}>{formatEuro(fromUnits(deal.amount))}</div>
+        <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] text-ink-2 [text-shadow:none]" />
         <p className="mx-auto mt-4 max-w-[28ch] text-ink-2">No deal, no problem. The money went back to the buyer.</p>
       </div>
       <Seal label="Refunded" sub="Back to buyer" tone="mute" />

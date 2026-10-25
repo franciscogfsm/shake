@@ -6,7 +6,7 @@ const t0 = Date.now(); const lap = (m) => console.log(((Date.now() - t0) / 1000)
   const br = await chromium.launch();
   const mk = async () => { const c = await br.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, hasTouch: false }); const p = await c.newPage(); p.on('pageerror', e => console.log('PAGEERROR', e.message)); return p; };
   const buyer = await mk(), seller = await mk();
-  await buyer.goto(B + '/deal/new');
+  await buyer.goto(B + '/deal/new', { timeout: 180000 });
   await buyer.fill('#item', 'Nintendo Switch');
   await buyer.fill('#price', '12');
   await buyer.screenshot({ path: OUT + '/f1-new-filled.png' });
@@ -17,7 +17,7 @@ const t0 = Date.now(); const lap = (m) => console.log(((Date.now() - t0) / 1000)
   await buyer.waitForTimeout(2500); await buyer.screenshot({ path: OUT + '/f3-share.png' });
   const id = buyer.url().match(/deal\/(\d+)/)[1];
   const link = buyer.url().replace('&new=1', '').replace('new=1', '');
-  await seller.goto(link);
+  await seller.goto(link, { timeout: 180000 });
   await seller.getByText("I'm meeting them").waitFor({ timeout: 60000 });
   await seller.waitForTimeout(1500); await seller.screenshot({ path: OUT + '/f4-seller.png' });
   await seller.getByText("I'm meeting them").click();
@@ -26,7 +26,7 @@ const t0 = Date.now(); const lap = (m) => console.log(((Date.now() - t0) / 1000)
   await seller.waitForTimeout(1200); await seller.screenshot({ path: OUT + '/f5-qr.png' });
   const code = await seller.evaluate((id) => localStorage.getItem('shake.code.' + id), id);
   lap('code ' + code);
-  await buyer.goto(`${B}/scan/${id}`);
+  await buyer.goto(`${B}/scan/${id}`, { timeout: 180000 });
   await buyer.fill('#code', code);
   await buyer.screenshot({ path: OUT + '/f6-scan.png' });
   await buyer.getByRole('button', { name: 'Go' }).click();

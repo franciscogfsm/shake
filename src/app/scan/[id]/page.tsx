@@ -8,7 +8,8 @@ import { BumpToShake } from "@/components/BumpToShake";
 import { HoldToShake } from "@/components/HoldToShake";
 import { Scanner } from "@/components/Scanner";
 import { Screen, TestnetNote } from "@/components/ui";
-import { formatEuro, fromUnits } from "@/lib/config";
+import { currencyOfToken, formatMoney, fromUnits } from "@/lib/config";
+import { useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, parseScan } from "@/lib/client/handshake";
 import { useDeal } from "@/lib/client/useDeal";
 import { ApiError, callDeal, getKeypair, sha256Hex } from "@/lib/client/wallet";
@@ -22,6 +23,7 @@ export default function ScanPage() {
   const [typed, setTyped] = useState("");
   const [problem, setProblem] = useState("");
   const [bump, setBump] = useState(0);
+  const [country] = useCountry();
   const [item, setItem] = useState<string | undefined>();
 
   useEffect(() => {
@@ -70,11 +72,12 @@ export default function ScanPage() {
     );
 
   const euros = deal ? fromUnits(deal.amount) : 0;
+  const money = deal ? formatMoney(euros, currencyOfToken(deal.token).code, country.locale) : "";
   return (
     <Screen back={`/deal/${id}`}>
       <div className="flex flex-1 flex-col gap-5 pt-2">
         <div>
-          <div className="eyebrow">{item ? `${item} · ` : ""}{deal ? formatEuro(euros) : ""}</div>
+          <div className="eyebrow">{item ? `${item} · ` : ""}{money}</div>
           <h1 className="display mt-2 text-[34px]">Check the item. Then scan.</h1>
         </div>
         <Scanner onCode={check} paused={!!code} />
@@ -105,7 +108,7 @@ export default function ScanPage() {
         <div className="flex flex-col items-center gap-6 pb-4 text-center">
           <div>
             <div className="eyebrow">Code matches ✓</div>
-            <h2 className="display mt-3 text-[30px]">Release {formatEuro(euros)} to the seller?</h2>
+            <h2 className="display mt-3 text-[30px]">Release {money} to the seller?</h2>
             <p className="mt-2 text-sm text-ink-2">Only if you have the item in your hands. This is final.</p>
           </div>
           <BumpToShake armed={!!code} onBump={() => setBump((n) => n + 1)} />

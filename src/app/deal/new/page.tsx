@@ -5,7 +5,8 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Mark } from "@/components/Mark";
 import { Item, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
-import { TOKEN_CONTRACT_ID, formatEuro, newDealId, toUnits } from "@/lib/config";
+import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits } from "@/lib/config";
+import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
 
@@ -28,9 +29,13 @@ export default function NewDeal() {
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState("");
   const busy = useRef(false);
+  const [country, setCountry] = useCountry();
+  const currency = country.currency;
+  const sym = moneyParts(1, currency, country.locale);
 
-  const euros = Number(price.replace(",", "."));
-  const valid = item.trim().length > 1 && euros >= 1 && euros <= MAX;
+  const amount = Number(price.replace(",", "."));
+  const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX;
+  const money = (n: number) => formatMoney(n, currency, country.locale);
 
   const lock = async () => {
     if (!valid || busy.current) return;
@@ -40,10 +45,12 @@ export default function NewDeal() {
     try {
       const kp = getKeypair();
       setStep("account");
-      await ensureAccount(kp, euros);
+      await ensureAccount(kp, amount, currency);
       const dealId = newDealId();
       const expiry = String(Math.floor(Date.now() / 1000) + DAY);
-      await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(euros).toString(), dealId, expiry, memo: item.trim() }, setStep);
+      // the memo is public on-chain: it is what the link preview and receipt show
+      const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
+      await callDeal(kp, "lock", { buyer: kp.publicKey(), token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
       dealMeta.set(dealId, { item: item.trim(), seller: seller.trim() });
       const q = new URLSearchParams({ i: item.trim(), ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${q}&new=1`);
@@ -56,7 +63,7 @@ export default function NewDeal() {
   };
 
   return (
-    <Screen back="/try">
+    <Screen back="/try" right={phase === "form" ? <CountryPicker country={country} onChange={setCountry} /> : undefined}>
       <AnimatePresence mode="wait">
         {phase === "form" && (
           <motion.form
@@ -81,13 +88,13 @@ export default function NewDeal() {
                   onChange={(e) => setItem(e.target.value.slice(0, 40))}
                   placeholder="iPhone 13, 128GB"
                   autoComplete="off"
-                  className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none placeholder:text-white/25 focus:border-safe"
+                  className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
               </Item>
               <Item>
                 <label htmlFor="price" className="eyebrow">Price</label>
-                <div className="mt-2 flex items-baseline gap-1">
-                  <span className="amount text-[44px] text-ink-2">€</span>
+                <div className="mt-2 flex items-baseline gap-2">
+                  {sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                   <input
                     id="price"
                     value={price}
@@ -95,11 +102,13 @@ export default function NewDeal() {
                     inputMode="decimal"
                     placeholder="0"
                     autoComplete="off"
-                    className="amount w-full bg-transparent text-[88px] text-ink outline-none placeholder:text-white/20 [text-shadow:none]"
+                    className="amount max-w-full bg-transparent text-[88px] text-ink outline-none focus-visible:outline-none placeholder:text-white/20 [text-shadow:none]"
                     aria-describedby="price-hint"
+                    style={{ width: `${Math.max(1, price.length || 1) * 0.62 + 0.2}em` }}
                   />
+                  {!sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                 </div>
-                {euros > MAX && <p id="price-hint" className="mt-1 text-sm text-ink-2">Test deals go up to {formatEuro(MAX)}.</p>}
+                {amount > MAX && <p id="price-hint" className="mt-1 text-sm text-ink-2">Test deals go up to {money(MAX)}.</p>}
               </Item>
               <Item>
                 <label htmlFor="seller" className="eyebrow">Seller (optional)</label>
@@ -109,14 +118,14 @@ export default function NewDeal() {
                   onChange={(e) => setSeller(e.target.value.slice(0, 32))}
                   placeholder="@rita on OLX"
                   autoComplete="off"
-                  className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none placeholder:text-white/25 focus:border-safe"
+                  className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
               </Item>
               <div className="flex-1" />
               <Item className="flex flex-col gap-3">
                 <p className="text-center text-[15px] text-ink-2">Held safely until you shake. Refunded if you don&apos;t.</p>
                 <Button type="submit" full disabled={!valid}>
-                  {valid ? `Lock ${formatEuro(euros)}` : "Lock"}
+                  {valid ? `Lock ${money(amount)}` : "Lock"}
                 </Button>
                 <TestnetNote />
               </Item>
@@ -129,7 +138,7 @@ export default function NewDeal() {
             <Mark size={96} state={phase === "failed" ? "open" : "rest"} />
             <div className="text-center">
               <div className="eyebrow">{item}</div>
-              <div className="amount mt-3 text-[64px]">{formatEuro(euros)}</div>
+              <div className="amount mt-3 text-[64px]">{money(amount)}</div>
             </div>
             {phase === "locking" ? (
               <div className="glass w-full p-6">

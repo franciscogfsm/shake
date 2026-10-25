@@ -2,7 +2,7 @@
 export const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
 export const RPC_URL = "https://soroban-testnet.stellar.org";
 export const DEAL_CONTRACT_ID = process.env.NEXT_PUBLIC_DEAL_CONTRACT_ID!;
-export const TOKEN_CONTRACT_ID = process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID!;
+export const TOKEN_CONTRACT_ID = process.env.NEXT_PUBLIC_TOKEN_EUR ?? process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID!;
 export const TOKEN_ISSUER = process.env.NEXT_PUBLIC_TOKEN_ISSUER!;
 export const TEAM_ADDRESS = process.env.NEXT_PUBLIC_TEAM_ADDRESS!;
 export const TOKEN_CODE = "tEUR";
@@ -14,12 +14,57 @@ export const explorer = {
   account: (id: string) => `https://stellar.expert/explorer/testnet/account/${id}`,
 };
 
-/** €12.50 -> 125_000_000n (7 decimals) */
-export const toUnits = (euros: number) => BigInt(Math.round(euros * 100)) * BigInt(100_000);
+/* ---------------- money: several test stablecoins, formatted the local way ---------------- */
+
+export type CurrencyCode = "EUR" | "USD" | "GBP" | "BRL";
+export type Currency = { code: CurrencyCode; asset: string; token: string; name: string; homeLocale: string };
+
+// NEXT_PUBLIC_* must be referenced literally so Next can inline them
+export const CURRENCIES: Record<CurrencyCode, Currency> = {
+  EUR: { code: "EUR", asset: "tEUR", token: process.env.NEXT_PUBLIC_TOKEN_EUR ?? process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID!, name: "Euro", homeLocale: "pt-PT" },
+  USD: { code: "USD", asset: "tUSD", token: process.env.NEXT_PUBLIC_TOKEN_USD!, name: "US dollar", homeLocale: "en-US" },
+  GBP: { code: "GBP", asset: "tGBP", token: process.env.NEXT_PUBLIC_TOKEN_GBP!, name: "Pound sterling", homeLocale: "en-GB" },
+  BRL: { code: "BRL", asset: "tBRL", token: process.env.NEXT_PUBLIC_TOKEN_BRL!, name: "Brazilian real", homeLocale: "pt-BR" },
+};
+export const currencyOfToken = (token: string): Currency => Object.values(CURRENCIES).find((c) => c.token === token) ?? CURRENCIES.EUR;
+
+export type Country = { code: string; name: string; flag: string; locale: string; currency: CurrencyCode };
+export const COUNTRIES: Country[] = [
+  { code: "PT", name: "Portugal", flag: "🇵🇹", locale: "pt-PT", currency: "EUR" },
+  { code: "ES", name: "España", flag: "🇪🇸", locale: "es-ES", currency: "EUR" },
+  { code: "FR", name: "France", flag: "🇫🇷", locale: "fr-FR", currency: "EUR" },
+  { code: "DE", name: "Deutschland", flag: "🇩🇪", locale: "de-DE", currency: "EUR" },
+  { code: "IT", name: "Italia", flag: "🇮🇹", locale: "it-IT", currency: "EUR" },
+  { code: "NL", name: "Nederland", flag: "🇳🇱", locale: "nl-NL", currency: "EUR" },
+  { code: "IE", name: "Ireland", flag: "🇮🇪", locale: "en-IE", currency: "EUR" },
+  { code: "GB", name: "United Kingdom", flag: "🇬🇧", locale: "en-GB", currency: "GBP" },
+  { code: "US", name: "United States", flag: "🇺🇸", locale: "en-US", currency: "USD" },
+  { code: "BR", name: "Brasil", flag: "🇧🇷", locale: "pt-BR", currency: "BRL" },
+];
+export const DEFAULT_COUNTRY = COUNTRIES[0];
+
+/** 12.50 -> 125_000_000 (all our tokens use 7 decimals) */
+export const toUnits = (amount: number) => BigInt(Math.round(amount * 100)) * BigInt(100_000);
 export const fromUnits = (units: bigint | string | number) => Number(BigInt(units)) / 10 ** DECIMALS;
 
-export const formatEuro = (euros: number) =>
-  new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", minimumFractionDigits: euros % 1 ? 2 : 0 }).format(euros);
+/** Locale-correct money: "400 €" in Portugal, "€400" in Ireland, "R$ 400" in Brazil. Cents only when needed. */
+export function formatMoney(amount: number, currency: CurrencyCode = "EUR", locale = CURRENCIES[currency].homeLocale) {
+  return new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(amount);
+}
+/** Parts for big displays: the symbol is styled separately but keeps the locale's position. */
+export function moneyParts(amount: number, currency: CurrencyCode = "EUR", locale = CURRENCIES[currency].homeLocale) {
+  const parts = new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).formatToParts(amount);
+  const i = parts.findIndex((p) => p.type === "currency");
+  const firstNum = parts.findIndex((p) => p.type === "integer");
+  return { symbol: parts[i]?.value ?? currency, before: i < firstNum, number: parts.filter((p) => p.type !== "currency").map((p) => p.value).join("").trim() };
+}
+/** A deal's amount in its own currency, formatted for the viewer (or the currency's home locale). */
+export const dealMoney = (units: bigint | string | number, token: string, locale?: string) => {
+  const c = currencyOfToken(token);
+  return formatMoney(fromUnits(units), c.code, locale ?? c.homeLocale);
+};
+/** Back-compat helper for euro amounts. */
+export const formatEuro = (euros: number) => formatMoney(euros, "EUR");
 
 /** Deal ids are u64 on-chain; we keep them under 2^53 and show them as a short base-36 code. */
 export const dealCode = (id: string | number | bigint) => BigInt(id).toString(36).toUpperCase();

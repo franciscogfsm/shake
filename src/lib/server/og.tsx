@@ -2,6 +2,7 @@ import "server-only";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { ImageResponse } from "next/og";
+import { dealMoney } from "@/lib/config";
 import { readDeal } from "./stellar";
 
 export const OG_SIZE = { width: 1200, height: 630 };
@@ -28,10 +29,6 @@ ${state === "shut" ? '<circle cx="12" cy="12" r="9.8" fill="none" stroke="#fff" 
   return `data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`;
 }
 
-const euro = (units: string) => {
-  const n = Number(BigInt(units)) / 1e7;
-  return new Intl.NumberFormat("en-IE", { style: "currency", currency: "EUR", minimumFractionDigits: n % 1 ? 2 : 0 }).format(n);
-};
 
 /** Graphite Glacier card: big amount, one line of status, the coin. */
 export async function card({ eyebrow, title, sub, tone = "safe", coin = "rest" }: { eyebrow: string; title: string; sub: string; tone?: "safe" | "mute"; coin?: "rest" | "shut" }) {
@@ -69,8 +66,8 @@ export async function dealCard(id: string) {
   const deal = /^\d{1,16}$/.test(id) ? await readDeal(id).catch(() => null) : null;
   if (!deal) return card({ eyebrow: "Safe payment", title: "Shake on it.", sub: "Never trust a screenshot again" });
   const item = deal.memo || "Second-hand deal";
-  if (deal.status === "Released") return card({ eyebrow: item, title: euro(deal.amount), sub: "Released · final on Stellar", coin: "shut" });
-  if (deal.status === "Refunded") return card({ eyebrow: item, title: euro(deal.amount), sub: "Refunded to the buyer", tone: "mute" });
+  if (deal.status === "Released") return card({ eyebrow: item, title: dealMoney(deal.amount, deal.token), sub: "Released · final on Stellar", coin: "shut" });
+  if (deal.status === "Refunded") return card({ eyebrow: item, title: dealMoney(deal.amount, deal.token), sub: "Refunded to the buyer", tone: "mute" });
   const hours = Math.max(0, Math.round((deal.expiry - Date.now() / 1000) / 3600));
-  return card({ eyebrow: item, title: euro(deal.amount), sub: `Locked for you ✓ · ${hours}h left · verified on Stellar` });
+  return card({ eyebrow: item, title: dealMoney(deal.amount, deal.token), sub: `Locked for you ✓ · ${hours}h left · verified on Stellar` });
 }

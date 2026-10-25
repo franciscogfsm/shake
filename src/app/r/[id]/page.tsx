@@ -5,7 +5,8 @@ import { useParams } from "next/navigation";
 import { LiveReceipt, type TimelineItem } from "@/components/LiveReceipt";
 import { Mark } from "@/components/Mark";
 import { Screen } from "@/components/ui";
-import { DEAL_CONTRACT_ID, TOKEN_CODE, dealCode, explorer, formatEuro, fromUnits } from "@/lib/config";
+import { DEAL_CONTRACT_ID, currencyOfToken, dealCode, explorer, fromUnits } from "@/lib/config";
+import { Money, useCountry } from "@/components/Money";
 import { dealMeta } from "@/lib/client/handshake";
 import { eventOf, useDeal } from "@/lib/client/useDeal";
 import { shortHash } from "@/components/Ticker";
@@ -16,6 +17,7 @@ const STATUS = { Locked: "Locked", Accepted: "Seller joined", Released: "Release
 export default function Receipt() {
   const { id } = useParams<{ id: string }>();
   const { deal, events, state } = useDeal(id, { interval: 5000 });
+  const [country] = useCountry();
   const item = typeof window !== "undefined" ? dealMeta.get(id).item : undefined;
 
   if (state === "missing") return <Screen back="/"><p className="mt-24 text-center text-ink-2">No receipt for this code.</p></Screen>;
@@ -45,7 +47,7 @@ export default function Receipt() {
             </div>
             <Mark size={36} state={deal.status === "Released" ? "shut" : "rest"} />
           </div>
-          <div className="amount mt-6 text-[68px]">{formatEuro(euros)}</div>
+          <Money amount={euros} currency={currencyOfToken(deal.token).code} locale={country.locale} className="mt-6 text-[68px]" />
           <div className="mt-2 inline-flex items-center gap-2 rounded-full bg-white/6 px-3 py-1 text-sm">
             <span className="size-2 rounded-full" style={{ background: deal.status === "Refunded" ? "var(--ink-2)" : "var(--safe)" }} />
             {STATUS[deal.status]}
@@ -64,7 +66,7 @@ export default function Receipt() {
           <dt className="text-mute">Seller</dt>
           <dd className="truncate text-right font-mono">{deal.seller ? <a className="hover:text-safe" href={explorer.account(deal.seller)} target="_blank" rel="noreferrer">{shortHash(deal.seller)}</a> : "—"}</dd>
           <dt className="text-mute">Money</dt>
-          <dd className="text-right font-mono">{TOKEN_CODE} · test euro</dd>
+          <dd className="text-right font-mono">{currencyOfToken(deal.token).asset} · test {currencyOfToken(deal.token).name.toLowerCase()}</dd>
           <dt className="text-mute">Held by</dt>
           <dd className="truncate text-right font-mono"><a className="hover:text-safe" href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer">public contract {shortHash(DEAL_CONTRACT_ID, 4)} ↗</a></dd>
         </dl>

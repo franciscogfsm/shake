@@ -10,6 +10,7 @@ export type Deal = {
   status: "Locked" | "Accepted" | "Released" | "Refunded";
   hash: string | null;
   memo: string;
+  token: string;
 };
 export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded"; txHash: string; at: string; ledger: number };
 
