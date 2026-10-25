@@ -49,13 +49,13 @@ events: ("locked"|"accepted"|"released"|"refunded", deal_id) with amount / addre
 ## Order of work (from build-prompt §10) and status
 - [x] 1. Research and stack (`docs/research.md`)
 - [x] 2. Visual direction picked: Graphite Glacier
-- [ ] 3. Next.js scaffold, tokens, fonts, glass system, mark, and the core components on `/lab`:
+- [x] 3. Tokens, fonts and glass are in `globals.css`. Components: Mark, Button, HoldToShake, ShakeBurst, Seal, LiveReceipt, GlassSheet, Scanner, SellerQR, NumberTicker, HashTyper. The `/lab` page is still to do. Was: Next.js scaffold, tokens, fonts, glass system, mark, and the core components on `/lab`:
   - DealCapsule, HoldToShake, Seal, LiveReceipt, Scanner, GlassSheet, Button, NumberTicker, HashTyper.
 - [x] 4. Contract plus tests (11 passing), deployed. Was:, then a deploy script (`scripts/deploy.ts`):
   - issue tEUR, deploy the SAC, deploy the contract, write the IDs to `.env.local`.
 - [x] 5. Server APIs (`/api/wallet`, `/api/call`, `/api/deal/[id]`, `/api/pitch`). `node scripts/e2e.mjs` passes the two-phone and pitch flows through Channels. Was:
   - create a sponsored account plus trustline, fund tEUR, build and simulate a call, submit through Channels, read the deal, poll events.
-- [ ] 6. Deal flow, all real on testnet:
+- [x] 6. Deal flow screens built (`/deal/new`, `/deal/[id]`, `/scan/[id]`, `/r/[id]`, `/try`). The OG image is still to do. Was:
   - `/deal/new`, `/deal/[id]` (buyer and seller), `/scan/[id]`, `/r/[id]`, `/try`, plus the OG image.
 - [ ] 7. The pitch at `/`, slides 0–9, wired to the real flow.
 - [ ] 8. Passkey smart account (time-boxed about 3h).

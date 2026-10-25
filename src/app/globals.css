@@ -1,26 +1,233 @@
 @import "tailwindcss";
 
+/* Graphite Glacier — the locked SHAKE design system (docs/design-system.md). */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #0d0f12;
+  --surface: #14171b;
+  --surface-2: #1b1f24;
+  --ink: #f3f5f7;
+  --ink-2: #c3cad3;
+  --mute: #97a0ab;
+  --line: rgba(255, 255, 255, 0.12);
+  --safe: #8fd3ff;
+  --safe-rgb: 143, 211, 255;
+  --on-safe: #0b0b0c;
+  --danger: #ff453a;
+  --glass: rgba(255, 255, 255, 0.07);
+  --g1: 80, 140, 255;
+  --g2: 143, 211, 255;
+  --g3: 170, 120, 255;
+  color-scheme: dark;
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-mute: var(--mute);
+  --color-line: var(--line);
+  --color-safe: var(--safe);
+  --color-on-safe: var(--on-safe);
+  --color-danger: var(--danger);
+  --font-display: var(--font-satoshi), var(--font-inter), system-ui, sans-serif;
+  --font-sans: var(--font-inter), system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, monospace;
+  --radius-sm: 12px;
+  --radius-md: 20px;
+  --radius-lg: 28px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+html {
+  background: var(--bg);
+}
+/* body stays transparent so the fixed .backdrop light (z-index -1) shows through */
+body {
+  color: var(--ink);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+body {
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  min-height: 100dvh;
+}
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+}
+:focus-visible {
+  outline: 2px solid var(--safe);
+  outline-offset: 3px;
+  border-radius: 6px;
+}
+::selection {
+  background: rgba(var(--safe-rgb), 0.35);
+}
+
+/* ---------- type ---------- */
+@utility display {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
+  text-wrap: balance;
+}
+@utility eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--mute);
+}
+@utility amount {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.06em;
+  line-height: 0.9;
+  font-variant-numeric: tabular-nums;
+  text-shadow: 0 0 36px rgba(var(--safe-rgb), 0.28);
+}
+@utility safe-glow {
+  color: var(--safe);
+  text-shadow: 0 0 26px rgba(var(--safe-rgb), 0.22);
+}
+
+/* ---------- light behind the glass ---------- */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: var(--bg);
+  pointer-events: none;
+}
+.backdrop::before {
+  content: "";
+  position: absolute;
+  inset: -25%;
+  background:
+    radial-gradient(40% 30% at 20% 25%, rgba(var(--g1), 0.5), transparent 70%),
+    radial-gradient(35% 30% at 85% 70%, rgba(var(--g2), 0.38), transparent 70%),
+    radial-gradient(30% 25% at 60% 10%, rgba(var(--g3), 0.28), transparent 70%);
+  animation: drift 18s ease-in-out infinite alternate;
+  will-change: transform;
+}
+.backdrop::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.06;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence baseFrequency='.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.backdrop[data-tone="calm"]::before {
+  opacity: 0.55;
+}
+.backdrop[data-tone="danger"]::before {
+  background:
+    radial-gradient(40% 30% at 20% 25%, rgba(255, 69, 58, 0.35), transparent 70%),
+    radial-gradient(35% 30% at 85% 70%, rgba(var(--g1), 0.25), transparent 70%);
+}
+@keyframes drift {
+  to {
+    transform: translate3d(5%, -4%, 0) rotate(8deg);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ---------- liquid glass: solid → frosted → rim + highlight + sheen ---------- */
+.glass {
+  position: relative;
+  isolation: isolate;
+  background: var(--surface);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.4),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06),
+    0 24px 60px -24px rgba(0, 0, 0, 0.6);
+}
+@supports ((-webkit-backdrop-filter: blur(1px)) or (backdrop-filter: blur(1px))) {
+  .glass {
+    background: rgba(255, 255, 255, 0.07);
+    -webkit-backdrop-filter: blur(26px) saturate(170%);
+    backdrop-filter: blur(26px) saturate(170%);
+  }
+  .glass-strong {
+    background: rgba(20, 23, 27, 0.72);
+  }
+}
+.glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  pointer-events: none;
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.75), rgba(255, 255, 255, 0.08) 35%, transparent 60%, rgba(var(--safe-rgb), 0.55));
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  z-index: 2;
+}
+.glass::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(180px 140px at var(--mx, 30%) var(--my, 0%), rgba(255, 255, 255, 0.14), transparent 70%);
+  z-index: 1;
+}
+.glass > * {
+  position: relative;
+  z-index: 3;
+}
+.glass-danger::before {
+  background: linear-gradient(150deg, rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0.06) 35%, transparent 60%, rgba(255, 69, 58, 0.7));
+}
+
+@media (prefers-contrast: more) {
+  .glass {
+    background: var(--surface) !important;
+    box-shadow: 0 0 0 1.5px var(--ink-2);
+  }
+  :root {
+    --mute: #c3cad3;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+  }
+}
+
+/* pulse used by live status dots */
+@keyframes pulse-dot {
+  50% {
+    opacity: 0.3;
+  }
+}
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--safe);
+  box-shadow: 0 0 10px var(--safe);
+  animation: pulse-dot 1.6s ease-in-out infinite;
+  flex: none;
+}
+
+/* safe-area helpers */
+.pt-safe {
+  padding-top: max(env(safe-area-inset-top), 16px);
+}
+.pb-safe {
+  padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
