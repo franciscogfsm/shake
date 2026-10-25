@@ -57,6 +57,10 @@
       .steps{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:13px;font:9px ui-monospace,monospace;color:#a9c1d3;letter-spacing:.3px}.steps span{color:#5d7c95}.note{margin-top:14px;padding-top:11px;border-top:1px solid #d4e9ff14;font-size:9px;line-height:1.5;color:#90a5b8}.note summary{cursor:pointer;list-style:none;color:#a3b9cc}.note summary:after{content:" +";float:right}.note[open] summary:after{content:" −"}.note p{font-size:9px;color:#90a5b8;margin:8px 0 0}
       @media(max-width:480px){.card{padding:18px}}
       @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+      .amount-field{display:flex;align-items:center;gap:8px;height:46px;padding:0 12px;border:1px solid #d1e5ff29;border-radius:13px;background:linear-gradient(150deg,#ffffff0a,#ffffff03);box-shadow:inset 0 1px 3px #0002,0 1px 0 #ffffff06}
+      .amount-field:focus-within{border-color:#bfe5ff80;outline:2px solid #a4dcff;outline-offset:3px;background:#b8dfff0b}.amount-symbol{flex-shrink:0;font-size:17px;font-weight:500;color:#bad9ed;letter-spacing:-.5px}
+      .amount-field #shake-price{min-width:0;width:100%;height:42px;padding:0;border:0;outline:none;background:transparent;box-shadow:none;font-size:23px;font-weight:500;letter-spacing:-.7px;-moz-appearance:textfield}.amount-field #shake-price::-webkit-inner-spin-button,.amount-field #shake-price::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+      .row{grid-template-columns:minmax(0,1fr) 110px;gap:9px}#shake-currency{height:46px;padding-left:10px;font-size:12px}
     `;
     root.append(style);
     if (!open) {
@@ -85,11 +89,15 @@
       price.value = listing.price;
       const code = el("select", { id: "shake-currency", required: "" });
       code.append(el("option", { value: "" }, "Choose"));
-      for (const c of ["EUR", "USD", "GBP", "BRL"]) code.append(el("option", { value: c }, c));
+      const symbols = { EUR: "€", USD: "US$", GBP: "£", BRL: "R$" };
+      for (const c of ["EUR", "USD", "GBP", "BRL"]) code.append(el("option", { value: c }, `${symbols[c]} ${c}`));
       code.value = ["EUR", "USD", "GBP", "BRL"].includes(listing.currency) ? listing.currency : "";
+      const amountSymbol = el("span", { class: "amount-symbol", "aria-hidden": "true" }, symbols[code.value] || "—");
+      const amountField = el("div", { class: "amount-field" });
+      amountField.append(amountSymbol, price);
       const row = el("div", { class: "row" });
       const a = el("div"), b = el("div");
-      a.append(el("label", { for: "shake-price" }, "Agreed price"), price);
+      a.append(el("label", { for: "shake-price" }, "Agreed price"), amountField);
       b.append(el("label", { for: "shake-currency" }, "Currency"), code); row.append(a, b);
       const warning = el("p", { class: "warning", role: "status" });
       if (listing.currency && !code.value) {
@@ -101,6 +109,7 @@
         warning.textContent = "Check the price and currency. This page did not provide both reliably.";
       } else warning.textContent = "Details imported. Confirm the price with the seller.";
       code.onchange = () => {
+        amountSymbol.textContent = symbols[code.value] || "—";
         if (code.value && code.value !== listing.currency) {
           price.value = "";
           warning.dataset.tone = "warning";
