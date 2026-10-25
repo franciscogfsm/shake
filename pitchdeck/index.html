@@ -554,16 +554,94 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .aside{margin-top:calc(var(--u)*2.4);font-size:calc(var(--u)*1.35);color:var(--mute);font-weight:300}
 .scam{padding:calc(var(--u)*1.7) calc(var(--u)*2.2);align-items:center}
 .scam h3{font-size:calc(var(--u)*2.1)}
-.ways{display:grid;grid-template-columns:1fr 1fr;gap:calc(var(--u)*3);margin-top:calc(var(--u)*2.6);align-items:start}
+/* two ways in: the listing and the AI chat both feed the same locked coin */
+[data-n="Ways"] h2{font-size:calc(var(--u)*4.2)}
+.ways2{display:grid;grid-template-columns:minmax(0,1fr) calc(var(--u)*17) minmax(0,1fr);column-gap:calc(var(--u)*3);row-gap:calc(var(--u)*1.1);margin-top:calc(var(--u)*2.8)}
+.wh{display:flex;align-items:center;gap:calc(var(--u)*1.1);white-space:nowrap;min-width:0}
+.wh b{display:flex;align-items:center;gap:calc(var(--u)*.7);font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.55);letter-spacing:-.02em}
+.wh b i{font-style:normal;display:grid;place-items:center;width:calc(var(--u)*1.9);height:calc(var(--u)*1.9);border-radius:50%;border:1px solid rgba(143,211,255,.55);background:rgba(143,211,255,.08);color:var(--ice);font-family:var(--mono);font-size:calc(var(--u)*.8);font-weight:500;letter-spacing:0}
+.wh span{font-family:var(--mono);font-size:calc(var(--u)*.74);letter-spacing:.08em;color:var(--dim);overflow:hidden;text-overflow:ellipsis}
+.wh.mid{justify-content:center}
+.wh.mid span{color:var(--ice);letter-spacing:.2em;text-transform:uppercase}
+.wbrw{position:relative;overflow:hidden;padding:0;display:flex;flex-direction:column}
+.wbrw .bar{display:flex;align-items:center;gap:6px;padding:calc(var(--u)*.8) calc(var(--u)*1.1);border-bottom:1px solid var(--line);background:rgba(255,255,255,.03)}
+.wbrw .bar i{width:9px;height:9px;border-radius:50%;background:rgba(255,255,255,.18)}
+.wbrw .bar span{margin-left:calc(var(--u)*1);flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:calc(var(--u)*.72);color:var(--dim);padding:calc(var(--u)*.3) calc(var(--u)*.8);border-radius:99px;background:rgba(255,255,255,.05)}
+.wlst{flex:1;display:grid;grid-template-columns:calc(var(--u)*10) minmax(0,1fr);gap:calc(var(--u)*1.5);padding:calc(var(--u)*1.5)}
+.wlst .ph{min-height:calc(var(--u)*13);border-radius:calc(var(--u)*.8);background:radial-gradient(60% 40% at 50% 38%,#6b5341,#2a221c 72%),#1a1612;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05)}
+.wli{display:flex;flex-direction:column;align-items:stretch;min-width:0}
+.wli .lt{font-size:calc(var(--u)*1.2)}
+.wli .lp2{font-size:calc(var(--u)*2.5);line-height:1;margin-top:calc(var(--u)*.45)}
+.wsel{font-size:calc(var(--u)*.85);color:var(--dim);margin-top:calc(var(--u)*.55)}
+.wbuy{margin-top:auto;text-align:center;padding:calc(var(--u)*.65);border-radius:calc(var(--u)*.7);background:rgba(255,255,255,.07);color:var(--mute);font-size:calc(var(--u)*.92);font-weight:500}
+.wpay{position:relative;display:grid;place-items:center;margin-top:calc(var(--u)*.55);height:calc(var(--u)*3);border-radius:calc(var(--u)*.7);background:linear-gradient(180deg,rgba(143,211,255,.24),rgba(143,211,255,.1));border:1px solid rgba(143,211,255,.6);color:var(--ink);font-weight:600;font-size:calc(var(--u)*.98);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 28px -10px var(--ice);transition:transform .25s var(--spring),background .45s,color .45s,box-shadow .45s,border-color .45s}
+.wpay em{grid-area:1/1;display:flex;align-items:center;gap:calc(var(--u)*.55);font-style:normal;white-space:nowrap;transition:opacity .3s,transform .5s var(--spring)}
+.wpay .cm{width:calc(var(--u)*1.45);height:calc(var(--u)*1.45)}
+.wpay .s1,.wpay .s2{opacity:0;transform:translateY(7px)}
+.fid{width:calc(var(--u)*1.2);height:calc(var(--u)*1.2);border:1.5px solid var(--ice);border-radius:30%;animation:fid .9s ease-in-out infinite}
+@keyframes fid{50%{transform:scale(.82);opacity:.55}}
+.wadd{margin-top:calc(var(--u)*.5);font-family:var(--mono);font-size:calc(var(--u)*.66);letter-spacing:.06em;color:var(--ice);opacity:.8;text-align:center}
+#wbrw.b1 .wpay{box-shadow:inset 0 1px 0 rgba(255,255,255,.25),0 0 40px -6px var(--ice);border-color:var(--ice)}
+#wbrw.b2 .wpay{transform:scale(.95)}
+#wbrw.b3 .s0,#wbrw.b4 .s0,#wbrw.b4 .s1{opacity:0;transform:translateY(-7px)}
+#wbrw.b3 .s1,#wbrw.b4 .s2{opacity:1;transform:none}
+#wbrw.b4 .wpay{background:var(--ice);color:#06121c;border-color:transparent;box-shadow:0 0 44px -8px var(--ice)}
+.wcur{position:absolute;left:0;top:0;z-index:3;width:calc(var(--u)*1.9);height:calc(var(--u)*1.9);pointer-events:none;filter:drop-shadow(0 4px 8px rgba(0,0,0,.6));opacity:0;transform:translate(calc(var(--cx,60%) - var(--u)*7),calc(var(--cy,80%) + var(--u)*5));transition:transform .8s var(--ease),opacity .35s}
+#wbrw.b1 .wcur{opacity:1;transform:translate(var(--cx),var(--cy))}
+#wbrw.b2 .wcur{transform:translate(var(--cx),var(--cy)) scale(.82)}
+#wbrw.b4 .wcur{opacity:0}
+.hub{position:relative;align-self:center;display:flex;flex-direction:column;align-items:center;text-align:center}
+.hcoin{position:relative;width:calc(var(--u)*8);height:calc(var(--u)*8)}
+.hcoin::before{content:"";position:absolute;inset:-45%;border-radius:50%;background:radial-gradient(circle,rgba(143,211,255,.42),transparent 62%);opacity:0;transform:scale(.7);transition:opacity .9s,transform 1.2s var(--ease)}
+.hcoin svg{position:relative;width:100%;height:100%;overflow:visible;filter:drop-shadow(0 16px 26px rgba(0,0,0,.55));opacity:.28;transition:opacity .7s}
+.hcoin .cl,.hcoin .cr{transform-box:view-box;transition:transform .9s var(--spring)}
+.hcoin .cl{transform:translateX(-2.4px)}.hcoin .cr{transform:translateX(2.4px)}
+.hub.on .hcoin::before{opacity:1;transform:none}
+.hub.on .hcoin svg{opacity:1}
+.hub.on .hcoin .cl{animation:waitL 2.8s ease-in-out infinite}.hub.on .hcoin .cr{animation:waitR 2.8s ease-in-out infinite}
+@keyframes waitL{50%{transform:translateX(-1.5px)}}@keyframes waitR{50%{transform:translateX(1.5px)}}
+.hub.pulse .hcoin svg{animation:hpulse .7s var(--spring)}
+@keyframes hpulse{40%{transform:scale(1.1)}}
+.hub.deny .hcoin svg{animation:deny .5s ease-in-out}
+@keyframes deny{20%{transform:translateX(-7px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(2px)}}
+.ha,.hs,.hn{opacity:.22;transform:translateY(6px);transition:opacity .6s,transform .8s var(--spring)}
+.hub.on :is(.ha,.hs,.hn){opacity:1;transform:none}
+.hub.on .hs{transition-delay:.1s}.hub.on .hn{transition-delay:.2s}
+.ha{margin-top:calc(var(--u)*1.3);font-family:var(--display);font-weight:500;font-size:calc(var(--u)*1.5);color:var(--mute);line-height:1}
+.ha b{font-size:calc(var(--u)*3.2);font-weight:700;color:var(--ink);letter-spacing:-.045em;margin-right:.12em}
+.hs{margin-top:calc(var(--u)*.7);font-size:calc(var(--u)*1.02);line-height:1.35;font-weight:500;color:var(--ice);max-width:calc(var(--u)*14)}
+.hn{margin-top:calc(var(--u)*.9);font-family:var(--mono);font-size:calc(var(--u)*.64);letter-spacing:.08em;color:var(--dim)}
+.wire{position:absolute;top:calc(var(--u)*4);height:2px;margin-top:-1px;width:calc(var(--u)*7.2);background:repeating-linear-gradient(90deg,rgba(255,255,255,.2) 0 4px,transparent 4px 9px)}
+.wire.l{left:calc(var(--u)*-3)}.wire.rt{right:calc(var(--u)*-3)}
+.wire b{position:absolute;inset:-1px 0;border-radius:2px;transform:scaleX(0);transition:transform .7s var(--ease)}
+.wire.l b{transform-origin:left;background:linear-gradient(90deg,rgba(143,211,255,.2),var(--ice));box-shadow:0 0 12px var(--ice)}
+.wire.rt b{transform-origin:right;background:linear-gradient(270deg,rgba(143,211,255,.2),var(--ice));box-shadow:0 0 12px var(--ice)}
+.wire.go b{transform:none}
+.wchat{display:flex;flex-direction:column;padding:calc(var(--u)*1.3) calc(var(--u)*1.6) calc(var(--u)*1.5);border-radius:calc(var(--u)*1.4)}
+.wchat .aih i{display:inline-block;width:6px;height:6px;margin-right:.7em;border-radius:50%;background:var(--ice);box-shadow:0 0 8px var(--ice);vertical-align:.1em;animation:pulse 2s infinite}
+.wbody{position:relative;flex:1;min-height:calc(var(--u)*12);overflow:hidden;-webkit-mask-image:linear-gradient(transparent,#000 18%);mask-image:linear-gradient(transparent,#000 18%)}
+.wstack{position:absolute;left:0;right:0;bottom:0;display:flex;flex-direction:column;gap:calc(var(--u)*.6)}
+.wm{display:none;max-width:88%;font-size:calc(var(--u)*1);line-height:1.4}
+.wm.x{display:block;animation:wpop .55s var(--spring) both}
+@keyframes wpop{from{opacity:0;transform:translateY(12px) scale(.97)}}
+.wm.you{align-self:flex-end;padding:calc(var(--u)*.55) calc(var(--u)*.95);border-radius:calc(var(--u)*1) calc(var(--u)*1) calc(var(--u)*.3) calc(var(--u)*1);background:rgba(143,211,255,.16);color:var(--ink)}
+.wm.tool{align-self:flex-start;font-family:var(--mono);font-size:calc(var(--u)*.72);color:var(--dim)}
+.wm.tool span{color:var(--ice)}.wm.tool.no span{color:var(--red)}
+.wm.deal{align-self:flex-start;width:90%;align-items:center;gap:calc(var(--u)*.8);padding:calc(var(--u)*.75) calc(var(--u)*.9);border-radius:calc(var(--u)*1);border:1px solid rgba(143,211,255,.35);background:rgba(143,211,255,.06)}
+.wm.deal.x{display:flex}
+.wm.deal .cm{width:calc(var(--u)*2);height:calc(var(--u)*2)}
+.wm.deal p{flex:1;min-width:0;font-weight:600;font-size:calc(var(--u)*.95)}
+.wm.deal small{display:block;font-weight:400;color:var(--dim);font-size:calc(var(--u)*.75)}
+.dl{display:grid;padding:calc(var(--u)*.4) calc(var(--u)*.95);border-radius:99px;background:var(--ice);color:#06121c;font-weight:600;font-size:calc(var(--u)*.82);transition:background .4s,color .4s}
+.dl em{grid-area:1/1;font-style:normal;white-space:nowrap;text-align:center;transition:opacity .3s}
+.dl .s2{opacity:0}
+.deal.ok .dl{background:rgba(143,211,255,.18);color:var(--ice)}
+.deal.ok .dl .s0{opacity:0}.deal.ok .dl .s2{opacity:1}
+.wm.no2{align-self:flex-start;max-width:100%;font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.4);letter-spacing:-.02em;line-height:1.2;color:var(--ink)}
 .wl3{font-size:calc(var(--u)*1.1);line-height:1.45;color:var(--mute);margin-bottom:calc(var(--u)*1.2);min-height:4.4em}
 .wl3 b{display:block;font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.5);letter-spacing:-.02em;color:var(--ink);margin-bottom:calc(var(--u)*.3)}
 .wl2{font-family:var(--mono);font-size:calc(var(--u)*.8);letter-spacing:.12em;text-transform:uppercase;color:var(--dim);margin-bottom:calc(var(--u)*1)}
 .wl2 b{color:var(--ice);font-weight:500}
-.ways .brw,.ways .aichat{justify-self:stretch;width:auto}
-.ways .li{margin-right:calc(var(--u)*15)}
-.ways .wl2{margin-bottom:calc(var(--u)*.8)}
-.ways .aim.lockd{font-size:calc(var(--u)*1.5)}
-.aichat.told .usm.x,.aichat.told .aim.x:not(.lockd){opacity:.32}
 .trustl{list-style:none;margin-top:calc(var(--u)*2.6);display:flex;flex-direction:column;gap:calc(var(--u)*1)}
 .trustl li{padding-left:calc(var(--u)*1.15);border-left:2px solid rgba(143,211,255,.4);font-size:calc(var(--u)*1.35);font-weight:400;letter-spacing:-.02em;color:var(--ink)}
 .mkt3{display:flex;flex-direction:column;gap:calc(var(--u)*1.4);margin-top:calc(var(--u)*3)}
@@ -724,6 +802,84 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .tally .tn{font-size:calc(var(--u)*4.2);font-weight:600;letter-spacing:-.05em;line-height:1.05;margin-top:calc(var(--u)*.4);font-variant-numeric:tabular-nums}
 .tally .tm2{font-family:var(--mono);font-size:calc(var(--u)*.78);color:var(--ice);margin-top:calc(var(--u)*.3)}
 .tally.rf{border-color:rgba(255,255,255,.18)}.tally.rf .tm2{color:var(--mute)}
+/* slide: decide. The coin you hold is the deal itself: the two halves close on it */
+[data-n="Decide"] h2{font-size:calc(var(--u)*5.8);margin-top:calc(var(--u)*1.1)}
+[data-n="Decide"] .sub{font-size:calc(var(--u)*1.35);margin-top:calc(var(--u)*1.2);max-width:calc(var(--u)*46)}
+[data-n="Decide"] .sub b{color:var(--ink);font-weight:500}
+.eyebrow.live{display:inline-flex;align-items:center;gap:calc(var(--u)*.7);color:var(--ice);transition:color .5s}
+.eyebrow.live i{width:7px;height:7px;border-radius:50%;background:var(--ice);box-shadow:0 0 12px var(--ice);animation:pulse 2s ease-in-out infinite}
+.eyebrow.live.off{color:var(--dim)}.eyebrow.live.off i{background:var(--dim);box-shadow:none;animation:none}
+[data-n="Decide"] .cap{width:min(calc(var(--u)*64),92vw);height:calc(var(--u)*12.4);margin-top:calc(var(--u)*3)}
+[data-n="Decide"] .half{width:calc(var(--u)*28);padding:calc(var(--u)*1.4) calc(var(--u)*2.6);border-radius:calc(var(--u)*6.2);transition:transform .9s var(--spring),border-color .5s,box-shadow .5s,background .5s}
+[data-n="Decide"] .half.l{padding-right:calc(var(--u)*6.4);transform:translateX(calc(var(--u)*-3.4*(1 - var(--p,0))));border-top-right-radius:calc(var(--u)*1.3);border-bottom-right-radius:calc(var(--u)*1.3)}
+[data-n="Decide"] .half.sr{padding-left:calc(var(--u)*6.4);transform:translateX(calc(var(--u)*3.4*(1 - var(--p,0))));border-top-left-radius:calc(var(--u)*1.3);border-bottom-left-radius:calc(var(--u)*1.3)}
+[data-n="Decide"] .half .k{font-size:calc(var(--u)*.78)}
+[data-n="Decide"] .half b{font-size:calc(var(--u)*2.05);margin-top:calc(var(--u)*.3)}
+.half .hs{font-family:var(--mono);font-size:calc(var(--u)*.76);letter-spacing:.06em;color:var(--mute);margin-top:calc(var(--u)*.6);transition:color .4s}
+.cap.shut .half .hs{color:var(--ice)}
+.cap.back .half.l .hs{color:var(--ink)}
+.cap.shut .half{border-color:rgba(140,207,255,.65);background:linear-gradient(180deg,rgba(140,207,255,.14),rgba(255,255,255,.02) 60%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 80px -22px var(--ice)}
+.capseam{position:absolute;z-index:1;left:50%;top:-10%;bottom:-10%;width:2px;margin-left:-1px;background:linear-gradient(transparent,#e6f5ff 25%,var(--ice) 50%,#e6f5ff 75%,transparent);box-shadow:0 0 30px 4px rgba(140,207,255,.6);opacity:calc(var(--p,0)*.9);pointer-events:none}
+.cap.shut .capseam{opacity:0}
+/* the coin: hold it, or hold the arrow key. It grows and glows as the hold fills */
+[data-n="Decide"] .hold{position:absolute;z-index:2;left:50%;top:50%;width:calc(var(--u)*9.8);height:calc(var(--u)*9.8);margin:calc(var(--u)*-4.9);border-radius:50%;display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:calc(var(--u)*2.4);letter-spacing:-.04em;line-height:1;color:var(--ink);background:radial-gradient(circle at 50% 30%,rgba(34,41,52,.94),rgba(10,12,16,.94));border:1px solid rgba(140,207,255,calc(.35 + var(--p,0)*.55));box-shadow:0 24px 50px -22px #000,0 0 calc(var(--u)*1 + var(--u)*6*var(--p,0)) rgba(140,207,255,calc(.15 + var(--p,0)*.65)),inset 0 1px 0 rgba(255,255,255,.14);-webkit-backdrop-filter:blur(18px);backdrop-filter:blur(18px);transform:scale(calc(1 + var(--p,0)*.1));transition:transform .5s var(--spring),background .5s,color .5s,opacity .4s;cursor:pointer}
+[data-n="Decide"] .hold svg{inset:-8px;width:calc(100% + 16px);height:calc(100% + 16px)}
+[data-n="Decide"] .hold circle{stroke-width:2.4}
+[data-n="Decide"] .hold span{padding:0;display:block}
+.holding [data-n="Decide"] .hold{transition:background .5s,color .5s}
+.cap.shut .hold{background:radial-gradient(circle at 35% 30%,#fff,var(--ice) 70%);color:#0a0c10;border-color:transparent;box-shadow:0 0 90px -4px var(--ice),0 24px 50px -22px #000;transform:none;animation:slam .7s var(--spring)}
+.cap.shut .hold svg{opacity:0}
+@keyframes slam{0%{transform:scale(1.12)}40%{transform:scale(.88)}70%{transform:scale(1.04)}100%{transform:none}}
+.cap.back .hold{background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.2);box-shadow:0 24px 50px -22px #000;color:var(--mute)}
+.cap.back .hold svg{opacity:0}
+.cap:not(.shut):not(.back) .hold[disabled]{opacity:.45;cursor:default}
+.cap.shut .hold[disabled],.cap.back .hold[disabled]{opacity:1;cursor:default}
+.holdhint{display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*.65);margin-top:calc(var(--u)*2.4);font-family:var(--mono);font-size:calc(var(--u)*.85);letter-spacing:.14em;text-transform:uppercase;color:var(--dim)}
+.holdhint kbd{display:inline-grid;place-items:center;min-width:calc(var(--u)*2.3);height:calc(var(--u)*2.1);padding:0 .45em;border:1px solid rgba(140,207,255,.45);border-radius:6px;background:rgba(140,207,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);color:var(--ice);font:inherit;font-size:calc(var(--u)*1.05)}
+.holdhint em{font-style:normal}
+[data-n="Decide"] .dec{margin-top:calc(var(--u)*1.5);gap:calc(var(--u)*1.2);transition:opacity .4s}
+[data-n="Decide"] .dec .ghost{font-size:calc(var(--u)*1.05);padding:calc(var(--u)*.8) calc(var(--u)*1.9);color:var(--mute)}
+[data-n="Decide"] .dec .ghost:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
+[data-n="Decide"] .ststat{margin-top:calc(var(--u)*1.1);font-family:var(--display);font-weight:600;font-size:calc(var(--u)*1.5);letter-spacing:-.025em;text-transform:none}
+[data-n="Decide"] .ststat.ok{color:var(--ice)}[data-n="Decide"] .ststat.back{color:var(--ink)}
+[data-n="Decide"].settled .holdhint,[data-n="Decide"].settled .dec{display:none}
+/* slide: reveal. A receipt for what the judge just did */
+[data-n="Reveal"] .two{grid-template-columns:minmax(0,1.15fr) minmax(0,.85fr);gap:calc(var(--u)*5)}
+[data-n="Reveal"] h2{font-size:calc(var(--u)*5)}
+.shine{background:linear-gradient(100deg,var(--ice) 0 38%,#fff 50%,var(--ice) 62% 100%);background-size:260% 100%;background-position:100% 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:var(--ice)}
+.act .shine{animation:shineText 2.4s cubic-bezier(.4,0,.2,1) 1.2s both}
+@keyframes shineText{from{background-position:100% 0}to{background-position:0 0}}
+[data-n="Reveal"] .sub{font-size:calc(var(--u)*1.25);margin-top:calc(var(--u)*1.2);max-width:calc(var(--u)*40)}
+[data-n="Reveal"] .ev{margin-top:calc(var(--u)*2.4);gap:0;padding-left:calc(var(--u)*3.2)}
+[data-n="Reveal"] .ev::after{content:"";position:absolute;left:calc(var(--u)*.55);top:calc(var(--u)*1);bottom:calc(var(--u)*1);width:2px;background:linear-gradient(var(--ice2),var(--ice));box-shadow:0 0 12px var(--ice);transform:scaleY(var(--f,0));transform-origin:top;transition:transform .9s var(--ease)}
+[data-n="Reveal"] .e{padding:calc(var(--u)*.85) 0;transform:translateX(-14px)}
+[data-n="Reveal"] .e.x{transform:none}
+[data-n="Reveal"] .e .tm{font-size:calc(var(--u)*.72);color:var(--ice);letter-spacing:.12em}
+[data-n="Reveal"] .e h4{font-size:calc(var(--u)*1.8);margin-top:calc(var(--u)*.15)}
+[data-n="Reveal"] .e p:not(.tm){font-size:calc(var(--u)*.78);margin-top:calc(var(--u)*.35);color:var(--dim)}
+[data-n="Reveal"] .e p:not(.tm) a{color:var(--mute);border-bottom:1px solid rgba(255,255,255,.18)}
+[data-n="Reveal"] .e p:not(.tm) a:hover{color:var(--ice);text-decoration:none;border-color:var(--ice)}
+[data-n="Reveal"] .e::before{top:calc(var(--u)*1.7);transform:scale(.6);opacity:.4;transition:transform .5s var(--spring),opacity .4s}
+[data-n="Reveal"] .e.x::before{transform:none;opacity:1}
+[data-n="Reveal"] .rside{width:calc(var(--u)*30)}
+.rcard{position:relative;overflow:hidden;width:100%;padding:0;border-color:rgba(140,207,255,.4);border-radius:calc(var(--u)*1.8)}
+.rcard::after{content:"";position:absolute;top:-10%;bottom:-10%;left:-40%;width:28%;background:linear-gradient(90deg,transparent,rgba(200,235,255,.16),transparent);transform:skewX(-12deg);pointer-events:none;opacity:0}
+.act .rcard::after{animation:rgleam 2.2s cubic-bezier(.4,0,.2,1) 1.5s both}
+@keyframes rgleam{0%{left:-40%;opacity:0}12%{opacity:1}88%{opacity:1}100%{left:120%;opacity:0}}
+.rcard .tally{border:0;border-radius:0;padding:calc(var(--u)*2) calc(var(--u)*2.2) calc(var(--u)*1.9);background:linear-gradient(180deg,rgba(140,207,255,.14),transparent 90%)}
+.rcard .tally.rf{background:linear-gradient(180deg,rgba(255,255,255,.07),transparent 90%)}
+.rcard .tally .tn{font-size:calc(var(--u)*5.2);margin-top:calc(var(--u)*.5)}
+.rcard .tally .tm2{font-size:calc(var(--u)*.85);margin-top:calc(var(--u)*.5)}
+.rcard .txline{font-family:var(--mono);font-size:calc(var(--u)*.7);letter-spacing:.02em;color:var(--dim);margin-top:calc(var(--u)*.9);line-height:1.7;overflow-wrap:anywhere}
+.rcard .txline a{color:var(--mute);border-bottom:1px solid rgba(255,255,255,.18)}.rcard .txline a:hover{color:var(--ice);text-decoration:none;border-color:var(--ice)}
+.rcard .tear{display:block;position:relative;height:0;border-top:1px dashed rgba(255,255,255,.22);margin:0 calc(var(--u)*1.4)}
+.rcard .tear::before,.rcard .tear::after{content:"";position:absolute;top:calc(var(--u)*-.8);width:calc(var(--u)*1.6);height:calc(var(--u)*1.6);border-radius:50%;background:#0f1216;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.rcard .tear::before{left:calc(var(--u)*-2.2)}.rcard .tear::after{right:calc(var(--u)*-2.2)}
+.rcard .try{width:auto;padding:calc(var(--u)*1.9) calc(var(--u)*2.2) calc(var(--u)*2.1);text-align:center}
+.rcard .try h3{font-size:calc(var(--u)*1.95);letter-spacing:-.035em}
+.rcard .try .tryp{font-family:var(--sans);font-size:calc(var(--u)*1.05);color:var(--mute);margin-top:calc(var(--u)*.45);font-weight:300;line-height:1.4}
+.rcard .try .code{width:calc(var(--u)*13);height:calc(var(--u)*13);margin-top:calc(var(--u)*1.4);box-shadow:0 0 0 1px rgba(255,255,255,.1),0 24px 44px -22px #000}
+.rcard .try #tryurl{margin-top:calc(var(--u)*1);color:var(--ice);letter-spacing:.02em}
 /* dock */
 /* slide indicator: a row of dots in the header, between the brand and the deal info */
 .deck-nav{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:max-content}
@@ -871,26 +1027,43 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 
 <section class="slide" data-n="Ways">
  <p class="eyebrow r">Two ways in</p>
- <h2 class="r" style="--d:1">The money locks.<br><span>It pays only when you meet.</span></h2>
- <div class="ways">
-  <div class="wcol r" style="--d:2">
-   <p class="wl2">On the listing · <b>one click</b></p>
-   <div class="brw glass" id="brw">
-   <div class="bar"><i></i><i></i><i></i><span>vinted.pt · listing</span><button class="extic" tabindex="-1" aria-hidden="true"><svg class="cm" viewBox="0 0 24 24"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg></button></div>
-   <div class="lst"><div class="ph"></div><div class="li"><p class="lt">Leather jacket · size M</p><p class="lp2">60€</p></div></div>
-   <div class="xpop"><p class="pk"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>SHAKE</p><p class="xp">60€ locked</p><p class="pc">Pays when you meet</p></div>
-   <i class="cursor"></i>
-  </div>
-  </div>
-  <div class="wcol r" style="--d:3">
-   <p class="wl2">In the chat · <b>one sentence</b></p>
-   <div class="aichat glass">
-    <p class="aih"><span>Your AI</span><span>SHAKE connected</span></p>
-    <p class="usm">Lock 60€ for this jacket.</p>
-    <div class="aim swidget"><p class="sk">SHAKE</p><p class="sp">60€ locked</p><p class="sl">Pays when you meet →</p></div>
-    <p class="usm">Send the seller the money.</p>
-    <p class="aim lockd">I can't. Only when you meet, phone to phone.</p>
+ <h2 class="r" style="--d:1">One click on the listing.<br><span>Or one sentence to your AI.</span></h2>
+ <div class="ways2">
+  <p class="wh r" style="--d:2"><b><i>1</i>On the listing</b><span>Vinted · OLX · eBay · +13</span></p>
+  <p class="wh mid r" style="--d:2"><span>Same result</span></p>
+  <p class="wh r" style="--d:2"><b><i>2</i>In your AI chat</b><span>Claude · ChatGPT · Cursor</span></p>
+  <div class="wbrw glass r" style="--d:3" id="wbrw">
+   <div class="bar"><i></i><i></i><i></i><span>vinted.pt/items/leather-jacket</span></div>
+   <div class="wlst">
+    <div class="ph"></div>
+    <div class="wli">
+     <p class="lt">Leather jacket · M</p>
+     <p class="lp2">60€</p>
+     <p class="wsel">marta_92 · Lisbon</p>
+     <span class="wbuy">Buy now</span>
+     <span class="wpay"><em class="s0"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>Pay safely with SHAKE</em><em class="s1"><i class="fid"></i>Face ID…</em><em class="s2">✓ 60€ locked</em></span>
+     <p class="wadd">↑ added by the SHAKE extension</p>
+    </div>
    </div>
+   <svg class="wcur" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2.5 19.5 12l-6.6 1.5L9.4 20Z" fill="#fff" stroke="#0d0f12" stroke-width="1.3" stroke-linejoin="round"/></svg>
+  </div>
+  <div class="hub r" style="--d:4" id="hub">
+   <i class="wire l"><b></b></i><i class="wire rt"><b></b></i>
+   <div class="hcoin"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg></div>
+   <p class="ha"><b>60€</b> locked</p>
+   <p class="hs">Pays the seller only when the two phones meet</p>
+   <p class="hn">Not a screenshot. Live on Stellar.</p>
+  </div>
+  <div class="wchat glass r" style="--d:5" id="wchat">
+   <p class="aih"><span>Your AI</span><span><i></i>SHAKE connected</span></p>
+   <div class="wbody"><div class="wstack">
+    <p class="wm you">Lock 60€ for this jacket on Vinted.</p>
+    <p class="wm tool">↳ create_deal <span>· ok</span></p>
+    <div class="wm deal"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><p>Leather jacket · 60€<small>Lock with Face ID</small></p><span class="dl"><em class="s0">Lock 60€</em><em class="s2">✓ Locked</em></span></div>
+    <p class="wm you">Now release it to the seller.</p>
+    <p class="wm tool no">↳ release_payment <span>· refused</span></p>
+    <p class="wm no2">I can't. Nobody can. Only your phone, when you meet her.</p>
+   </div></div>
   </div>
  </div>
 </section>
@@ -916,7 +1089,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   </div></div>
 </section>
 
-<section class="slide" data-n="First">
+<section class="slide" data-n="First" data-appendix hidden>
  <p class="eyebrow r">Who's first</p>
  <h2 class="r" style="--d:1">For the moment neither stranger<br>wants to go first.</h2>
  <div class="first3">
@@ -948,17 +1121,18 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 </section>
 
 <section class="slide center" data-n="Decide">
- <p class="eyebrow r" id="lockedfor">Your 10€ is locked</p>
+ <p class="eyebrow live r" id="lockedp"><i></i><span id="lockedfor">Your 10€ is locked</span></p>
  <h2 class="r" style="--d:1">Did we convince you?</h2>
- <p class="sub r" style="--d:2;max-width:calc(var(--u)*44)">Leaving the first slide locked 10€ of test money. You're the buyer, we're the seller. Shake on it, or get it back.</p>
+ <p class="sub r" style="--d:2">The first slide quietly locked <b>10€ of test money</b>. You're the buyer, we're the seller.<br>It only moves if you shake on it.</p>
  <div class="cap r" style="--d:3" id="cap">
-  <div class="half glass l"><p class="k">BUYER</p><b>You</b></div>
-  <div class="half glass sr"><p class="k">SELLER</p><b>The SHAKE team</b></div>
-  <div class="mid" id="capmid">10€</div>
+  <div class="half glass l"><p class="k">BUYER</p><b>You</b><p class="hs" id="hsl">10.00€ locked</p></div>
+  <i class="capseam"></i>
+  <button class="hold" id="hold" aria-label="Hold to shake on it" aria-keyshortcuts="ArrowRight Space Enter"><svg viewBox="0 0 36 36"><circle class="bgc" cx="18" cy="18" r="15.9" pathLength="100"/><circle class="fgc" cx="18" cy="18" r="15.9" pathLength="100"/></svg><span id="capmid">10€</span></button>
+  <div class="half glass sr"><p class="k">SELLER</p><b>The SHAKE team</b><p class="hs" id="hsr">waiting for your hand</p></div>
  </div>
- <div class="dec r" style="--d:4">
-  <button class="hold glass" id="hold" aria-keyshortcuts="ArrowRight Space Enter"><svg viewBox="0 0 36 36"><circle class="bgc" cx="18" cy="18" r="15.9" pathLength="100"/><circle class="fgc" cx="18" cy="18" r="15.9" pathLength="100"/></svg><span>Hold to shake on it<small>HOLD HERE OR HOLD →</small></span></button>
-  <button class="btn ghost" id="notyet">Not yet</button>
+ <p class="holdhint r" style="--d:4"><em>Hold the coin</em><span>·</span><em>or hold</em><kbd aria-label="Right arrow">→</kbd><em>for two seconds</em></p>
+ <div class="dec r" style="--d:5">
+  <button class="btn ghost" id="notyet">Not yet, give me the 10€ back</button>
  </div>
  <p class="ststat" id="ststat"></p>
  <button class="again" id="again" hidden>Lock another 10€ and try again</button>
@@ -966,12 +1140,16 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 
 <section class="slide" data-n="Reveal">
  <div class="two"><div>
-  <p class="eyebrow r">Feature · You already used it</p>
-  <h2 class="r" style="--d:1">You didn't watch a pitch.<br><span class="ice">You just used SHAKE.</span></h2>
+  <p class="eyebrow r">The reveal</p>
+  <h2 class="r" style="--d:1">You didn't watch a pitch.<br><span class="shine">You just used SHAKE.</span></h2>
+  <p class="sub r" style="--d:2">Everything below really happened on Stellar while you were reading.</p>
   <div class="ev" id="ev"></div></div>
   <div class="rside">
-   <div class="tally glass r" style="--d:2" id="tally"><p class="k">YOUR DEAL</p><p class="tn" id="tn">0.00€</p><p class="tm2" id="tm2"></p></div>
-   <div class="try glass r" style="--d:3"><h3>Now try it with a friend.</h3><div class="code" id="qr">loading…</div><p id="tryurl"></p></div>
+   <div class="rcard glass r" style="--d:3">
+    <div class="tally" id="tally"><p class="k">YOUR DEAL</p><p class="tn" id="tn">0.00€</p><p class="tm2" id="tm2"></p><p class="txline" id="txline"></p></div>
+    <i class="tear"></i>
+    <div class="try"><h3>Now try the real thing.</h3><p class="tryp">Two phones. One scan. Real test money.</p><div class="code" id="qr">loading…</div><p id="tryurl"></p></div>
+   </div>
   </div>
  </div>
 </section>
@@ -1063,8 +1241,8 @@ const CAPTIONS={
  Workflow:"The deal starts on Vinted, OLX or WhatsApp. The buyer locks the money in a public contract. It pays only when the seller’s one-time code is scanned, phone to phone. Otherwise it comes back. A screenshot cannot do that.",
  First:"Who we start with, and why the two strangers would use it. Five pairs outside the team still have to try it, so this is a hypothesis, not product-market fit. The extension and a shared link are how we reach them.",
  Built:"Francisco Martins is doing a master’s in computer engineering. Pedro Franco studies materials engineering. Both are 21, both at Instituto Superior Técnico, and hackathons are how they work. SHAKE was built in 24 hours.",
- Decide:"Test money only. Hold the right-arrow key or the ring for about 2 seconds to shake on it.",
- Reveal:"The record of what you just did. Scan the QR to try SHAKE with a friend."};
+ Decide:"Test money only. Hold the coin, or hold the right-arrow key, for about two seconds to shake on it. Not yet gives the 10€ straight back.",
+ Reveal:"The record of what you just did, with the real transactions. Scan the QR to try the two-phone version yourself."};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches,root=document.documentElement;
 const add=(el,c="x")=>el.classList.add(c);
@@ -1083,7 +1261,11 @@ function contractLine(){const c=LIVE&&deal.contract?deal.contract:CFG.CONTRACT;r
 function setMode(){/* no on-screen badge; simulated transactions are still marked "simulated" in the closing record */}
 const eur=n=>n.toFixed(2)+"€";
 const mmss=ms=>{const s=Math.max(0,ms/1000|0);return String(s/60|0).padStart(2,"0")+":"+String(s%60).padStart(2,"0")};
-function chip(){const c=$("#chip"),s=deal.status;if(s==="idle"||s==="locking"){c.classList.remove("x");return}add(c);
+/* the two halves of the capsule narrate the deal from each side */
+const HS={idle:["nothing locked yet","waiting"],locking:["locking 10.00€…","waiting"],locked:["10.00€ locked","waiting for your hand"],releasing:["releasing…","receiving…"],refunding:["coming back…","nothing received"],released:["10.00€ sent","10.00€ received ✓"],refunded:["10.00€ back with you","nothing received"]};
+function capText(){const [l,r]=HS[deal.status]||HS.idle;$("#hsl").textContent=l;$("#hsr").textContent=r;cap.classList.toggle("back",deal.status==="refunded");cap.classList.toggle("shut",deal.status==="released"||deal.status==="releasing");
+ $("#capmid").textContent=deal.status==="released"||deal.status==="releasing"?"✓":deal.status==="refunded"?"↩":"10€"}
+function chip(){const c=$("#chip"),s=deal.status;capText();if(s==="idle"||s==="locking"){c.classList.remove("x");return}add(c);
  c.classList.toggle("done",s==="released");c.classList.toggle("back",s==="refunded");$("#chipa").textContent=eur(CFG.AMOUNT);
  $("#chipt").textContent={locked:"locked",releasing:"releasing…",refunding:"refunding…",released:"released",refunded:"refunded"}[s];$("#chipc").textContent=s==="locked"?mmss(Date.now()-deal.t0):""}
 setInterval(()=>{chip();if(cur===DECIDE&&deal.status==="locked")$("#lockedfor").textContent=`Your 10€ has been locked for ${mmss(Date.now()-deal.t0)}`},1000);
@@ -1096,11 +1278,12 @@ async function start(){if(deal.status!=="idle")return;deal.status="locking";
  /* no contract line on the trust slide any more */
  chip();if(cur===DECIDE)P.Decide(slides[DECIDE],()=>Promise.resolve())}
 async function settle(kind){if(deal.status!=="locked")return;deal.status=kind==="release"?"releasing":"refunding";chip();$("#hold").disabled=$("#notyet").disabled=true;
- $("#ststat").textContent=kind==="release"?"Releasing on Stellar…":"Refunding on Stellar…";const watched=Date.now()-deal.t0;
- let r;try{r=await api()[kind](deal)}catch(e){console.warn(kind+" failed",e);$("#ststat").textContent="The network didn't answer. Try again.";deal.status="locked";$("#hold").disabled=$("#notyet").disabled=false;setP(0);return}
- const at=Date.now();deal.ev.push({at:at-1,h:kind==="release"?"The pitch ended. You shook on it.":"The pitch ended. You said not yet.",p:`${mmss(watched)} of pitch · that was the release clause`});
+ const st=$("#ststat");st.className="ststat";st.textContent=kind==="release"?"Releasing on Stellar…":"Sending it back on Stellar…";const watched=Date.now()-deal.t0;
+ let r;try{r=await api()[kind](deal)}catch(e){console.warn(kind+" failed",e);st.textContent="The network didn't answer. Try again.";deal.status="locked";$("#hold").disabled=$("#notyet").disabled=false;setP(0);chip();return}
+ const at=Date.now();deal.ev.push({at:at-1,h:kind==="release"?"The pitch ended. You shook on it.":"The pitch ended. You said not yet.",p:`${mmss(watched)} into the pitch · that was the release clause`});
  deal.ev.push({at,h:kind==="release"?`${eur(CFG.AMOUNT)} released to the team`:`${eur(CFG.AMOUNT)} refunded to you`,p:txl(r.txHash),rf:kind!=="release"});
- deal.status=kind==="release"?"released":"refunded";chip();$("#ststat").textContent=kind==="release"?"Released. Final.":"Refunded. The money is back.";setTimeout(()=>show(REVEAL),1200)}
+ deal.status=kind==="release"?"released":"refunded";deal.txEnd=r.txHash;chip();slides[DECIDE].classList.add("settled");$("#lockedp").classList.add("off");$("#lockedfor").textContent="Deal settled";
+ st.textContent=kind==="release"?"Released. Final.":"Refunded. The 10€ is back with you.";add(st,kind==="release"?"ok":"back");setTimeout(()=>show(REVEAL),1400)}
 /* ── fake QR glyphs for the phone mockups ── */
 const QRP="111101111100101001101101011000100110110011101011010001111010100111101101100101111";
 $$("[data-qr]").forEach(q=>{q.innerHTML=[...QRP].map(b=>`<i class="${b==="1"?"":"o"}"></i>`).join("")});
@@ -1125,6 +1308,7 @@ async function shRun(k,S){const my=++shTok,ok=()=>my===shTok,p=$("#parcel"),st=$
 /* ── reveal: this judge's own deal, nothing pooled across judges ── */
 function tally(){const st={released:"Released to the team · you shook on it",refunded:"Refunded to you · you said not yet",locked:"Still locked · go back one slide to decide",idle:"Nothing locked yet"}[deal.status]||"Settling…";
  $("#tm2").textContent=st;$("#tally").classList.toggle("rf",deal.status==="refunded");
+ const settled=deal.status==="released"||deal.status==="refunded";$("#txline").innerHTML=deal.status==="idle"?"":`${contractLine()}${settled&&deal.txEnd?`<br>${deal.status==="released"?"release":"refund"} ${txl(deal.txEnd)}`:""}`;
  const t0=performance.now(),to=deal.status==="idle"?0:CFG.AMOUNT;(function f(n){const k=Math.min(1,(n-t0)/1400),e=1-(1-k)**3;$("#tn").textContent=eur(to*e);if(k<1)requestAnimationFrame(f)})(t0)}
 /* ── timeline ── */
 const tl=$("#tl");if(tl){tl.style.setProperty("--n",CFG.TIMELINE.length);CFG.TIMELINE.forEach(([h,t,p])=>tl.insertAdjacentHTML("beforeend",`<div class="tp"><i></i><b>${h}</b><h4>${t}</h4><p>${p}</p></div>`))}
@@ -1144,13 +1328,13 @@ function hstop(){holding=false}
 hold.addEventListener("pointerdown",e=>{e.preventDefault();hold.setPointerCapture(e.pointerId);hstart()});
 ["pointerup","pointercancel","lostpointercapture"].forEach(k=>hold.addEventListener(k,hstop));
 hold.addEventListener("contextmenu",e=>e.preventDefault());
-function shook(){add(cap,"shut");$("#capmid").textContent="✓";const f=$("#flash");f.classList.remove("x");void f.offsetWidth;add(f);if(navigator.vibrate)navigator.vibrate([30,40,60]);settle("release")}
+function shook(){add(cap,"shut");$("#capmid").textContent="✓";const f=$("#flash");f.classList.remove("x");void f.offsetWidth;add(f);ripple(cap,"140,207,255");if(navigator.vibrate)navigator.vibrate([30,40,60]);settle("release")}
 $("#notyet").addEventListener("click",()=>{setP(0);settle("refund")});
-$("#again").addEventListener("click",()=>{Object.assign(deal,{status:"idle",ev:[],t0:0});$("#again").hidden=true;cap.classList.remove("shut");setP(0);$("#ststat").textContent="Locking a fresh 10€…";chip();start()});
+$("#again").addEventListener("click",()=>{Object.assign(deal,{status:"idle",ev:[],t0:0,txEnd:null});$("#again").hidden=true;cap.classList.remove("shut","back");setP(0);const st=$("#ststat");st.className="ststat";st.textContent="Locking a fresh 10€…";slides[DECIDE].classList.remove("settled");$("#lockedp").classList.remove("off");$("#lockedfor").textContent="Locking your 10€…";chip();start()});
 /* ── reveal ── */
 const clock=t=>new Date(t).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit",second:"2-digit"});
-function buildReveal(){const ev=$("#ev");ev.innerHTML="";const list=deal.ev.length?deal.ev:[{at:Date.now(),h:"Nothing locked yet",p:"go back to the start and tap Start"}];
- list.forEach(e=>ev.insertAdjacentHTML("beforeend",`<div class="e${e.rf?" rf":""}"><h4>${e.h}</h4></div>`))}
+function buildReveal(){const ev=$("#ev");ev.innerHTML="";ev.style.setProperty("--f",0);const list=deal.ev.length?deal.ev:[{at:Date.now(),h:"Nothing locked yet",p:"go back to the start and press →"}];
+ list.forEach(e=>ev.insertAdjacentHTML("beforeend",`<div class="e${e.rf?" rf":""}"><p class="tm">${clock(e.at)}</p><h4>${e.h}</h4>${e.p?`<p>${e.p}</p>`:""}</div>`))}
 function buildQR(){const u=CFG.TRY_URL;$("#tryurl").textContent=u.replace(/^https?:\/\//,"");if(window.qrcode){const q=qrcode(0,"M");q.addData(u);q.make();$("#qr").innerHTML=q.createSvgTag({cellSize:4,margin:0,scalable:true})}else $("#qr").textContent=u}
 /* ── sequencing ── */
 let tok=0;
@@ -1169,10 +1353,10 @@ const P={
  Product:async(s,S)=>{const st=$$(".stp",s),{sc,caps}=phMode("p");
   const step=k=>{st.forEach((e,i)=>e.classList.toggle("x",i===[0,0,1,2,2][k]));sc.forEach(e=>e.classList.toggle("on",e.dataset.s.split(" ").includes(String(k))))};
   await S(900);
-  for(;;){caps.forEach(c=>c.classList.remove("snap"));for(let k=0;k<4;k++){step(k);await S(k===3?2000:1700)}
+  for(;;){caps.forEach(c=>c.classList.remove("snap"));for(let k=0;k<4;k++){step(k);await S(k===3?3800:3200)}
    /* the scan lands: both capsules snap shut at once */
    step(4);await S(250);caps.forEach(c=>add(c,"snap"));ripple($("#sph"),"140,207,255");flash();
-   await S(3200)}},
+   await S(6000)}},
  Offline:async(s,S)=>{const st=$$(".stp",s),{sc,caps}=phMode("o"),bars=$$("#sph .sbar");
   const step=k=>{st.forEach((e,i)=>e.classList.toggle("x",i===k));sc.forEach(e=>e.classList.toggle("on",e.dataset.s.split(" ").includes(String(k))))};
   await S(700);
@@ -1184,20 +1368,30 @@ const P={
    bars.forEach(b=>{add(b,"on");b.textContent="●●●"});step(4);flash();await S(3600)}},
  Ship:async(s,S)=>{shAuto=true;await S(1200);for(let k=0;;k=(k+1)%3){if(!shAuto){await S(600);continue}await shRun(k,S);await S(3600)}},
  Demo:async(s,S)=>{const v=$("#demov");v.currentTime=0;await S(700);v.play().catch(()=>{})},
- Ways:async(s,S)=>{const b=$("#brw");
-  b.classList.remove("b1","b2","b3");$(".aichat",s).classList.remove("told");
-  await S(700);add(b,"b1");await S(700);add(b,"b2");ripple($(".extic",b),"140,207,255");await S(280);add(b,"b3");
-  await S(900);
-  for(const e of $$(".usm,.aim",s)){add(e);if(e.classList.contains("lockd")){$(".aichat",s).classList.add("told");ripple(e,"140,207,255")}await S(e.classList.contains("lockd")?400:850)}},
+ Ways:async(s,S)=>{const b=$("#wbrw"),h=$("#hub"),c=$("#wchat"),pay=$(".wpay",b),coin=$(".hcoin",h),ms=$$(".wm",c),[wl,wr]=$$(".wire",h);
+  /* new chat lines push the old ones up smoothly instead of jumping */
+  const push=e=>{const v=$$(".wm.x",c),t=v.map(x=>x.getBoundingClientRect().top);add(e);if(REDUCED)return;
+   v.forEach((x,i)=>{const d=t[i]-x.getBoundingClientRect().top;if(d)x.animate([{transform:`translateY(${d}px)`},{transform:"none"}],{duration:520,easing:"cubic-bezier(.16,1,.3,1)"})})};
+  const pulse=()=>{h.classList.remove("pulse","deny");void h.offsetWidth;add(h,"pulse");ripple(coin,"140,207,255")};
+  for(;;){b.classList.remove("b1","b2","b3","b4");h.classList.remove("on","pulse","deny");wl.classList.remove("go");wr.classList.remove("go");ms.forEach(m=>m.classList.remove("x","ok"));
+   b.style.setProperty("--cx",pay.offsetLeft+pay.offsetWidth*.6+"px");b.style.setProperty("--cy",pay.offsetTop+pay.offsetHeight*.45+"px");
+   await S(1100);add(b,"b1");await S(950);add(b,"b2");ripple(pay,"140,207,255");await S(170);b.classList.remove("b2");add(b,"b3");await S(950);add(b,"b4");
+   add(wl,"go");await S(450);add(h,"on");pulse();await S(1500);
+   push(ms[0]);await S(850);push(ms[1]);await S(420);push(ms[2]);await S(1000);add(ms[2],"ok");add(wr,"go");await S(450);pulse();await S(1500);
+   push(ms[3]);await S(850);push(ms[4]);ripple(ms[4],"255,90,79");h.classList.remove("pulse");add(h,"deny");await S(500);push(ms[5]);
+   if(REDUCED)return;await S(4500)}},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
  Built:async()=>{},
- Decide:async(s,S)=>{const locked=deal.status==="locked";hold.disabled=$("#notyet").disabled=!locked;
-  $("#ststat").textContent=deal.status==="idle"?"Nothing is locked yet. Go back to the first slide and press →.":deal.status==="locking"?"Locking your 10€…":locked?"":deal.status==="released"?"Released. Final.":deal.status==="refunded"?"Refunded.":"";
-  cap.classList.toggle("shut",deal.status==="released");$("#capmid").textContent=deal.status==="released"?"✓":"10€";setP(deal.status==="released"?1:0);
-  if(!locked)$("#lockedfor").textContent=deal.status==="idle"?"Your 10€":"Deal settled";
+ Decide:async(s,S)=>{const locked=deal.status==="locked",settled=deal.status==="released"||deal.status==="refunded";hold.disabled=$("#notyet").disabled=!locked;
+  const st=$("#ststat");st.className="ststat"+(deal.status==="released"?" ok":deal.status==="refunded"?" back":"");
+  st.textContent=deal.status==="idle"?"Nothing is locked yet. Go back to the first slide and press →.":deal.status==="locking"?"Locking your 10€…":locked?"":deal.status==="released"?"Released. Final.":deal.status==="refunded"?"Refunded. The 10€ is back with you.":"";
+  capText();setP(deal.status==="released"?1:0);s.classList.toggle("settled",settled);$("#lockedp").classList.toggle("off",!locked);
+  if(!locked)$("#lockedfor").textContent=deal.status==="idle"?"Your 10€":deal.status==="locking"?"Locking your 10€…":"Deal settled";
   /* coming back after a shake or a refund: offer a fresh deal instead of a dead button */
-  $("#again").hidden=!(deal.status==="released"||deal.status==="refunded")},
- Reveal:async(s,S)=>{buildReveal();buildQR();tally();await S(1500);for(const e of $$(".e",s)){add(e);ripple(e,e.classList.contains("rf")?"201,210,222":"140,207,255");await S(750)}}
+  $("#again").hidden=!settled},
+ Reveal:async(s,S)=>{buildReveal();buildQR();tally();const ev=$("#ev"),es=$$(".e",s);await S(1400);
+  for(let i=0;i<es.length;i++){const e=es[i];add(e);ev.style.setProperty("--f",((i+1)/es.length).toFixed(3));ripple(e,e.classList.contains("rf")?"201,210,222":"140,207,255");await S(i===es.length-1?0:800)}
+  if(deal.status==="released")flash()}
 };
 
 function reset(s){$$(".x,.y,.g,.snap",s).forEach(e=>e.classList.remove("x","y","g","snap"));$$(".sc.on",s).forEach(e=>e.classList.remove("on"));$$(".told,.b1,.b2,.b3",s).forEach(e=>e.classList.remove("told","b1","b2","b3"));
@@ -1210,7 +1404,7 @@ const MARK=`<svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="c
 
 function caption(s){const v=$("#vo"),t=CAPTIONS[s.dataset.n]||"";v.classList.add("sw");clearTimeout(v._t);v._t=setTimeout(()=>{v.innerHTML=t?`${MARK}<span><b>What you're seeing.</b> ${t}</span>`:"";v.classList.remove("sw")},350)}
 function gate(i){if(cur===0&&i>0&&deal.status==="idle")start();
- if(i>DECIDE&&cur<=DECIDE&&(deal.status==="locked"||deal.status==="releasing"||deal.status==="refunding")){const h=$(".dec",slides[DECIDE]);if(cur!==DECIDE)show(DECIDE);else{h.classList.remove("nudge");void h.offsetWidth;add(h,"nudge")}return false}return true}
+ if(i>DECIDE&&cur<=DECIDE&&(deal.status==="locked"||deal.status==="releasing"||deal.status==="refunding")){const h=$("#cap");if(cur!==DECIDE)show(DECIDE);else{h.classList.remove("nudge");void h.offsetWidth;add(h,"nudge")}return false}return true}
 const PHONE_Q=matchMedia("(hover:none) and (pointer:coarse) and (max-width:900px)");
 $("#anyway").addEventListener("click",()=>root.classList.add("force"));
 $("#copylink").addEventListener("click",e=>{navigator.clipboard?.writeText(location.href.split("#")[0]).then(()=>e.target.textContent="Link copied",()=>{})});
