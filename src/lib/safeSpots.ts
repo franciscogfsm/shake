@@ -3,7 +3,7 @@ export type Spot = { name: string; kind: string; lat: number; lon: number; m: nu
 
 export const SPOT_KIND: Record<string, string> = { police: "Police station", mall: "Shopping centre", station: "Station", library: "Library", townhall: "Town hall" };
 
-const dist = (a: number, b: number, c: number, d: number) => {
+export const dist = (a: number, b: number, c: number, d: number) => {
   const r = Math.PI / 180;
   const x = (d - b) * r * Math.cos(((a + c) / 2) * r);
   return Math.round(Math.hypot(x, (c - a) * r) * 6371e3);

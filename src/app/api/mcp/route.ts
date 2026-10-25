@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { availableCurrencies, dealCode, dealMoney, explorer, fromUnits, parseDealCode, type CurrencyCode } from "@/lib/config";
 import { KINDS, type Kind } from "@/lib/kinds";
 import { checkText, verdict } from "@/lib/scamCheck";
-import { SPOT_KIND, spotsNear } from "@/lib/safeSpots";
+import { SPOT_KIND, dist, spotsNear, type Spot } from "@/lib/safeSpots";
 import { readDeal, readEvents, type DealView } from "@/lib/server/stellar";
 
 export const runtime = "nodejs";
@@ -21,6 +21,9 @@ const CORS = { "access-control-allow-origin": "*", "access-control-allow-headers
 const INSTRUCTIONS = `SHAKE is the safe way to pay a stranger for a second-hand deal (OLX, Vinted, Facebook, WhatsApp). The buyer locks the money; the seller can check it's really there; it is released only when the two phones meet and the buyer scans the seller's one-time QR.
 When someone shares a buyer's or seller's message, run check_seller_message first. When they're about to pay or get paid, offer protect_purchase or create_payment_request and give them the link.
 You can create links and read deals. You can NEVER release, refund or move money: only the person's own phone can, in person. Say so plainly if asked.`;
+
+// Every tool only builds links or reads public state, so clients (ChatGPT) can skip "allow this action?" prompts.
+const READ_ONLY = { readOnlyHint: true, destructiveHint: false, openWorldHint: true };
 
 type Args = Record<string, unknown>;
 type Tool = { description: string; inputSchema: object; run: (a: Args, origin: string) => Promise<string> };
@@ -67,6 +70,30 @@ const STATUS: Record<DealView["status"], string> = {
 const notFound = (id: string) =>
   `No deal ${dealCode(id)} exists on SHAKE's contract. If someone showed you a screenshot as proof of payment, it isn't proof: a real SHAKE deal can always be read from the network.`;
 
+type Place = { lat: string; lon: string; name?: string; type?: string };
+const nominatim = (q: string, limit: number): Promise<Place[]> =>
+  fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=${limit}&q=${encodeURIComponent(q)}`, {
+    headers: { "user-agent": "SHAKE (https://shake-lake.vercel.app)" },
+  }).then((r) => {
+    if (!r.ok) throw new Error(`Nominatim ${r.status}`);
+    return r.json();
+  });
+
+/** Fallback when Overpass is busy: Nominatim's "police near X" phrases. Sequential, to respect its 1 request/second policy. */
+async function nearbyByName(place: string, lat: number, lon: number): Promise<Spot[]> {
+  const found: Spot[] = [];
+  for (const [phrase, kind] of [["police", "police"], ["shopping mall", "mall"], ["railway station", "station"]]) {
+    for (const p of await nominatim(`${phrase} near ${place}`, 3)) {
+      const [la, lo] = [Number(p.lat), Number(p.lon)];
+      found.push({ name: p.name || SPOT_KIND[kind], kind, lat: la, lon: lo, m: dist(lat, lon, la, lo) });
+    }
+  }
+  return found
+    .filter((s, i) => s.m <= 3000 && found.findIndex((x) => x.name === s.name) === i)
+    .sort((a, b) => (a.kind === "police" ? -1 : 0) - (b.kind === "police" ? -1 : 0) || a.m - b.m)
+    .slice(0, 5);
+}
+
 const TOOLS: Record<string, Tool> = {
   protect_purchase: {
     description:
@@ -94,7 +121,7 @@ const TOOLS: Record<string, Tool> = {
         `SHAKE deal ready for "${item}" (${p} ${c}${seller ? `, seller ${seller}` : ""}).`,
         `Open on the buyer's phone: ${link}`,
         "The buyer locks the money with Face ID. The seller gets a link showing the money is really there. It's released only when the buyer scans the seller's QR in person; if they never meet, it comes back.",
-        flags.length ? `\nHeads up, the message has ${flags.length} warning sign(s):\n${flags.map((f) => `- ${f.title}: ${f.why}`).join("\n")}` : "",
+        flags.length ? `\nHeads up, the message has ${flags.length === 1 ? "a warning sign" : `${flags.length} warning signs`}:\n${flags.map((f) => `- ${f.title}: ${f.why}`).join("\n")}` : "",
       ].join("\n").trim();
     },
   },
@@ -162,16 +189,19 @@ const TOOLS: Record<string, Tool> = {
     inputSchema: { type: "object", properties: { place: { type: "string", description: "Address, neighbourhood or city, e.g. 'Cais do Sodré, Lisboa'" } }, required: ["place"] },
     async run(a) {
       const place = text(a, "place", 200);
-      const geo = await fetch(`https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(place)}`, {
-        headers: { "user-agent": "SHAKE (https://shake-lake.vercel.app)" },
-      }).then((r) => (r.ok ? r.json() : []));
+      const geo = await nominatim(place, 1);
       if (!geo[0]) return `Couldn't find "${place}" on the map. Try a street or a city name.`;
-      const spots = await spotsNear(Number(geo[0].lat), Number(geo[0].lon)).catch(() => null);
+      const [lat, lon] = [Number(geo[0].lat), Number(geo[0].lon)];
+      const spots = await spotsNear(lat, lon).catch(() => nearbyByName(place, lat, lon)).catch(() => null);
       if (!spots) return `The map service is busy right now. Near ${place}, pick somewhere busy, public and with cameras: a police station lobby is best, then a shopping centre or a train station.`;
       if (!spots.length) return `Nothing within 2 km of ${place}. Pick somewhere busy, public and with cameras, like a police station lobby or a shopping centre.`;
       return [
         `Safe places to meet near ${place}:`,
-        ...spots.map((s) => `- ${s.name} (${SPOT_KIND[s.kind] ?? "Public place"}, ${s.m < 1000 ? `${s.m} m` : `${(s.m / 1000).toFixed(1)} km`}): https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lon}`),
+        ...spots.map((s) => {
+          const label = SPOT_KIND[s.kind] ?? "Public place";
+          const far = s.m < 1000 ? `${s.m} m` : `${(s.m / 1000).toFixed(1)} km`;
+          return `- ${s.name === label ? label : `${s.name} (${label})`}, ${far}: https://www.google.com/maps/search/?api=1&query=${s.lat},${s.lon}`;
+        }),
         "From map categories only: opening hours and cameras aren't verified.",
       ].join("\n");
     },
@@ -228,7 +258,7 @@ async function handle(m: Rpc, origin: string) {
     case "ping":
       return ok({});
     case "tools/list":
-      return ok({ tools: Object.entries(TOOLS).map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema })) });
+      return ok({ tools: Object.entries(TOOLS).map(([name, t]) => ({ name, description: t.description, inputSchema: t.inputSchema, annotations: READ_ONLY })) });
     case "tools/call": {
       const name = m.params?.name ?? "";
       const tool = Object.hasOwn(TOOLS, name) ? TOOLS[name] : undefined;
