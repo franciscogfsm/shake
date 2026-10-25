@@ -88,6 +88,24 @@ The biggest risk: if the UX is average, SHAKE looks like "another escrow" and lo
 - Soroban contract in Rust (`contracts/escrow`), using `@stellar/stellar-sdk`.
 - `qrcode` to generate QR codes and `@zxing/browser` to scan them.
 
+## Team split: two people, two Claudes, working in parallel
+Ownership is by folder, so the two Claudes never edit the same files:
+| Owner | Owns | Does |
+|---|---|---|
+| **PITCH** (the dev with `pitch.html`) | `src/app/page.tsx`, `src/components/pitch/**` (new), `public/pitch/**` (new) | The pitch deck at `/`: slides, story, the reveal. Starts from `pitch.html`, then ports it into the Next.js app following `docs/pitch-integration.md`. |
+| **CORE** (the other dev) | `contracts/**`, `src/app/api/**`, `src/lib/**`, `src/app/deal/**`, `src/app/scan/**`, `src/app/r/**`, `src/app/try/**`, `src/app/anchor/**`, `extension/**`, `scripts/**` | The contract, wallet, sponsorship, deal flow, receipts, anchor and extension. |
+| **Shared** (change only after telling the other person) | `src/components/*.tsx` (the design-system components), `src/app/globals.css`, `src/app/layout.tsx`, `package.json`, `CLAUDE.md`, `README.md`, `docs/design-system.md` | Tokens, glass and the core components. |
+
+**The contract between the two halves already exists:** the pitch talks to Stellar only through `usePitchSession()` in `src/lib/client/pitchSession.ts` (`start`, `shake`, `notYet`, `reset`, plus the `session` state). See `docs/pitch-integration.md` for the API, the components to reuse (`HoldToShake`, `Mark`, `ShakeBurst`, `Seal`, `LiveReceipt`, `Ticker`) and the sourced facts. PITCH must not call Stellar directly. If the pitch needs something new from the product, CORE adds it to that hook.
+
+**Git workflow:**
+- Each person works on their own branch (`pitch/*`, `core/*`).
+- Small commits, pushed often.
+- `git pull --rebase origin main` before starting work and before every merge.
+- Merge to `main` through short PRs (or a fast-forward merge) several times a day, so the commit history shows steady progress.
+- Never force-push `main`.
+- If you need to change a Shared file, keep the change small and mention it in the commit message.
+
 ## Working rules
 - On Windows the Stellar CLI is at `C:\Program Files (x86)\Stellar CLI\stellar.exe`. Playwright 1.48 with Chromium is installed in `%TEMP%\shotpw` for screenshots.
 - Small working increments. Commit often with clear messages; the commit history is the evidence of hackathon progress.
