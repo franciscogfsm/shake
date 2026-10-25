@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="400" viewBox="0 0 1280 400" role="img" aria-labelledby="title desc">
+  <title id="title">SHAKE</title>
+  <desc id="desc">Pay a stranger. Shake on it. A graphite and glacier-blue banner with two halves of a coin meeting.</desc>
+  <defs>
+    <radialGradient id="glow">
+      <stop stop-color="#8fd3ff" stop-opacity=".18"/>
+      <stop offset="1" stop-color="#8fd3ff" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="coin" x2="1" y2="1">
+      <stop stop-color="#d8efff"/>
+      <stop offset="1" stop-color="#8fd3ff"/>
+    </linearGradient>
+  </defs>
+  <rect width="1280" height="400" rx="24" fill="#0d0f12"/>
+  <ellipse cx="1040" cy="200" rx="330" ry="260" fill="url(#glow)"/>
+  <path d="M64 332H1216" stroke="#ffffff" stroke-opacity=".1"/>
+  <text x="68" y="72" fill="#8fd3ff" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="4">LOCK. MEET. SHAKE.</text>
+  <text x="64" y="176" fill="#f2f4f7" font-family="Arial, Helvetica, sans-serif" font-size="94" font-weight="700" letter-spacing="-5">SHAKE</text>
+  <text x="68" y="236" fill="#f2f4f7" font-family="Arial, Helvetica, sans-serif" font-size="32" letter-spacing="-1">Pay a stranger. Shake on it.</text>
+  <text x="68" y="282" fill="#9aa3af" font-family="Arial, Helvetica, sans-serif" font-size="18">The payment that waits for the handover.</text>
+  <circle cx="1040" cy="190" r="115" fill="none" stroke="#8fd3ff" stroke-opacity=".12"/>
+  <circle cx="1040" cy="190" r="144" fill="none" stroke="#8fd3ff" stroke-opacity=".06"/>
+  <g fill="url(#coin)">
+    <path d="M1028 110 A80 80 0 0 0 1028 270 V222 H1042 V198 H1028 V174 H1014 V150 H1028 Z"/>
+    <path d="M1052 110 A80 80 0 0 1 1052 270 V222 H1066 V198 H1052 V174 H1038 V150 H1052 Z"/>
+  </g>
+  <text x="68" y="367" fill="#9aa3af" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="1">HACKMERIDIAN 2026</text>
+  <text x="1212" y="367" text-anchor="end" fill="#8fd3ff" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="1">BUILT ON STELLAR TESTNET</text>
+</svg>

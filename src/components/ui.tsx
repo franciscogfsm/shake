@@ -5,10 +5,10 @@ import { useEffect, useState } from "react";
 import { Wordmark } from "./Mark";
 import { NumberTicker } from "./Ticker";
 
-/** Phone-first page shell: safe areas, centred column, top bar with the wordmark. */
-export function Screen({ children, back, right, wide }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean }) {
+/** Phone-first page shell: safe areas, centred column, top bar with the wordmark. `fit` locks the desktop page to one screen. */
+export function Screen({ children, back, right, wide, fit }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean; fit?: boolean }) {
   return (
-    <main className={`pt-safe pb-safe mx-auto flex min-h-dvh w-full max-w-[480px] flex-col px-5 ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
+    <main className={`pt-safe pb-safe mx-auto flex w-full max-w-[480px] flex-col px-5 ${fit ? "min-h-dvh lg:h-dvh lg:overflow-hidden" : "min-h-dvh"} ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
       <header className="flex h-12 items-center justify-between">
         {back ? (
           <Link href={back} className="-ml-2 grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink" aria-label="Back">

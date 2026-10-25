@@ -23,6 +23,7 @@ export default function Home() {
   return (
     <Screen
       wide
+      fit
       right={
         <div className="flex items-center gap-2">
           <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
@@ -33,26 +34,27 @@ export default function Home() {
         </div>
       }
     >
-      <div className="flex flex-1 flex-col lg:grid lg:min-h-[calc(100dvh-14rem)] lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-20">
-      <div className={`flex flex-1 flex-col ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[440px]"}`}>
+      <div className="flex min-h-0 flex-1 flex-col">
+      <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(300px,380px)] lg:items-center lg:gap-14">
+      <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
           {phase === "idle" && <Hero onStart={start} />}
           {phase === "working" && <Locking step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && (
-            <Stagger className="flex flex-1 flex-col items-center gap-8 pt-6 text-center">
+            <Stagger className="flex flex-col items-center gap-5 text-center lg:gap-6">
               <Item>
                 <div className="eyebrow">You&apos;re at the meetup</div>
-                <h1 className="display mt-3 text-[36px]">It checks out. Shake on it.</h1>
-                <p className="mx-auto mt-3 max-w-[32ch] text-ink-2">Your €5 is locked and the seller can see it. Hold to pay them. Changed your mind? You get it back.</p>
+                <h1 className="display mt-2 text-[34px] leading-[1.02] lg:text-[52px]">It checks out.<br /><span className="glacier-text">Shake on it.</span></h1>
+                <p className="mx-auto mt-3 max-w-[28ch] text-[15px] leading-snug text-ink-2">€5 is locked, and the seller can see it. Hold to pay them.</p>
               </Item>
-              <Item className="flex flex-1 items-center">
-                <HoldToShake onShake={shake} hint="Money moves only now" />
+              <Item>
+                <HoldToShake onShake={shake} hint="Money moves only now" size={188} />
               </Item>
-              <Item className="w-full">
+              <Item>
                 <Button
                   variant="ghost"
-                  full
+                  className="!h-11"
                   loading={refunding}
                   onClick={async () => {
                     setRefunding(true);
@@ -71,19 +73,20 @@ export default function Home() {
       <LivePanel session={session} />
       </div>
       <Composed />
+      </div>
     </Screen>
   );
 }
 
 function Hero({ onStart }: { onStart: () => void }) {
   return (
-    <Stagger className="flex min-h-[calc(100dvh-3rem-env(safe-area-inset-top))] flex-col justify-center gap-6 py-4 text-center lg:min-h-0 lg:gap-8 lg:py-10 lg:text-left">
+    <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-6 lg:py-0 lg:text-left">
       <Item className="flex justify-center lg:hidden">
         <Mark size={76} assemble />
       </Item>
       <Item>
         <div className="eyebrow">For deals on OLX, Vinted, WhatsApp</div>
-        <h1 className="display mt-3 text-[40px] leading-[1.02] lg:text-[88px] lg:leading-[0.95]">Pay a stranger.<br /><span className="lg:glacier-text">Only when you meet.</span></h1>
+        <h1 className="display mt-2 text-[36px] leading-[1.02] lg:text-[68px] lg:leading-[0.96]">Pay a stranger.<br /><span className="lg:glacier-text">Only when you meet.</span></h1>
         <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">The money waits, locked, where the seller can see it. It moves only when your two phones are face to face.</p>
       </Item>
       <Item className="flex flex-col gap-3 lg:max-w-[400px]">
@@ -112,7 +115,7 @@ function Hero({ onStart }: { onStart: () => void }) {
 
 function Locking({ step, error }: { step: string; error?: string }) {
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-10">
+    <div className="flex flex-col items-center justify-center gap-6 py-4">
       <Mark size={96} state="rest" />
       <div className="text-center">
         <div className="eyebrow">Locking for the seller</div>
@@ -136,7 +139,7 @@ function Locking({ step, error }: { step: string; error?: string }) {
 function Reveal({ session, onAgain }: { session: ReturnType<typeof usePitchSession>["session"]; onAgain: () => void }) {
   const released = session.outcome === "released";
   return (
-    <Stagger className="flex flex-1 flex-col gap-7 pt-6">
+    <Stagger className="flex flex-col gap-5 py-4">
       <Item className="flex justify-center">
         {released ? <Seal /> : <Seal label="Refunded" sub="Back to you · on Stellar" tone="mute" />}
       </Item>
@@ -170,43 +173,34 @@ function Reveal({ session, onAgain }: { session: ReturnType<typeof usePitchSessi
 function LivePanel({ session }: { session: PitchSession }) {
   const released = session.outcome === "released";
   const refunded = session.outcome === "refunded";
+  const next = !session.wallet ? "w" : !session.locked ? "l" : !session.joined ? "j" : !session.settled ? "s" : null;
   return (
-    <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.25 }}>
+    <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.2 }}>
     <div className="halo" aria-hidden />
-    <aside className="glass p-8">
-      <div className="flex items-center gap-4">
-        <Mark size={56} state={released ? "shut" : session.locked ? "rest" : "open"} />
-        <div>
+    <aside className="glass px-6 py-5">
+      <div className="flex items-center gap-3">
+        <Mark size={40} state={released ? "shut" : session.locked ? "rest" : "open"} />
+        <div className="min-w-0">
           <div className="eyebrow">Under the hood · live</div>
-          <div className="font-display text-xl font-medium">{session.status === "idle" ? "Press Try it now. Watch it happen." : released ? "Paid. Proof below." : refunded ? "Back to you. Proof below." : "Happening right now"}</div>
+          <div className="truncate font-display text-[17px] font-medium">{session.status === "idle" ? "Watch it happen" : released ? "Paid. Proof below." : refunded ? "Back to you." : "Happening right now"}</div>
         </div>
       </div>
-      <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/10 text-center">
-        {[
-          ["Settles in", "~5s"],
-          ["Your fees", "€0"],
-          ["Sign-up", "None"],
-        ].map(([k, v]) => (
-          <div key={k} className="bg-black/30 px-2 py-3">
-            <div className="font-display text-lg font-medium text-safe">{v}</div>
-            <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">{k}</div>
-          </div>
-        ))}
-      </div>
-      <div className="mt-7">
+      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">~5 seconds · €0 fees · no sign-up</p>
+      <div className="mt-4">
         <LiveReceipt
+          dense
           stagger={0.08}
           items={[
-            { key: "w", title: "Wallet made, fees paid for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet },
-            { key: "l", title: "€5 locked in the deal contract", at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked },
-            { key: "j", title: "Seller sees real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined },
-            { key: "s", title: refunded ? "Refunded to you" : "Released by the handshake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, tone: refunded ? "mute" : "safe" },
+            { key: "w", title: "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
+            { key: "l", title: "€5 locked", at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
+            { key: "j", title: "Seller sees real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
+            { key: "s", title: refunded ? "Refunded to you" : "Released by the handshake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },
           ]}
         />
       </div>
-      <div className="mt-7 flex items-center justify-between gap-3 border-t border-white/10 pt-5">
-        <p className="text-sm text-mute">Every step is a real transaction.<br />Click one to check it yourself.</p>
-        <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-white/5 px-3 py-1.5 font-mono text-[11px] text-ink-2 hover:text-safe">
+      <div className="mt-4 flex items-center justify-between gap-3 border-t border-white/10 pt-3">
+        <p className="text-[13px] text-mute">Tap a proof to open it.</p>
+        <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="shrink-0 font-mono text-[11px] text-ink-2 hover:text-safe">
           {DEAL_CONTRACT_ID.slice(0, 4)}…{DEAL_CONTRACT_ID.slice(-4)} ↗
         </a>
       </div>
@@ -215,38 +209,35 @@ function LivePanel({ session }: { session: PitchSession }) {
   );
 }
 
-const PARTS: { tag: string; title: string; body: string; href?: string }[] = [
-  { tag: "Soroban", title: "Hash-lock deal", body: "Pays only with the secret inside the seller's one-time QR.", href: explorer.contract(DEAL_CONTRACT_ID) },
-  { tag: "OpenZeppelin", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
-  { tag: "OpenZeppelin", title: "Zero fees for you", body: "Channels pays every network fee. Nobody needs XLM.", href: "https://docs.openzeppelin.com/relayer" },
-  { tag: "Stellar assets", title: "Stable money", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
-  { tag: "SEP-10 · SEP-24", title: "Straight to the bank", body: "The seller cashes out to an IBAN through an anchor.", href: "/.well-known/stellar.toml" },
-  { tag: "Live preview", title: "Proof that can't lie", body: "Shared links show the locked money, read from the chain.", href: "/try" },
+const PARTS: { chip: string; title: string; body: string; href?: string }[] = [
+  { chip: "Soroban", title: "Hash-lock", body: "Pays only with the secret inside the seller's one-time QR.", href: explorer.contract(DEAL_CONTRACT_ID) },
+  { chip: "Passkey", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
+  { chip: "Channels", title: "Zero fees", body: "Channels pays every network fee. Nobody needs XLM.", href: "https://docs.openzeppelin.com/relayer" },
+  { chip: "tEUR", title: "Stable money", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
+  { chip: "SEP-24", title: "To the bank", body: "The seller cashes out to an IBAN through an anchor.", href: "/.well-known/stellar.toml" },
+  { chip: "Preview", title: "Proof", body: "Shared links show the locked money, read from the chain.", href: "/try" },
 ];
 
-/** What SHAKE is composed of, each piece one click from its proof. */
+/** One quiet row. Each piece still opens its proof. */
 function Composed() {
   return (
-    <section className="pb-8 pt-10 lg:pb-14 lg:pt-12">
-      <div className="mb-5 flex items-baseline justify-between gap-4 lg:mb-7 lg:items-end">
-        <div>
-          <h2 className="eyebrow">Composed on Stellar</h2>
-          <p className="display mt-2 hidden text-[34px] lg:block">Six Stellar pieces. <span className="text-mute">One handshake.</span></p>
-        </div>
-        <TestnetNote />
-      </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6 lg:gap-4">
-        {PARTS.map((p, i) => (
-          <a key={p.title} href={p.href} target={p.href?.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="glass tile-lit group flex flex-col gap-1.5 p-4 lg:min-h-[170px] lg:p-5">
-            <span className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-safe">
-              {p.tag}
-              <span className="hidden text-mute transition-colors group-hover:text-safe lg:inline">{String(i + 1).padStart(2, "0")} ↗</span>
-            </span>
-            <span className="font-display text-[15px] font-medium lg:mt-auto lg:text-lg">{p.title}</span>
-            <span className="text-[12px] leading-snug text-ink-2 lg:text-[13px]">{p.body}</span>
+    <footer className="mt-auto flex shrink-0 items-center gap-4 pt-3">
+      <h2 className="eyebrow hidden shrink-0 lg:block">Composed on Stellar</h2>
+      <nav aria-label="Composed on Stellar" className="-mx-5 flex min-w-0 flex-1 gap-1.5 overflow-x-auto px-5 [scrollbar-width:none] lg:mx-0 lg:px-0 [&::-webkit-scrollbar]:hidden">
+        {PARTS.map((p) => (
+          <a
+            key={p.chip}
+            href={p.href}
+            title={`${p.title}. ${p.body}`}
+            target={p.href?.startsWith("http") ? "_blank" : undefined}
+            rel="noreferrer"
+            className="shrink-0 rounded-full px-2.5 py-1 font-mono text-[10px] uppercase tracking-[0.12em] text-mute hover:bg-white/5 hover:text-ink"
+          >
+            {p.chip}
           </a>
         ))}
-      </div>
-    </section>
+      </nav>
+      <TestnetNote className="hidden shrink-0 lg:block" />
+    </footer>
   );
 }
