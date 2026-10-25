@@ -38,6 +38,7 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
   const running = useRef(false);
   const settlingRef = useRef(false);
   const [settling, setSettling] = useState(false);
+  const [availability, setAvailability] = useState<"checking" | "available" | "missing" | "error">("checking");
   const preferred = useRef(preferredCurrency);
   preferred.current = preferredCurrency;
 
@@ -55,11 +56,24 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
   // Always use the chain to decide whether the demo can still be settled.
   const reconcile = useCallback(async () => {
     const id = ref.current.dealId;
-    if (!id) throw new ApiError("Start a demo before shaking.");
-    const res = await fetch(`/api/deal/${id}`, { cache: "no-store" });
-    const json = await res.json();
-    if (!res.ok || !json.deal) throw new ApiError(json.error ?? "We couldn't load this deal. Try again.");
+    if (!id) throw new ApiError("Start a payment before shaking.");
+    let json;
+    try {
+      const res = await fetch(`/api/deal/${id}`, { cache: "no-store" });
+      json = await res.json();
+      if (!res.ok || !json.deal) {
+        setAvailability(res.status === 404 ? "missing" : "error");
+        throw new ApiError(res.status === 404
+          ? "This saved deal is no longer available on the current test network."
+          : json.error ?? "We couldn't load this deal. Try again.");
+      }
+    } catch (e) {
+      // Preserve the more specific missing state for a confirmed 404.
+      setAvailability((current) => current === "missing" ? current : "error");
+      throw e;
+    }
     const deal = json.deal as Deal;
+    setAvailability("available");
     if (deal.token) update({ currency: currencyOfToken(deal.token).code });
     if (deal.status === "Released" || deal.status === "Refunded") {
       const outcome = deal.status === "Released" ? "released" : "refunded";
@@ -71,6 +85,13 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
     }
     return deal;
   }, [update]);
+
+  const refresh = useCallback(async () => {
+    setAvailability("checking");
+    update({ error: undefined });
+    try { await reconcile(); }
+    catch (e) { update({ error: e instanceof Error ? e.message : "Couldn't check the payment. Try again." }); }
+  }, [reconcile, update]);
 
   /** Idempotent: resumes from whatever step a previous attempt (or a refresh) reached. */
   const start = useCallback(async () => {
@@ -106,7 +127,8 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
           const res = await pitchApi.accept(ref.current.dealId!);
           update({ joined: { at: now(), hash: res.hash ?? null } });
         }
-        update({ status: "ready" });
+        await reconcile();
+        if (ref.current.status !== "done") update({ status: "ready" });
         break;
       } catch (e) {
         const msg = e instanceof ApiError ? e.message : "The network is slow.";
@@ -116,7 +138,7 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
       }
     }
     running.current = false;
-  }, [update]);
+  }, [update, reconcile]);
 
   const settle = useCallback(async (outcome: "released" | "refunded") => {
     if (settlingRef.current) return;
@@ -129,7 +151,7 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
       let hash: string | null;
       if (outcome === "released") {
         const kp = getKeypair();
-        if (deal.buyer !== kp.publicKey()) throw new ApiError("Open this demo in the browser where you started it.");
+        if (deal.buyer !== kp.publicKey()) throw new ApiError("Open this payment in the browser where you started it.");
         const { secret } = await pitchApi.secret(deal.id);
         hash = (await callDeal(kp, "release", { dealId: deal.id, secret })).hash;
       } else {
@@ -153,6 +175,8 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
   const notYet = useCallback(() => settle("refunded"), [settle]);
 
   const reset = useCallback(() => {
+    if (settlingRef.current || running.current) return;
+    setAvailability("checking");
     ref.current = { status: "idle" };
     setS(ref.current);
     try {
@@ -165,8 +189,8 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
     ref.current = load();
     setS(ref.current);
     if (ref.current.status === "working" || ref.current.status === "failed") start();
-    if (ref.current.status === "ready") void reconcile().catch(() => {});
-  }, [start, reconcile]);
+    if (ref.current.status === "ready") void refresh();
+  }, [start, refresh]);
 
-  return { session: s, start, shake, notYet, reset, settling };
+  return { session: s, start, shake, notYet, reset, settling, availability, refresh };
 }

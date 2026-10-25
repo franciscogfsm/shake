@@ -22,7 +22,7 @@ function session({ statuses = ["Accepted"], submit = async () => ({ hash: "relea
     useState(initial) {
       const i = cursor++;
       if (!(i in slots)) slots[i] = initial;
-      return [slots[i], (value) => { slots[i] = value; }];
+      return [slots[i], (value) => { slots[i] = typeof value === "function" ? value(slots[i]) : value; }];
     },
     useRef(initial) {
       const i = cursor++;
@@ -37,6 +37,8 @@ function session({ statuses = ["Accepted"], submit = async () => ({ hash: "relea
     localStorage: { getItem: (key) => storage.get(key), setItem: (key, value) => storage.set(key, value), removeItem: (key) => storage.delete(key) },
     fetch: async () => {
       const status = statuses[Math.min(reads++, statuses.length - 1)];
+      if (status === "network-error") throw new Error("Network unavailable");
+      if (status === "missing") return { ok: false, status: 404, json: async () => ({ deal: null, events: [] }) };
       return { ok: true, json: async () => ({
         deal: { id: "123", status, buyer: "buyer" },
         events: [{ type: status.toLowerCase(), at: "chain-time", txHash: "chain-tx" }],
@@ -92,6 +94,27 @@ test("a deal closed in another tab is not submitted again", async () => {
   await h.render().shake();
   assert.equal(h.render().session.outcome, "refunded");
   assert.equal(h.calls.length, 0);
+});
+
+test("a missing saved deal disables settlement until it can be verified", async () => {
+  const h = session({ statuses: ["missing"] });
+  assert.equal(h.render().availability, "checking");
+  await flush();
+  assert.equal(h.render().availability, "missing");
+  await assert.rejects(h.render().notYet(), /no longer available/);
+  assert.deepEqual(h.calls, []);
+});
+
+test("a temporary read failure can be retried without losing the saved payment", async () => {
+  const h = session({ statuses: ["network-error", "Accepted"] });
+  await flush();
+  assert.equal(h.render().availability, "error");
+  assert.equal(h.render().session.dealId, "123");
+  await h.render().refresh();
+  assert.equal(h.render().availability, "available");
+  await h.render().notYet();
+  assert.equal(h.render().session.outcome, "refunded");
+  assert.deepEqual(h.calls, ["refund"]);
 });
 
 test("a lost submission response recovers the confirmed release", async () => {

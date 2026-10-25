@@ -1,7 +1,7 @@
 import "server-only";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { DEAL_CONTRACT_ID } from "@/lib/config";
-import { server } from "./stellar";
+import { readDeal, server } from "./stellar";
 import { currencyTotals } from "@/lib/totals";
 
 /**
@@ -93,6 +93,9 @@ export async function reputation(address: string) {
     if (e.type === "locked") buyerOf.set(e.dealId, e.who);
     if (e.type === "accepted") sellerOf.set(e.dealId, e.who);
   }
+  // a deposit handed back on time is a kept promise, not a walk-away
+  const refundedIds = ev.filter((e) => e.type === "refunded" && sellerOf.has(e.dealId) && (sellerOf.get(e.dealId) === address || buyerOf.get(e.dealId) === address)).map((e) => e.dealId);
+  const holds = new Set((await Promise.all(refundedIds.map((id) => readDeal(id).catch(() => null)))).filter((d) => d?.mode === "Hold").map((d) => d!.id));
   let shaken = 0;
   let cancelled = 0;
   let opened = 0;
@@ -100,9 +103,9 @@ export async function reputation(address: string) {
     const involved = buyerOf.get(e.dealId) === address || sellerOf.get(e.dealId) === address;
     if (!involved) continue;
     if (e.type === "locked") opened++;
-    if (e.type === "released") shaken++;
+    if (e.type === "released" || e.type === "resolved" || (e.type === "refunded" && holds.has(e.dealId))) shaken++;
     // a cancellation counts against whoever walked away: the seller if they had joined, otherwise the buyer
-    if (e.type === "refunded") {
+    if (e.type === "refunded" && !holds.has(e.dealId)) {
       const blame = sellerOf.get(e.dealId) ?? buyerOf.get(e.dealId);
       if (blame === address) cancelled++;
     }

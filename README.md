@@ -10,7 +10,7 @@ Implementation reviewed against the local source on **25 October 2026**. Hosted 
 
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
-[Live demo](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
+[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
 
@@ -24,7 +24,7 @@ You find a second-hand phone, agree on a price, and arrange to meet. Then comes 
 
 SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketplace, WhatsApp, or any other channel. A shareable link connects the conversation to the payment; no marketplace integration is required. Buyers can meet in person or choose shipping, with a QR inside the package and a dispute window after delivery. Before committing, either person can check suspicious messages, inspect public deal activity, and find nearby public meetup places.
 
-> **Testnet MVP.** All balances and transactions use Stellar Testnet assets with no monetary value. The cash-out flow makes a real testnet transfer; its bank payout is explicitly simulated.
+> **Live on Stellar Testnet · Test mode.** Wallet creation, escrow, settlement, refunds, and transaction proofs run against the live test network. Test assets have no cash value. The bank withdrawal integration submits a real testnet transfer to the anchor; its final bank payout runs in a sandbox and does not credit a bank account.
 
 ## How it works
 
@@ -42,9 +42,9 @@ For meetup deals, before a seller joins, the buyer can cancel. After acceptance,
 
 ### One device: the pitch is the product
 
-Open the [live SHAKE demo](https://shake-lake.vercel.app/).
+Open the [live SHAKE application](https://shake-lake.vercel.app/).
 
-1. Choose your payment currency in the region picker, then select **Try it now** to lock 5 units. SHAKE creates a browser wallet, funds it with that test asset, locks the funds, and joins using the team's seller account. Saved demos retain their original currency.
+1. Choose your payment currency in the region picker, then select **Try it now** to lock 5 units. SHAKE creates a browser wallet, funds it with that test asset, locks the funds, and joins using the team's seller account. Saved payment sessions retain their original currency.
 2. Watch the real setup steps complete. No wallet extension or manual XLM funding is needed.
 3. **Hold to shake** to release the test funds, or choose **Not yet, give it back** for a seller-authorized refund.
 4. Inspect the reveal: wallet creation, lock, acceptance, and settlement appear with transaction evidence.
@@ -53,7 +53,7 @@ The introduction is a working transaction flow. The judge participates in the pr
 
 ### Two devices: complete a second-hand deal
 
-1. **Buyer:** open [the two-device demo](https://shake-lake.vercel.app/try), create a deal such as “Nintendo Switch” for 12 test euros, select **We'll meet**, and share its link. New deals accept 1–2,000 units with up to two decimal places. Compatible browsers offer passkey authorization; **Lock without Face ID** uses the browser keypair.
+1. **Buyer:** open [the two-device experience](https://shake-lake.vercel.app/try), create a deal such as “Nintendo Switch” for 12 test euros, select **We'll meet**, and share its link. New deals accept 1–2,000 units with up to two decimal places. Compatible browsers offer passkey authorization; **Lock without Face ID** uses the browser keypair.
 2. **Seller:** open the link on another phone or in a separate browser profile. Check the funds, then choose **I'm meeting them, show my QR**. The seller can also enter the short deal code under **I'm selling** on `/try`.
 3. **Seller:** show the generated QR and its readable handshake code.
 4. **Buyer:** open the scanner from the deal, scan the QR, and confirm release. If camera access is unavailable, type the code.
@@ -101,18 +101,18 @@ Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet
 
 ### Accounts, currencies, and cash-out
 
-- **Instant browser wallets:** a local keypair supports the no-sign-up demo, with account reserves and trustlines sponsored by the application.
+- **Instant browser wallets:** a local keypair supports the no-sign-up experience, with account reserves and trustlines sponsored by the application.
 - **Optional passkey accounts:** compatible browsers can create an OpenZeppelin smart account through `smart-account-kit` and authorize with a passkey, including Face ID or Touch ID where supported.
 - **Sponsored fees:** OpenZeppelin Channels handles Soroban submissions, with an application-funded channel pool as a fallback. Users do not need to obtain XLM.
 - **Worldwide region preferences:** 249 countries and territories, browser locale detection, and separate region, number-format, and payment-currency controls. Preferences are remembered across pages and tabs.
-- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through demo funding, escrow, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset. These are independently issued test assets; no foreign-exchange conversion is implemented.
+- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through testnet funding, escrow, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset. These are independently issued test assets; no foreign-exchange conversion is implemented.
 - **Shake to Bank:** built-in SEP-1 discovery, SEP-10 authentication, and SEP-24 interactive withdrawals, including IBAN checksum validation, a signed testnet payment, and a simulated bank payout. The current cash-out client uses the seller's browser keypair. Worldwide region selection does not imply local fiat or bank payout coverage; real payouts need an anchor supporting the destination and currency.
 
 ### Product experience
 
 - **Graphite Glacier design:** graphite surfaces, glacier-blue payment states, Satoshi typography, frosted glass, and a split-coin identity that closes at settlement.
 - **Deliberate confirmation:** hold-to-shake and optional motion-triggered confirmation after code verification, with haptics where available.
-- **Live updates and recovery:** polling aligns both devices with contract state; manual code entry provides a camera fallback. Seller QR codes survive refresh on the same browser. The saved one-device demo reconciles with the chain before settlement, including after a lost response, and retains its original currency.
+- **Live updates and recovery:** polling aligns both devices with contract state; manual code entry provides a camera fallback. Seller QR codes survive refresh on the same browser. The saved one-device payment session reconciles with the chain before settlement, including after a lost response, and retains its original currency.
 - **Sharing and proof:** native sharing with clipboard fallback, readable deal codes, item-aware social cards for deal/receipt links, and proof links that briefly wait for explorer indexing.
 - **Mobile presentation:** safe-area layouts, reduced-motion support in signature animations, an app manifest, and generated app icons.
 - **Public activity APIs:** recent contract events power payment statistics and address activity summaries over a bounded three-day lookback. These are activity signals, not identity verification or permanent reputation records.
@@ -137,7 +137,7 @@ The checker returns **danger**, **warn**, or **clear**, with an explanation for 
 
 **Data handling:** pasted message text stays in the browser. Choosing **Screenshot** sends the selected image to `/api/check`, which forwards it to Anthropic when `ANTHROPIC_API_KEY` is configured. The screenshot picker accepts PNG, JPEG, and WebP; the server also accepts GIF and rejects base64 payloads above 7,000,000 characters. No screenshot storage is implemented in the route. AI output is advisory, and failed or disabled analysis falls back to guidance and local text checking. Nearby-place lookup separately sends coordinates to Overpass only after requesting the user's location.
 
-**Payment protection:** the seller checks the contract's amount and status; the current QR flow requires buyer authorization and the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop QR release and the timed claim. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself. New contract-only approval/deposit methods are described below separately from the current browser flow.
+**Payment protection:** the seller checks the contract's amount and status; the current QR flow requires buyer authorization and the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop QR release and the timed claim. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself. Deposit and approval methods are described below.
 
 Public track records describe recent address activity, not a verified person's identity. Cancellation attribution follows the implementation: the accepted seller, or the buyer if nobody accepted, is counted as having walked away even when a refund was submitted after expiry. Meetup suggestions come from map categories; the app does not verify opening hours, cameras, or the safety of a particular location.
 
@@ -147,9 +147,9 @@ Meetup payments, shipping/disputes, local message checks, public activity, listi
 
 Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The app manifest does not provide an offline payment mode. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
-### Deposit support in the contract
+### Deal kinds and deposits
 
-The current local contract source also includes **Hold mode** for refundable deposits, such as rental equipment or bookings. These additions are not yet exposed by the browser deal form or the server's contract-call allowlist, and are not a claim about the deployed contract:
+The new-deal form starts with **what the payment is for**: buying in person, buying shipped, a rental deposit (caução), a job or service, or a booking/hire deposit. Kinds only change wording and defaults (`src/lib/kinds.ts`); each maps to one of three contract rules: Meet (QR release), Ship (QR or approval, timed claim, disputes) and **Hold** (a deposit with an end date). Jobs use Ship mode: the professional marks the work started and done, and the client approves and pays (`approve`) or the timed claim applies. Deposits use Hold mode: the holder confirms, can return the deposit early or claim damage before the end date, and the payer can accept the claim with one tap. These methods are deployed and allowed by the server's contract-call allowlist:
 
 | Method | Implemented contract behavior |
 | --- | --- |
@@ -158,7 +158,7 @@ The current local contract source also includes **Hold mode** for refundable dep
 | `agree(deal_id)` | The payer accepts a disputed deduction; the claimed amount goes to the holder and the remainder returns to the payer. |
 | `refund(deal_id)` in Hold mode | An undisputed deposit can be returned by anyone after expiry. Before expiry, normal cancellation permissions apply. A holder can also withdraw a disputed claim and return the full deposit. |
 | `resolve(deal_id, to_buyer)` | The assigned resolver splits a disputed deposit between payer and holder. |
-| `approve(deal_id)` | Buyer-authorized full payment without a QR in non-Meet modes, including disputed status. Meet mode rejects it. This method is also currently absent from the web call allowlist. |
+| `approve(deal_id)` | Buyer-authorized full payment without a QR in non-Meet modes, including disputed status. Meet mode rejects it. The web app offers it for jobs. |
 
 Expiry makes a deposit refund callable; it does not submit a transaction by itself. Contract tests for deposit returns, claims, agreed deductions, resolver splits, and deadline/mode restrictions accompany this work.
 
@@ -221,7 +221,7 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 
 | Route | Purpose |
 | --- | --- |
-| `/` | One-device payment demo, product explanation, live proof panel, and reveal. |
+| `/` | One-device live payment flow, product explanation, live proof panel, and reveal. |
 | `/try` | Two-device entry point: buy or open a seller deal code. |
 | `/deal/new` | Item, amount, region/currency preferences, passkey choice, and meetup/shipping selection. |
 | `/deal/[id]` | Buyer/seller views, verified funds, sharing, QR rotation, refunds, shipping, claims, and disputes. |
@@ -232,7 +232,7 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 | `/anchor/withdraw` | Interactive test-anchor bank-details flow. |
 | `GET /api/deal/[id]` | Contract state and available deal events. |
 | `POST /api/call` | Prepare a contract call or submit its signed authorizations. |
-| `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team-side demo operations. |
+| `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team seller operations for the guided payment flow. |
 | `GET /api/listing?url=…` | Supported marketplace title and available price extraction. |
 | `POST /api/check` | Optional screenshot analysis; returns 501 when no API key is configured. |
 | `GET /api/stats`, `/api/reputation/[address]` | Recent contract activity, per-currency totals, and address counts. |
@@ -285,7 +285,7 @@ The contract verifies **buyer authorization plus knowledge of the seller's commi
 
 The contract does not inspect the item, confirm delivery with a carrier, decide disputes itself (the resolver splits them), or reverse a completed release. Currently, `release` does not check expiry: an accepted deal can still be released after expiry, competing with an eligible refund until one settles. Shipping refunds are unavailable after shipment. Seller-declared delivery starts the three-day claim window; a buyer must dispute before it ends. There is no background refund or claim scheduler in this repository.
 
-The browser-keypair path stores its signing key in local storage. Passkeys provide a separate smart-account authorization path. Server-held issuer, sponsor, and team keys support test funding, sponsorship, and the single-device demo. This is a hackathon implementation, not an audited production payment service.
+The browser-keypair path stores its signing key in local storage. Passkeys provide a separate smart-account authorization path. Server-held issuer, sponsor, and team keys support test funding, sponsorship, and the single-device payment experience. This is a hackathon implementation, not an audited production payment service.
 
 ## On-chain proof
 
@@ -293,7 +293,7 @@ Public deployment identifiers from the repository's local configuration at the t
 
 | Component | Stellar Testnet identifier |
 | --- | --- |
-| Deal contract | [`CCRNA6KYB3I2JYTL4XDHCOH7LY3E5ULX5OL6EWN4TN4MGLYB3QKBV4QN`](https://stellar.expert/explorer/testnet/contract/CCRNA6KYB3I2JYTL4XDHCOH7LY3E5ULX5OL6EWN4TN4MGLYB3QKBV4QN) |
+| Deal contract | [`CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY`](https://stellar.expert/explorer/testnet/contract/CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY) |
 | tEUR contract | [`CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`](https://stellar.expert/explorer/testnet/contract/CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR) |
 | tUSD contract | [`CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K`](https://stellar.expert/explorer/testnet/contract/CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K) |
 | tGBP contract | [`CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M`](https://stellar.expert/explorer/testnet/contract/CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M) |
@@ -390,7 +390,7 @@ For Vercel, configure the same public IDs and server-only variables before build
 | `cargo test --manifest-path contracts/escrow/Cargo.toml` | Contract unit tests. |
 | `node scripts/scam-check.test.mjs` | Local scam rules: MB WAY, payment links, SMS codes, screenshot claims, urgency, look-alike/official domains, and a benign message. |
 | `node --test scripts/localization.test.cjs` | Amount parsing, precision, regions, currency handling, and separate asset totals. |
-| `node --test scripts/pitch-session.test.cjs` | Saved demo recovery, settlement retries/reconciliation, and currency persistence. |
+| `node --test scripts/pitch-session.test.cjs` | Saved payment recovery, settlement retries/reconciliation, and currency persistence. |
 | `npm run e2e -- http://localhost:3100` | Testnet onboarding, buyer/seller settlement, wrong-secret rejection, and pitch release. |
 | `node scripts/anchor-e2e.mjs http://localhost:3100` | Anchor discovery, authentication, IBAN validation, payment, and withdrawal completion. |
 | `node scripts/ui-flow.cjs http://localhost:3100 <existing-output-directory>` | Playwright two-browser walkthrough with a virtual passkey authenticator and screenshots. Requires Playwright Chromium. |

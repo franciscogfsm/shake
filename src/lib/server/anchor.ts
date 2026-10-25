@@ -125,7 +125,7 @@ export function sep24Transaction(origin: string, token: string, w: Withdrawal, p
     withdraw_memo_type: w.iban ? "hash" : undefined,
     external_transaction_id: paid ? `SIM-${w.id.toUpperCase()}` : undefined,
     message: paid
-      ? `Bank transfer sent to ${maskIban(w.iban!)} (simulated on the test network)`
+      ? `Sandbox payout completed for ${maskIban(w.iban!)}. No bank account was credited.`
       : w.iban
         ? `Send ${w.amount} ${w.asset} to finish`
         : "Add your bank details",

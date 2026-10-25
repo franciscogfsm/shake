@@ -65,4 +65,25 @@ lap(`shake   ${await call(judge, "release", { dealId: d2, secret: s2 })}`);
 const r2 = await deal(d2);
 lap(`deal ${d2}: ${r2.deal.status}, seller is team: ${r2.deal.seller === TEAM}`);
 if (r2.deal.status !== "Released") throw new Error("pitch deal not released");
+
+// 3. rental deposit: landlord confirms and claims €5 of €25, tenant agrees, €20 comes back
+const d3 = id();
+lap(`onboard tenant ${await onboard(buyer, 25)}`);
+lap(`lock_hold ${await call(buyer, "lock_hold", { buyer: buyer.publicKey(), token: TOKEN, amount: "250000000", dealId: d3, expiry: expiry(), memo: "e2e deposit" })}`);
+lap(`confirm ${await call(seller, "accept", { dealId: d3, seller: seller.publicKey(), hash })}`);
+lap(`claim   ${await call(seller, "claim_damage", { dealId: d3, amount: "50000000" })}`);
+lap(`agree   ${await call(buyer, "agree", { dealId: d3 })}`);
+const r3 = await deal(d3);
+lap(`deal ${d3}: ${r3.deal.mode} ${r3.deal.status}, claimed ${r3.deal.claimed}, events: ${r3.events.map((e) => e.type).join(" → ")}`);
+if (r3.deal.status !== "Resolved" || r3.deal.claimed !== "50000000") throw new Error("deposit claim not settled");
+
+// 4. job: pro starts and finishes, client approves without a QR
+const d4 = id();
+lap(`onboard client ${await onboard(buyer, 25)}`);
+lap(`lock_ship ${await call(buyer, "lock_ship", { buyer: buyer.publicKey(), token: TOKEN, amount: "250000000", dealId: d4, expiry: expiry(), memo: "e2e job" })}`);
+lap(`join    ${await call(seller, "accept", { dealId: d4, seller: seller.publicKey(), hash })}`);
+lap(`started ${await call(seller, "mark_shipped", { dealId: d4, tracking: "" })}`);
+lap(`done    ${await call(seller, "mark_delivered", { dealId: d4 })}`);
+lap(`approve ${await call(buyer, "approve", { dealId: d4 })}`);
+if ((await deal(d4)).deal.status !== "Released") throw new Error("job not paid");
 console.log("ALL GOOD");

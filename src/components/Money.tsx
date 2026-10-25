@@ -58,7 +58,7 @@ export function useCountry() {
 /** Big amount display: the symbol is quieter but stays where the locale puts it ("400 €", "£400", "R$ 400"). */
 export function Money({ amount, currency, locale, className = "", tick }: { amount: number; currency: CurrencyCode; locale: string; className?: string; tick?: boolean }) {
   const p = moneyParts(amount, currency, locale);
-  const symbol = <span className="text-[0.5em] tracking-[-0.02em] text-ink-2 [text-shadow:none]">{p.symbol}</span>;
+  const symbol = <span className="relative top-[-0.06em] text-[0.46em] leading-none tracking-[-0.02em] text-ink-2 [text-shadow:none]">{p.symbol}</span>;
   const number = tick ? (
     <NumberTicker
       value={amount}

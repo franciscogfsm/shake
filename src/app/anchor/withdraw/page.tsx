@@ -52,13 +52,13 @@ function Form() {
   return (
     <main className="mx-auto flex min-h-dvh max-w-[440px] flex-col gap-5 bg-[#0d0f12] px-5 py-6">
       <div>
-        <div className="eyebrow">SHAKE anchor · SEP-24 · test network</div>
-        <h1 className="display mt-2 text-[28px]">Where should we send {amount} {asset?.replace(/^t/, "")}?</h1>
-        <p className="mt-1.5 text-sm text-ink-2">This demo simulates a bank transfer in the deal&apos;s currency using a test IBAN. Real local payouts require a supporting anchor.</p>
+        <div className="eyebrow">SHAKE anchor · SEP-24 · sandbox</div>
+        <h1 className="display mt-2 text-[28px]">Withdraw {amount} {asset?.replace(/^t/, "")} · test mode</h1>
+        <p className="mt-1.5 text-sm text-ink-2">Your transfer to the anchor settles on Stellar Testnet. Bank settlement is simulated and does not credit a bank account. Use test details below.</p>
       </div>
       {done ? (
         <div className="glass p-5 text-center" role="status">
-          <div className="font-display text-xl">Details saved ✓</div>
+          <div className="font-display text-xl">Details saved</div>
           <p className="mt-1 text-sm text-ink-2">Back in SHAKE, confirm to send the money.</p>
         </div>
       ) : (

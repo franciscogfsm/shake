@@ -41,18 +41,18 @@ export function LiveReceipt({ items, delay = 0, stagger = 0.35, dense = false }:
           initial={{ opacity: 0, x: -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: delay + i * stagger, type: "spring", stiffness: 300, damping: 30 }}
-          className={`relative grid grid-cols-[20px_1fr_auto] items-start gap-x-3 last:pb-0 ${dense ? "pb-3.5" : "pb-5"}`}
+          className={`relative grid grid-cols-[18px_minmax(0,1fr)_auto] items-start gap-x-3 last:pb-0 ${dense ? "pb-3.5" : "pb-5"}`}
         >
           {i < items.length - 1 && (
             <motion.span
-              className="absolute left-[9px] top-5 w-px origin-top bg-line"
-              style={{ height: "calc(100% - 12px)" }}
+              className="absolute top-5 left-[8.5px] w-px origin-top bg-white/15"
+              style={{ height: "calc(100% - 18px)" }}
               initial={{ scaleY: 0 }}
               animate={{ scaleY: 1 }}
-              transition={{ delay: delay + i * stagger + 0.15, duration: 0.3 }}
+              transition={{ delay: delay + i * stagger + 0.08, duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             />
           )}
-          <span className="mt-1 grid size-5 place-items-center">
+          <span className="relative z-[1] mt-0.5 grid size-[18px] place-items-center">
             {it.pending ? (
               <span className={`size-2 rounded-full border ${it.active ? "animate-pulse border-safe" : "border-white/25"}`} />
             ) : (
@@ -73,7 +73,7 @@ export function LiveReceipt({ items, delay = 0, stagger = 0.35, dense = false }:
               </ProofLink>
             )}
           </div>
-          <span className="font-mono text-xs tabular-nums text-mute">{time(it.at)}</span>
+          <span className="pt-[3px] font-mono text-xs leading-none tabular-nums text-mute">{time(it.at)}</span>
         </motion.li>
       ))}
     </ol>

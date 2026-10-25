@@ -15,7 +15,8 @@ import { ProofLink } from "@/components/LiveReceipt";
 import { SafeSpots } from "@/components/SafeSpots";
 import { HashTyper } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
-import { currencyOfToken, formatMoney, fromUnits } from "@/lib/config";
+import { currencyOfToken, formatMoney, fromUnits, toUnits } from "@/lib/config";
+import { KINDS, kindOf, type Kind } from "@/lib/kinds";
 import { Money, useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/client/handshake";
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
@@ -45,7 +46,8 @@ function DealScreen() {
 
   const role = isMine(deal.buyer) ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
-  const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
+  const kind = kindOf(deal.mode, q.get("k") ?? local.kind);
+  const props = { kind, deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
   return (
     <Screen wide fit right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
@@ -57,9 +59,9 @@ function DealScreen() {
           ) : deal.status === "Resolved" ? (
             <Refunded {...props} resolved />
           ) : role === "buyer" ? (
-            <BuyerView {...props} />
+            deal.mode === "Hold" ? <HoldPayer {...props} /> : <BuyerView {...props} />
           ) : role === "seller" ? (
-            <SellerView {...props} />
+            deal.mode === "Hold" ? <HoldHolder {...props} /> : <SellerView {...props} />
           ) : (
             <Empty title="This deal belongs to another phone." body="Only the buyer and the seller who joined can act on it. Anyone can see the receipt." cta={{ href: `/r/${id}`, label: "See receipt" }} />
           )}
@@ -69,11 +71,12 @@ function DealScreen() {
   );
 }
 
-type ViewProps = { deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; replay?: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
+type ViewProps = { kind: Kind; deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string; kind?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; replay?: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
 
 /* ------------------------------ buyer ------------------------------ */
 
-function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: ViewProps) {
+function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency }: ViewProps) {
+  const job = kind === "service";
   const euros = fromUnits(deal.amount);
   const now = useNow();
   const ship = deal.mode === "Ship";
@@ -82,13 +85,13 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
   const expired = now >= deal.expiry && (s === "Locked" || s === "Accepted");
   const joined = s !== "Locked";
   const canDispute = s === "Shipped" || (s === "Delivered" && now < deal.releaseAfter);
-  const [share, setShare] = useState(isNew);
+  const [share, setShare] = useState(false);
   const [cancelling, setCancelling] = useState(false);
   const [err, setErr] = useState("");
-  const link = typeof window !== "undefined" ? `${location.origin}/deal/${deal.id}?${new URLSearchParams({ i: meta.item ?? "", ...(meta.seller ? { s: meta.seller } : {}) })}` : "";
+  const link = useDealLink(deal.id, meta, kind, isNew, setShare);
   const lockEv = eventOf(events, "locked");
 
-  const run = async (fn: "refund" | "dispute") => {
+  const run = async (fn: "refund" | "dispute" | "approve") => {
     setCancelling(true);
     setErr("");
     try {
@@ -106,11 +109,11 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
     : !ship
       ? "Seller joined. Meet and shake."
       : s === "Accepted"
-        ? "Seller joined. They're packing it."
+        ? job ? "They joined. The work hasn't started yet." : "Seller joined. They're packing it."
         : s === "Shipped"
-          ? `On its way${deal.tracking ? ` · ${deal.tracking}` : ""}`
+          ? job ? "Work in progress." : `On its way${deal.tracking ? ` · ${deal.tracking}` : ""}`
           : s === "Delivered"
-            ? "Delivered. Scan the QR inside the box."
+            ? job ? "Marked done. Check the work." : "Delivered. Scan the QR inside the box."
             : "Problem opened. The money is frozen.";
 
   return (
@@ -122,7 +125,7 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
           <span className="pulse-dot" />
           <span className="text-ink-2">{status}</span>
         </div>
-        {ship && <ShipSteps status={s} />}
+        {ship && <ShipSteps status={s} job={job} />}
       </Item>
       <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div className="halo hidden lg:block" aria-hidden />
@@ -138,11 +141,11 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
           {s === "Delivered" ? (
             <div><div className="text-mute">Pays the seller in</div><div className="mt-0.5 text-ink">{now >= deal.releaseAfter ? "Any moment" : <Countdown to={deal.releaseAfter} />}</div></div>
           ) : s === "Shipped" || s === "Disputed" ? (
-            <div><div className="text-mute">Your money</div><div className="mt-0.5 text-ink">{s === "Disputed" ? "Frozen" : "Locked until you open it"}</div></div>
+            <div><div className="text-mute">Your money</div><div className="mt-0.5 text-ink">{s === "Disputed" ? "Frozen" : job ? "Locked until it's done" : "Locked until you open it"}</div></div>
           ) : (
             <div><div className="text-mute">Refund if no deal</div><div className="mt-0.5 text-ink">{expired ? "Available now" : <Countdown to={deal.expiry} />}</div></div>
           )}
-          <div><div className="text-mute">Seller</div><div className="mt-0.5 text-ink">{inBox ? "Shipped ✓" : joined ? "Joined ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
+          <div><div className="text-mute">{job ? "Pro" : "Seller"}</div><div className="mt-0.5 text-ink">{inBox ? (job ? "Working ✓" : "Shipped ✓") : joined ? "Joined ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
         </div>
         </div>
       </Item>
@@ -150,7 +153,8 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
       <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
         {ship && joined ? (
           <>
-            {inBox && (
+            {inBox && job && <Button full loading={cancelling} onClick={() => run("approve")}>Approve and pay</Button>}
+            {inBox && !job && (
               <Link href={`/scan/${deal.id}`} className="contents">
                 <Button full>Scan the QR in the box</Button>
               </Link>
@@ -161,10 +165,10 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
             {expired && <Button variant="ghost" full loading={cancelling} onClick={cancel}>Refund me now</Button>}
             <p className="text-center text-sm text-mute">
               {s === "Accepted"
-                ? "Once it's shipped you can't pull the money back. Scan the QR when you open the box."
+                ? job ? "Once they start you can't pull the money back. You approve when it's done." : "Once it's shipped you can't pull the money back. Scan the QR when you open the box."
                 : s === "Disputed"
                   ? "A neutral resolver looks at it. They can only split the money between you two, never keep it."
-                  : "Nothing wrong? Scan the QR. Problem? Open it before the 3 days after delivery run out."}
+                  : job ? "Happy with it? Approve. Problem? Open it before the 3 days after they mark it done run out." : "Nothing wrong? Scan the QR. Problem? Open it before the 3 days after delivery run out."}
             </p>
           </>
         ) : joined && !expired ? (
@@ -172,7 +176,12 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
             <Button full>Scan seller&apos;s QR</Button>
           </Link>
         ) : !joined ? (
-          <Button full onClick={() => setShare(true)}>Send link to seller</Button>
+          <>
+            <div className="hidden lg:block">
+              <ShareLink link={link} money={formatMoney(euros, currency, locale)} item={meta.item} kind={kind} />
+            </div>
+            <Button className="lg:hidden" full onClick={() => setShare(true)}>Send link to seller</Button>
+          </>
         ) : null}
         {(!joined || (expired && !ship)) && (
           <Button variant="ghost" full loading={cancelling} onClick={cancel}>
@@ -185,16 +194,51 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
         <TestnetNote />
       </Item>
 
-      <GlassSheet open={share} onClose={() => setShare(false)} label="Send the link">
-        <ShareSheet link={link} money={formatMoney(euros, currency, locale)} item={meta.item} />
-      </GlassSheet>
+      <div className="contents lg:hidden">
+        <GlassSheet open={share} onClose={() => setShare(false)} label="Send the link">
+          <ShareSheet link={link} money={formatMoney(euros, currency, locale)} item={meta.item} kind={kind} />
+        </GlassSheet>
+      </div>
     </Stagger>
   );
 }
 
-function ShareSheet({ link, money, item }: { link: string; money: string; item?: string }) {
+function shareLink(id: string, meta: ViewProps["meta"], kind: Kind) {
+  const q = new URLSearchParams({ i: meta.item ?? "", k: kind, ...(meta.seller ? { s: meta.seller } : {}) });
+  return `${location.origin}/deal/${id}?${q}`;
+}
+
+/** Filled after mount so the server and the phone agree. Opens the sheet only on a phone. */
+function useDealLink(id: string, meta: ViewProps["meta"], kind: Kind, isNew: boolean, openSheet: (v: boolean) => void) {
+  const [link, setLink] = useState("");
+  const item = meta.item;
+  const seller = meta.seller;
+  useEffect(() => {
+    setLink(shareLink(id, { item, seller }, kind));
+  }, [id, item, seller, kind]);
+  useEffect(() => {
+    if (isNew && matchMedia("(max-width: 1023px)").matches) openSheet(true);
+  }, [isNew, openSheet]);
+  return link;
+}
+
+const SHARE_TEXT: Record<Kind, (money: string, item: string) => string> = {
+  meet: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real, then we meet and shake:`,
+  ship: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real, then ship it with the QR in the box:`,
+  service: (m, i) => `I locked ${m} for ${i} with SHAKE. Check it's real: it's yours when the job is done:`,
+  deposit: (m, i) => `I'm holding the ${m} deposit for ${i} with SHAKE. Check it's real and confirm you're the landlord:`,
+  booking: (m, i) => `I'm holding the ${m} deposit for ${i} with SHAKE. Check it's real and confirm the booking:`,
+};
+
+function useLinkShare(link: string, text: string) {
   const [copied, setCopied] = useState(false);
-  const text = `I locked ${money} for ${item || "your item"} with SHAKE. Check it's real, then we meet and shake:`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(`${text} ${link}`);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+    } catch {}
+  };
   const share = async () => {
     try {
       if (navigator.share) return await navigator.share({ title: "SHAKE", text, url: link });
@@ -203,19 +247,38 @@ function ShareSheet({ link, money, item }: { link: string; money: string; item?:
     }
     copy();
   };
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(`${text} ${link}`);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {}
-  };
+  return { copied, copy, share };
+}
+
+function shareBlurb(kind: Kind) {
+  return `Send this link on WhatsApp, by email or in your OLX or Vinted chat. The ${KINDS[kind].payee} sees the real money, not a screenshot.`;
+}
+
+/** Desktop: the link lives in the column beside the amount. The phone keeps the sheet. */
+function ShareLink({ link, money, item, kind }: { link: string; money: string; item?: string; kind: Kind }) {
+  const { copied, copy, share } = useLinkShare(link, SHARE_TEXT[kind](money, item || "it"));
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-[15px] leading-relaxed text-ink-2">{shareBlurb(kind)}</p>
+      <div className="flex items-center gap-2 rounded-2xl bg-white/5 py-1.5 pl-4 pr-1.5">
+        <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">{link || "Preparing your link…"}</span>
+        <button type="button" onClick={copy} className="h-10 shrink-0 rounded-full bg-white/10 px-4 text-sm font-medium text-ink hover:bg-white/15">
+          {copied ? "Copied ✓" : "Copy"}
+        </button>
+      </div>
+      <Button full onClick={share}>Share link</Button>
+    </div>
+  );
+}
+
+function ShareSheet({ link, money, item, kind }: { link: string; money: string; item?: string; kind: Kind }) {
+  const { copied, copy, share } = useLinkShare(link, SHARE_TEXT[kind](money, item || "it"));
   return (
     <div className="flex flex-col gap-5 pb-2">
       <div>
         <Mark size={40} state="rest" />
-        <h2 className="display mt-4 text-[30px]">Your money is locked.</h2>
-        <p className="mt-2 text-ink-2">Send this link in your OLX, Vinted or WhatsApp chat. The seller sees the real money, not a screenshot.</p>
+        <h2 className="display mt-4 text-[30px]">{KINDS[kind].mode === "Hold" ? "Your deposit is held." : "Your money is locked."}</h2>
+        <p className="mt-2 text-ink-2">{shareBlurb(kind)}</p>
       </div>
       <div className="truncate rounded-2xl bg-white/5 px-4 py-3 font-mono text-xs text-ink-2">{link}</div>
       <Button full onClick={share}>Share link</Button>
@@ -226,7 +289,8 @@ function ShareSheet({ link, money, item }: { link: string; money: string; item?:
 
 /* ------------------------------ seller ------------------------------ */
 
-function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewProps) {
+function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }: ViewProps) {
+  const job = kind === "service";
   const euros = fromUnits(deal.amount);
   const now = useNow();
   const ship = deal.mode === "Ship";
@@ -297,9 +361,9 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
       <Item className="lg:col-start-1">
         <div className="eyebrow">{meta.item || "A deal"}{meta.seller ? ` · for ${meta.seller}` : ""}</div>
         <h1 className="display mt-3 text-[34px] lg:text-[52px] lg:leading-[0.98]">
-          {s === "Shipped" ? "It's on its way." : s === "Delivered" ? "Delivered. Almost yours." : s === "Disputed" ? "The buyer opened a problem." : "Someone locked money for you."}
+          {s === "Shipped" ? (job ? "Work in progress." : "It's on its way.") : s === "Delivered" ? (job ? "Done. Almost yours." : "Delivered. Almost yours.") : s === "Disputed" ? `The ${job ? "client" : "buyer"} opened a problem.` : "Someone locked money for you."}
         </h1>
-        {ship && <ShipSteps status={s} />}
+        {ship && <ShipSteps status={s} job={job} />}
       </Item>
       <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
         <div className="halo hidden lg:block" aria-hidden />
@@ -319,7 +383,13 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
           </ProofLink>
         )}
         <p className="mt-5 border-t border-line pt-4 text-[14px] text-ink-2">
-          {ship
+          {job
+            ? s === "Delivered"
+              ? <>It&apos;s yours when the client approves, or automatically in <Countdown to={deal.releaseAfter} /> if they stay silent.</>
+              : s === "Disputed"
+                ? "A neutral resolver splits it between you two. Nobody can keep it."
+                : "This is real money held by public code, not a screenshot. It's yours when the client approves the work."
+            : ship
             ? s === "Delivered"
               ? <>It&apos;s yours when the buyer scans the QR in the box, or automatically in <Countdown to={deal.releaseAfter} /> if they stay silent.</>
               : s === "Disputed"
@@ -331,7 +401,14 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
       </Item>
       <div className="flex-1 lg:hidden" />
       <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
-        {ship && mine && ready && s === "Accepted" && !expired ? (
+        {job && mine && s === "Accepted" && !expired ? (
+          <Button full loading={busy === "step"} onClick={() => step("mark_shipped")}>I&apos;ve started the work</Button>
+        ) : job && mine && s === "Shipped" ? (
+          <>
+            <Button full loading={busy === "step"} onClick={() => step("mark_delivered")}>It&apos;s done</Button>
+            <p className="text-center text-sm text-mute">The client then has 3 days to approve or open a problem. Silence pays you.</p>
+          </>
+        ) : ship && mine && ready && s === "Accepted" && !expired ? (
           <>
             <Button variant="glass" full onClick={() => setShowQR(true)}>Show the QR for the box</Button>
             <label htmlFor="tracking" className="sr-only">Tracking number</label>
@@ -354,7 +431,7 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
           now >= deal.releaseAfter ? (
             <Button full loading={busy === "step"} onClick={() => step("claim")}>Release my money</Button>
           ) : (
-            <p className="text-center text-ink-2">Waiting for the buyer to open the box.</p>
+            <p className="text-center text-ink-2">{job ? "Waiting for the client to check the work." : "Waiting for the buyer to open the box."}</p>
           )
         ) : ship && s === "Disputed" ? null : expired ? (
           <p className="text-center text-ink-2">This deal expired. The buyer can take the money back.</p>
@@ -364,7 +441,7 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
             <SafeSpots />
           </>
         ) : (
-          <Button full loading={busy === "joining"} onClick={join}>{mine ? "Make a new QR" : ship ? "I'll ship it, make my QR" : "I'm meeting them, show my QR"}</Button>
+          <Button full loading={busy === "joining"} onClick={join}>{mine ? "Make a new QR" : job ? "I'm doing the job" : ship ? "I'll ship it, make my QR" : "I'm meeting them, show my QR"}</Button>
         )}
         {mine && !expired && (s === "Locked" || s === "Accepted") && (
           <Button variant="ghost" full loading={busy === "cancelling"} onClick={cancel}>Cancel deal and refund buyer</Button>
@@ -421,6 +498,7 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
 }
 
 function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?: boolean }) {
+  const hold = deal.mode === "Hold";
   if (resolved)
     return (
       <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 text-center lg:grid lg:grid-cols-2 lg:gap-16 lg:text-left">
@@ -429,7 +507,7 @@ function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?:
         <div>
           <div className="eyebrow">Problem resolved</div>
           <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] lg:text-[88px]" />
-          <p className="mx-auto mt-4 max-w-[30ch] text-ink-2 lg:mx-0">The resolver split the money between the buyer and the seller. Every cent went to one of you.</p>
+          <p className="mx-auto mt-4 max-w-[30ch] text-ink-2 lg:mx-0">{deal.mode === "Hold" ? "The claim was settled. Every cent of the deposit went to one of you." : "The resolver split the money between the buyer and the seller. Every cent went to one of you."}</p>
         </div>
         <Seal label="Resolved" sub="Split on Stellar" tone="mute" />
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
@@ -441,11 +519,11 @@ function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?:
       <Mark size={110} state="open" />
       <div className="flex max-w-[440px] flex-col items-center gap-8 lg:items-start">
       <div>
-        <div className="eyebrow">Refunded</div>
+        <div className="eyebrow">{hold ? "Deposit returned" : "Refunded"}</div>
         <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] text-ink-2 lg:text-[88px] [text-shadow:none]" />
-        <p className="mx-auto mt-4 max-w-[28ch] text-ink-2 lg:mx-0">No deal, no problem. The money went back to the buyer.</p>
+        <p className="mx-auto mt-4 max-w-[28ch] text-ink-2 lg:mx-0">{hold ? "The whole deposit went back to the payer. Every cent." : "No deal, no problem. The money went back to the buyer."}</p>
       </div>
-      <Seal label="Refunded" sub="Back to buyer" tone="mute" />
+      <Seal label={hold ? "Returned" : "Refunded"} sub={hold ? "Back to payer" : "Back to buyer"} tone="mute" />
       <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
       </div>
     </div>
@@ -453,10 +531,10 @@ function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?:
 }
 
 /** Ship mode progress: the shake travels in the box. */
-function ShipSteps({ status }: { status: Deal["status"] }) {
+function ShipSteps({ status, job }: { status: Deal["status"]; job?: boolean }) {
   const order = ["Locked", "Accepted", "Shipped", "Delivered"] as const;
   const at = status === "Disputed" ? 3 : Math.max(0, order.indexOf(status as (typeof order)[number]));
-  const labels = ["Locked", "Packing", "Shipped", status === "Disputed" ? "Problem" : "Delivered"];
+  const labels = job ? ["Locked", "Joined", "Working", status === "Disputed" ? "Problem" : "Done"] : ["Locked", "Packing", "Shipped", status === "Disputed" ? "Problem" : "Delivered"];
   return (
     <ol className="mt-5 grid grid-cols-4 gap-1.5" aria-label="Shipping progress">
       {labels.map((l, i) => (
@@ -486,5 +564,199 @@ function Empty({ title, body, cta }: { title: string; body: string; cta?: { href
       <p className="max-w-[30ch] text-ink-2">{body}</p>
       {cta && <Link href={cta.href} className="contents"><Button variant="glass">{cta.label}</Button></Link>}
     </div>
+  );
+}
+
+/* ------------------------------ deposits (hold mode) ------------------------------ */
+
+const dateOf = (t: number, locale: string) => new Date(t * 1000).toLocaleDateString(locale, { day: "numeric", month: "long", year: "numeric" });
+
+/** One deal call with the shared busy and error handling of the deposit screens. */
+function useStep(refresh: () => Promise<void>) {
+  const [busy, setBusy] = useState("");
+  const [err, setErr] = useState("");
+  const go = async (key: string, fn: () => Promise<unknown>) => {
+    setBusy(key);
+    setErr("");
+    try {
+      await fn();
+      await refresh();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't reach the network right now. Try again.");
+    } finally {
+      setBusy("");
+    }
+  };
+  return { busy, err, go };
+}
+
+/** The tenant (or renter): the deposit comes back on the end date by itself. */
+function HoldPayer({ kind, deal, events, meta, refresh, isNew, locale, currency }: ViewProps) {
+  const k = KINDS[kind];
+  const now = useNow();
+  const s = deal.status;
+  const joined = s !== "Locked";
+  const due = now >= deal.expiry;
+  const claimed = fromUnits(deal.claimed);
+  const money = (n: number) => formatMoney(n, currency, locale);
+  const [share, setShare] = useState(false);
+  const link = useDealLink(deal.id, meta, kind, isNew, setShare);
+  const { busy, err, go } = useStep(refresh);
+  const call = (fn: "refund" | "agree") => go(fn, () => callDeal(getKeypair(), fn, { dealId: deal.id }));
+  const lockEv = eventOf(events, "locked");
+  const ends = dateOf(deal.expiry, locale);
+
+  return (
+    <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
+      <Item className="lg:col-start-1">
+        <div className="eyebrow">{k.label}{meta.seller ? ` · ${meta.seller}` : ""}</div>
+        <h1 className="display mt-3 text-[34px] lg:text-[52px] lg:leading-[0.98]">{meta.item || "Your deposit"}</h1>
+        <div className="mt-3 flex items-center gap-3">
+          <span className="pulse-dot" />
+          <span className="text-ink-2">
+            {!joined ? `Held. Waiting for the ${k.payee} to confirm.` : s === "Disputed" ? `The ${k.payee} claims ${money(claimed)}.` : due ? "The end date passed. It's yours again." : `Held safely. Back to you on ${ends}.`}
+          </span>
+        </div>
+      </Item>
+      <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="halo hidden lg:block" aria-hidden />
+        <div className="glass p-6 lg:p-8">
+          <div className="eyebrow">Your deposit</div>
+          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[76px] lg:text-[88px]" />
+          {lockEv && (
+            <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-3 block text-xs text-mute hover:text-safe">
+              proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
+            </ProofLink>
+          )}
+          <div className="mt-5 grid grid-cols-2 gap-3 border-t border-line pt-4 text-[13px]">
+            <div><div className="text-mute">Back to you</div><div className="mt-0.5 text-ink">{s === "Disputed" ? "Frozen by a claim" : due ? "Now" : <>in <Countdown to={deal.expiry} /></>}</div></div>
+            <div><div className="text-mute">{k.payee[0].toUpperCase() + k.payee.slice(1)}</div><div className="mt-0.5 text-ink">{joined ? "Confirmed ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
+          </div>
+        </div>
+      </Item>
+      <div className="flex-1 lg:hidden" />
+      <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
+        {!joined ? (
+          <>
+            <div className="hidden lg:block">
+              <ShareLink link={link} money={formatMoney(fromUnits(deal.amount), currency, locale)} item={meta.item} kind={kind} />
+            </div>
+            <Button className="lg:hidden" full onClick={() => setShare(true)}>Send link to the {k.payee}</Button>
+            <Button variant="ghost" full loading={busy === "refund"} onClick={() => call("refund")}>Cancel and get it back</Button>
+          </>
+        ) : s === "Disputed" ? (
+          <>
+            <Button full loading={busy === "agree"} onClick={() => call("agree")}>
+              Accept: {money(claimed)} to them, {money(fromUnits(deal.amount) - claimed)} back to me
+            </Button>
+            <p className="text-center text-sm text-mute">Don&apos;t agree? Do nothing. A neutral resolver looks at it and splits it between you two. Nobody can keep it.</p>
+          </>
+        ) : due ? (
+          <Button full loading={busy === "refund"} onClick={() => call("refund")}>Get my deposit back</Button>
+        ) : (
+          <p className="text-center text-sm text-mute">The {k.payee} can&apos;t spend it, and neither can you. Only they can return it early or claim damage. If they do nothing, it comes back to you on {ends}.</p>
+        )}
+        {err && <p className="text-center text-sm text-ink-2" role="alert">{err}</p>}
+        <TestnetNote />
+      </Item>
+
+      <div className="contents lg:hidden">
+        <GlassSheet open={share} onClose={() => setShare(false)} label="Send the link">
+          <ShareSheet link={link} money={formatMoney(fromUnits(deal.amount), currency, locale)} item={meta.item} kind={kind} />
+        </GlassSheet>
+      </div>
+    </Stagger>
+  );
+}
+
+/** The landlord (or owner): sees the real deposit, can return it or claim damage, never just keep it. */
+function HoldHolder({ kind, deal, events, meta, me, refresh, locale, currency }: ViewProps) {
+  const k = KINDS[kind];
+  const now = useNow();
+  const s = deal.status;
+  const mine = deal.seller === me;
+  const due = now >= deal.expiry;
+  const total = fromUnits(deal.amount);
+  const money = (n: number) => formatMoney(n, currency, locale);
+  const [claim, setClaim] = useState("");
+  const amount = Number(claim.replace(",", "."));
+  const okClaim = amount > 0 && amount <= total;
+  const { busy, err, go } = useStep(refresh);
+  const lockEv = eventOf(events, "locked");
+  const ends = dateOf(deal.expiry, locale);
+
+  const join = () =>
+    go("join", async () => {
+      const kp = getKeypair();
+      await ensureAccount(kp, 0);
+      // deposits never use the QR: the committed secret is thrown away
+      const hash = await sha256Hex(codeToHex(newCode()));
+      await callDeal(kp, "accept", { dealId: deal.id, seller: kp.publicKey(), hash });
+    });
+
+  return (
+    <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
+      <Item className="lg:col-start-1">
+        <div className="eyebrow">{meta.item || k.label}</div>
+        <h1 className="display mt-3 text-[34px] lg:text-[52px] lg:leading-[0.98]">
+          {!mine ? "A deposit is held for you." : s === "Disputed" ? `You claimed ${money(fromUnits(deal.claimed))}.` : due ? "The deposit goes back." : "The deposit is held."}
+        </h1>
+      </Item>
+      <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="halo hidden lg:block" aria-hidden />
+        <div className="glass p-6 lg:p-8">
+          <div className="flex items-center justify-between">
+            <span className="eyebrow">Deposit held</span>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M5 12.5l4.5 4.5L19 7" /></svg>
+          </div>
+          <Money amount={total} currency={currency} locale={locale} tick className="mt-3 text-[84px]" />
+          <div className="mt-4 flex items-center gap-2 text-[15px] font-medium text-safe">
+            <span className="pulse-dot" /> Verified on the Stellar network
+          </div>
+          <Link href={`/u/${deal.buyer}`} className="mt-1 block text-xs text-mute hover:text-safe">payer&apos;s track record ↗</Link>
+          {lockEv && (
+            <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-2 block text-xs text-mute hover:text-safe">
+              see proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
+            </ProofLink>
+          )}
+          <p className="mt-5 border-t border-line pt-4 text-[14px] text-ink-2">
+            {s === "Disputed"
+              ? "Frozen until the payer accepts your claim, or a neutral resolver splits it. Nobody can keep it."
+              : `Real money held by public code, not a promise. It goes back to the payer on ${ends} unless you claim damage before then.`}
+          </p>
+        </div>
+      </Item>
+      <div className="flex-1 lg:hidden" />
+      <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
+        {!mine ? (
+          <Button full loading={busy === "join"} onClick={join}>Confirm I&apos;m the {k.payee}</Button>
+        ) : s === "Disputed" ? (
+          <Button variant="ghost" full loading={busy === "refund"} onClick={() => go("refund", () => callDeal(getKeypair(), "refund", { dealId: deal.id }))}>Drop my claim, return it all</Button>
+        ) : due ? (
+          <p className="text-center text-ink-2">The end date passed. The deposit goes back to the payer.</p>
+        ) : (
+          <>
+            <div className="glass flex items-center gap-2 rounded-2xl px-4 py-1">
+              <label htmlFor="claim" className="shrink-0 text-[15px] text-ink-2">Claim for damage</label>
+              <input
+                id="claim"
+                value={claim}
+                onChange={(e) => setClaim(e.target.value.replace(/[^\d.,]/g, "").slice(0, 7))}
+                inputMode="decimal"
+                placeholder={money(0)}
+                autoComplete="off"
+                className="min-w-0 flex-1 bg-transparent py-3 text-right font-mono text-ink outline-none placeholder:text-white/25"
+              />
+            </div>
+            <Button full disabled={!okClaim} loading={busy === "claim"} onClick={() => go("claim", () => callDeal(getKeypair(), "claim_damage", { dealId: deal.id, amount: toUnits(amount).toString() }))}>
+              {okClaim ? `Claim ${money(amount)}` : amount > total ? `Up to ${money(total)}` : "Claim damage"}
+            </Button>
+            <Button variant="ghost" full loading={busy === "refund"} onClick={() => go("refund", () => callDeal(getKeypair(), "refund", { dealId: deal.id }))}>Return the deposit now</Button>
+          </>
+        )}
+        {err && <p className="text-center text-sm text-ink-2" role="alert">{err}</p>}
+        <TestnetNote />
+      </Item>
+    </Stagger>
   );
 }

@@ -13,7 +13,7 @@ const STEPS = [
   { key: "connecting", label: "Signing in to the anchor (SEP-10)" },
   { key: "details", label: "Your bank details" },
   { key: "sending", label: "Sending the money to the anchor" },
-  { key: "settling", label: "Anchor pays out to your bank" },
+  { key: "settling", label: "Confirming sandbox bank settlement" },
 ];
 
 /** Shake to Bank: the released money leaves Stellar through a SEP-24 anchor to an IBAN, without leaving SHAKE. */
@@ -88,13 +88,13 @@ export function CashOut({ amount, currency, locale }: { amount: number; currency
   return (
     <>
       <Button full onClick={start}>
-        <BankIcon /> Try bank withdrawal · {money}
+        <BankIcon /> Bank withdrawal · {money}
       </Button>
-      <GlassSheet open={open} onClose={() => phase !== "sending" && setOpen(false)} label="Send to your bank">
+      <GlassSheet open={open} onClose={() => phase !== "sending" && setOpen(false)} label="Bank withdrawal · test mode">
         <div className="flex flex-col gap-5 pb-3">
           <div>
-            <div className="eyebrow">Shake to bank · SEP-24 anchor</div>
-            <h2 className="display mt-2 text-[28px]">{phase === "done" ? "On its way to your bank." : `Cash out ${money}`}</h2>
+            <div className="eyebrow">Shake to bank · sandbox</div>
+            <h2 className="display mt-2 text-[28px]">{phase === "done" ? "Test withdrawal complete." : `Cash out ${money}`}</h2>
           </div>
           <AnimatePresence mode="wait">
             {phase === "details" ? (
@@ -134,7 +134,7 @@ export function CashOut({ amount, currency, locale }: { amount: number; currency
               </motion.div>
             )}
           </AnimatePresence>
-          <p className="text-center text-xs text-mute">Demo bank transfer using a test IBAN. Real payouts and local bank details depend on the anchor&apos;s supported countries. No currency conversion.</p>
+          <p className="text-center text-xs text-mute">Test mode: the transfer to the anchor settles on Stellar Testnet. The bank payout is simulated; no bank account is credited. Use test bank details.</p>
         </div>
       </GlassSheet>
     </>

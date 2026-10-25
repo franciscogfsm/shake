@@ -29,7 +29,7 @@ export default function Try() {
         <Item className="pt-6 lg:col-start-1 lg:row-start-1 lg:pt-0">
           <div className="eyebrow">Two phones · two minutes</div>
           <h1 className="display mt-3 text-[42px] leading-[1.02] lg:text-[68px] lg:leading-[0.96]">Try it with<br /><span className="lg:glacier-text">a friend.</span></h1>
-          <p className="mt-3 max-w-[34ch] text-ink-2 lg:mt-4 lg:max-w-[36ch] lg:text-xl">One of you buys, one of you sells. Real money moves on the test network.</p>
+          <p className="mt-3 max-w-[34ch] text-ink-2 lg:mt-4 lg:max-w-[36ch] lg:text-xl">One of you buys, one of you sells. Payments settle live on Stellar Testnet using test assets.</p>
         </Item>
 
         <Item className="relative mt-8 lg:col-start-2 lg:row-span-3 lg:row-start-1 lg:mt-0">

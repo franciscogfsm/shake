@@ -82,6 +82,13 @@ export const KINDS: Record<Kind, KindInfo> = {
 
 export const KIND_ORDER: Kind[] = ["meet", "ship", "deposit", "service", "booking"];
 
+/** The status words in link previews, read from the chain. */
+export function previewStatus({ status, mode }: { status: string; mode: Mode }) {
+  if (mode === "Hold")
+    return ({ Locked: "deposit held ✓", Accepted: "deposit held ✓", Refunded: "deposit returned", Disputed: "claim open · frozen", Resolved: "claim settled", Released: "paid ✓" } as Record<string, string>)[status] ?? "deposit held ✓";
+  return ({ Released: "released ✓", Refunded: "refunded", Shipped: "shipped · locked ✓", Delivered: "delivered · locked ✓", Disputed: "problem open · frozen", Resolved: "resolved" } as Record<string, string>)[status] ?? "locked for you ✓";
+}
+
 const DEFAULT: Record<Mode, Kind> = { Meet: "meet", Ship: "ship", Hold: "deposit" };
 
 /** The kind shown for a deal: what the link says, if it matches the deal's on-chain rule. */

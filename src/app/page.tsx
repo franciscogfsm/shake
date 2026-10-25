@@ -20,7 +20,7 @@ import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer, formatMoney } f
  */
 export default function Home() {
   const [country, setCountry] = useCountry();
-  const { session, start, shake, notYet, reset, settling } = usePitchSession(country.currency);
+  const { session, start, shake, notYet, reset, settling, availability, refresh } = usePitchSession(country.currency);
   const currency = session.currency ?? (session.dealId ? "EUR" : country.currency);
   const money = formatMoney(5, currency, country.locale);
   const [refunding, setRefunding] = useState(false);
@@ -58,7 +58,19 @@ export default function Home() {
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
           {phase === "idle" && <Hero onStart={start} money={money} />}
           {phase === "working" && <Locking money={money} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
-          {phase === "ready" && (
+          {phase === "ready" && availability !== "available" && (
+            <div className="flex flex-col items-center gap-5 text-center" aria-live="polite">
+              <Mark size={88} />
+              <div>
+                <div className="eyebrow">Checking your payment</div>
+                <h1 className="display mt-2 text-[34px]">{availability === "checking" ? "Confirming locked funds." : availability === "missing" ? "This saved deal is unavailable." : "We couldn’t verify this deal."}</h1>
+                <p className="mx-auto mt-3 max-w-[34ch] text-ink-2">{availability === "checking" ? "Checking Stellar before enabling payment or refund." : availability === "missing" ? "The current test network has no record of this deal. You can check again or start a new payment." : "Your saved session is preserved. Check again to continue."}</p>
+              </div>
+              {availability !== "checking" && <Button onClick={() => void refresh()}>Check again</Button>}
+              {availability === "missing" && <Button variant="ghost" onClick={reset}>Start a new payment</Button>}
+            </div>
+          )}
+          {phase === "ready" && availability === "available" && (
             <Stagger className="flex flex-col items-center gap-5 text-center lg:gap-6">
               <Item>
                 <div className="eyebrow">You&apos;re at the meetup</div>
@@ -88,8 +100,9 @@ export default function Home() {
                     }
                   }}
                 >
-                  Not yet, give it back
+                  Cancel and refund
                 </Button>
+                <p className="mt-1 text-xs text-mute">Before you pay, you can return the locked funds to your wallet.</p>
               </Item>
             </Stagger>
           )}
@@ -118,7 +131,7 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
       </Item>
       <Item className="flex flex-col gap-3 lg:max-w-[400px]">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
-        <p className="text-sm text-mute">Test money · 20 seconds · no sign-up</p>
+        <p className="text-sm text-mute">Live transactions · test assets · no sign-up</p>
       </Item>
       <Item>
         <Protected className="justify-center lg:justify-start" />
@@ -127,11 +140,21 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
         <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[14px] text-ink-2 hover:text-ink">
           Meeting in person? Shake. Shipping it? <span className="text-safe">The shake travels in the box →</span>
         </Link>
+        <p className="mt-2 text-[14px] text-ink-2">
+          Also for{" "}
+          {([["deposit", "rent deposits"], ["service", "jobs"], ["booking", "bookings and hires"]] as const).map(([k, label], i) => (
+            <span key={k}>
+              {i > 0 && (i === 2 ? " and " : ", ")}
+              <Link href={`/deal/new?k=${k}`} className="text-safe hover:underline">{label}</Link>
+            </span>
+          ))}
+          . Nobody can just keep it.
+        </p>
       </Item>
       <Item className="grid grid-cols-3 gap-2 lg:max-w-[560px] lg:gap-4">
         {[
           ["Lock", "Not sent. On hold."],
-          ["They check", "Real money, not a screenshot."],
+          ["They check", "Funds verified on-chain."],
           ["Shake", "Face to face. Paid in 5s."],
         ].map(([t, d], i) => (
           <motion.div key={t} className="flex flex-col items-center gap-1.5 lg:items-start" whileHover={{ y: -3 }} transition={springs.snappy}>
@@ -187,7 +210,7 @@ function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePit
       </Item>
       <Item className="text-center">
         <h1 className="display text-[36px] leading-[1.05]">You didn&apos;t just read a website.<br />You used SHAKE.</h1>
-        <p className="mx-auto mt-3 max-w-[32ch] text-ink-2">Every step was a real payment on Stellar. Tap any of them to see the proof.</p>
+        <p className="mx-auto mt-3 max-w-[32ch] text-ink-2">Your {released ? "payment" : "refund"} settled on Stellar Testnet. Open each transaction to verify it on-chain.</p>
       </Item>
       <Item className="glass p-6 lg:hidden">
         <LiveReceipt
@@ -242,7 +265,7 @@ function LivePanel({ session, money }: { session: PitchSession; money: string })
           items={[
             { key: "w", title: "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
             { key: "l", title: `${money} locked`, at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
-            { key: "j", title: "Seller sees real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
+            { key: "j", title: "Seller verifies locked funds", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
             { key: "s", title: refunded ? "Refunded to you" : "Released by the handshake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },
           ]}
         />
@@ -263,7 +286,7 @@ const PARTS: { chip: string; icon: string; title: string; body: string; href?: s
   { chip: "Passkey", icon: "passkey", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
   { chip: "OpenZeppelin", icon: "openzeppelin", title: "Sponsored fees", body: "Channels sponsors network fees, with SHAKE's own pool as a fallback.", href: "https://docs.openzeppelin.com/relayer" },
   { chip: "Test assets", icon: "token", title: "Four test currencies", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
-  { chip: "SEP-24", icon: "anchor", title: "Testnet cash-out", body: "A real testnet transfer to an anchor, with a simulated bank payout.", href: "/.well-known/stellar.toml" },
+  { chip: "SEP-24", icon: "anchor", title: "Testnet cash-out", body: "Live transfer to the test anchor. Bank settlement runs in sandbox mode.", href: "/.well-known/stellar.toml" },
   { chip: "Receipts", icon: "proof", title: "On-chain proof", body: "Shared links show the locked money, read from the chain.", href: "/try" },
 ];
 
