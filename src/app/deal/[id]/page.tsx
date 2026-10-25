@@ -262,14 +262,38 @@ const SHARE_TEXT: Record<Kind, (money: string, item: string) => string> = {
   booking: (m, i) => `I'm holding the ${m} deposit for ${i} with SHAKE. Check it's real and confirm the booking:`,
 };
 
+function copyText(value: string) {
+  try {
+    const area = document.createElement("textarea");
+    area.value = value;
+    area.setAttribute("readonly", "");
+    area.style.position = "fixed";
+    area.style.top = "0";
+    area.style.left = "0";
+    area.style.opacity = "0";
+    document.body.appendChild(area);
+    area.focus();
+    area.select();
+    area.setSelectionRange(0, value.length);
+    const ok = document.execCommand("copy");
+    area.remove();
+    if (ok) return true;
+  } catch { /* the clipboard API below is the other path */ }
+  return navigator.clipboard?.writeText(value).then(() => true).catch(() => false) ?? Promise.resolve(false);
+}
+
 function useLinkShare(link: string, text: string) {
   const [copied, setCopied] = useState(false);
-  const copy = async () => {
-    try {
-      await navigator.clipboard.writeText(`${text} ${link}`);
+  const copy = () => {
+    if (!link) return;
+    const value = `${text}\n${link}`;
+    const mark = () => {
       setCopied(true);
-      setTimeout(() => setCopied(false), 1800);
-    } catch {}
+      window.setTimeout(() => setCopied(false), 1800);
+    };
+    const done = copyText(value);
+    if (done === true) mark();
+    else void Promise.resolve(done).then((ok) => { if (ok) mark(); });
   };
   const share = async () => {
     try {
@@ -294,7 +318,7 @@ function ShareLink({ link, money, item, kind }: { link: string; money: string; i
       <p className="text-[15px] leading-relaxed text-ink-2">{shareBlurb(kind)}</p>
       <div className="flex items-center gap-2 rounded-2xl bg-white/5 py-1.5 pl-4 pr-1.5">
         <span className="min-w-0 flex-1 truncate font-mono text-xs text-ink-2">{link || "Preparing your link…"}</span>
-        <button type="button" onClick={copy} className="h-10 shrink-0 rounded-full bg-white/10 px-4 text-sm font-medium text-ink hover:bg-white/15">
+        <button type="button" onClick={copy} disabled={!link} className="h-10 shrink-0 rounded-full bg-white/10 px-4 text-sm font-medium text-ink hover:bg-white/15 disabled:opacity-40">
           {copied ? "Copied ✓" : "Copy"}
         </button>
       </div>
@@ -314,7 +338,7 @@ function ShareSheet({ link, money, item, kind }: { link: string; money: string; 
       </div>
       <div className="truncate rounded-2xl bg-white/5 px-4 py-3 font-mono text-xs text-ink-2">{link}</div>
       <Button full onClick={share}>Share link</Button>
-      <Button variant="glass" full onClick={copy}>{copied ? "Copied ✓" : "Copy link"}</Button>
+      <Button variant="glass" full onClick={copy} disabled={!link}>{copied ? "Copied ✓" : "Copy link"}</Button>
     </div>
   );
 }

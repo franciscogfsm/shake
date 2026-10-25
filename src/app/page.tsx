@@ -13,8 +13,9 @@ import { haptic, sfx } from "@/lib/client/sfx";
 import { PaySheet } from "@/components/PaySheet";
 import { Seal } from "@/components/Seal";
 import { Item, Protected, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
+import { PARTS, Story } from "@/components/pitch/Story";
 import { usePitchSession, type PitchSession } from "@/lib/client/pitchSession";
-import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer, formatMoney } from "@/lib/config";
+import { DEAL_CONTRACT_ID, explorer, formatMoney } from "@/lib/config";
 
 /**
  * Home: the product explains itself by being used. One tap locks 5 test currency units on Stellar,
@@ -42,7 +43,7 @@ export default function Home() {
   return (
     <Screen
       wide
-      fit
+      fit={phase !== "idle"}
       right={
         <nav className="flex items-center gap-1 lg:gap-2">
           <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Use cases</Link>
@@ -53,7 +54,8 @@ export default function Home() {
         </nav>
       }
     >
-      <div className="flex min-h-0 flex-1 flex-col">
+      {/* idle: the hero fills the first screen and the story scrolls below it */}
+      <div className={phase === "idle" ? "flex min-h-[calc(100svh-3rem)] flex-col lg:h-[calc(100dvh-3rem)] lg:min-h-0" : "flex min-h-0 flex-1 flex-col"}>
       <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-12 xl:gap-16">
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
@@ -116,6 +118,7 @@ export default function Home() {
       </div>
       <Composed />
       </div>
+      {phase === "idle" && <Story onStart={() => setPaying(true)} money={money} />}
       <PaySheet open={paying} onClose={() => setPaying(false)} title={`Lock ${money}`} money={money} currency={currency} country={country.code} onPay={(m) => { setPaying(false); void start(m); }} />
     </Screen>
   );
@@ -271,15 +274,6 @@ function LivePanel({ session, money }: { session: PitchSession; money: string })
     </motion.div>
   );
 }
-
-const PARTS: { chip: string; icon: string; title: string; body: string; href?: string }[] = [
-  { chip: "Soroban", icon: "stellar", title: "Stellar smart contracts", body: "Pays only with the secret inside the seller's one-time QR.", href: explorer.contract(DEAL_CONTRACT_ID) },
-  { chip: "Passkey", icon: "passkey", title: "Face ID wallet", body: "A smart account guarded by a passkey. Nothing to write down.", href: explorer.contract(PASSKEY.webauthnVerifier) },
-  { chip: "OpenZeppelin", icon: "openzeppelin", title: "Sponsored fees", body: "Channels sponsors network fees, with SHAKE's own pool as a fallback.", href: "https://docs.openzeppelin.com/relayer" },
-  { chip: "Test assets", icon: "token", title: "Four test currencies", body: "tEUR, tUSD, tGBP and tBRL as Stellar Asset Contracts.", href: explorer.contract(TOKEN_CONTRACT_ID) },
-  { chip: "SEP-24", icon: "anchor", title: "Testnet cash-out", body: "Live transfer to the test anchor. Bank settlement runs in sandbox mode.", href: "/.well-known/stellar.toml" },
-  { chip: "Receipts", icon: "proof", title: "On-chain proof", body: "Shared links show the locked money, read from the chain.", href: "/try" },
-];
 
 /** One quiet row. Each piece still opens its proof. */
 function Composed() {

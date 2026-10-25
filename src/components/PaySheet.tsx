@@ -29,9 +29,22 @@ function Svg({ vb, h, children }: { vb: string; h: number; children: React.React
 /** A payment method's real mark, drawn for a dark background. */
 export function MethodMark({ id, h = 24 }: { id: MethodId; h?: number }) {
   switch (id) {
-    case "applepay": return <Svg vb="0 4.3 24 15.4" h={h * 1.15}><path fill="#fff" d={P.applepay} /></Svg>;
-    case "googlepay": return <Svg vb="0 7 24 10" h={h * 0.8}><path fill="#fff" d={P.googlepay} /></Svg>;
-    case "visa": return <Svg vb="0 7.6 24 8.8" h={h * 0.7}><path fill="#fff" d={P.visa} /></Svg>;
+    case "applepay": return <img src="/pay/apple.svg" alt="" className="block shrink-0" style={{ height: h }} />;
+    case "googlepay":
+      return (
+        <svg viewBox="0 0 48 48" height={h} width={h} aria-hidden className="block shrink-0">
+          <path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z" />
+          <path fill="#FF3D00" d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z" />
+          <path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238C29.211 35.091 26.715 36 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z" />
+          <path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303c-.792 2.237-2.231 4.166-4.087 5.571l6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z" />
+        </svg>
+      );
+    case "visa":
+      return (
+        <span className="grid h-7 place-items-center rounded-[6px] bg-white px-1.5">
+          <Svg vb="0 7.6 24 8.8" h={h * 0.46}><path fill="#1A1F71" d={P.visa} /></Svg>
+        </span>
+      );
     case "mastercard":
       return (
         <Svg vb="0 0 38 24" h={h * 1.05}>
@@ -44,13 +57,7 @@ export function MethodMark({ id, h = 24 }: { id: MethodId; h?: number }) {
     case "pix": return <Svg vb="0 0 24 24" h={h}><path fill="#32BCAD" d={P.pix} /></Svg>;
     case "revolut": return <Svg vb="2 0 20 24" h={h * 0.9}><path fill="#fff" d={P.revolut} /></Svg>;
     case "sepa": return <Svg vb="0 8.5 24 7" h={h * 0.6}><path fill="#fff" d={P.sepa} /></Svg>;
-    case "mbway":
-      // shortcut: no free MB WAY vector exists, so this is a type badge in its brand red; swap in the official SVG if the team has it
-      return (
-        <span className="inline-flex shrink-0 items-baseline gap-[0.18em] rounded-[5px] bg-[#D60510] px-[0.42em] py-[0.16em] font-display font-black leading-none text-white" style={{ fontSize: h * 0.58 }}>
-          MB<span className="font-bold tracking-[0.02em]">WAY</span>
-        </span>
-      );
+    case "mbway": return <img src="/pay/mbway.svg" alt="" className="block shrink-0" style={{ height: h * 0.78 }} />;
   }
 }
 
