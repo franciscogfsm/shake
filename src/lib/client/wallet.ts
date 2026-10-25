@@ -1,6 +1,7 @@
 "use client";
 import { Address, Keypair, TransactionBuilder, authorizeEntry, xdr } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, type CurrencyCode } from "@/lib/config";
+import { nidoAddress, signWithNido } from "./nido";
 import { passkeyAddress, signWithPasskey } from "./passkey";
 
 const KEY = "shake.key.v1";
@@ -27,8 +28,8 @@ export const hasWallet = () => {
   }
 };
 
-/** Is this address one of this phone's wallets (the invisible key or the Face ID smart account)? */
-export const isMine = (address: string | null | undefined) => !!address && (address === getKeypair().publicKey() || address === passkeyAddress());
+/** Is this address one of this phone's wallets (the invisible key, the Face ID smart account or Nido)? */
+export const isMine = (address: string | null | undefined) => !!address && (address === getKeypair().publicKey() || address === passkeyAddress() || address === nidoAddress());
 
 export class ApiError extends Error {}
 
@@ -68,6 +69,7 @@ export async function callDeal(
   onStep?.("signing");
   const me = kp.publicKey();
   const pk = passkeyAddress();
+  const nido = nidoAddress();
   const auth = await Promise.all(
     prep.auth.map(async (b64) => {
       const entry = xdr.SorobanAuthorizationEntry.fromXDR(b64, "base64");
@@ -75,6 +77,7 @@ export async function callDeal(
       if (cred.switch().name !== "sorobanCredentialsAddress") return b64;
       const who = Address.fromScAddress(cred.address().address()).toString();
       if (who === pk) return (await signWithPasskey(entry, prep.latestLedger + 100)).toXDR("base64");
+      if (who === nido) return (await signWithNido(entry, prep.latestLedger + 100)).toXDR("base64");
       if (who !== me) return b64;
       const signed = await authorizeEntry(entry, kp, prep.latestLedger + 100, NETWORK_PASSPHRASE);
       return signed.toXDR("base64");

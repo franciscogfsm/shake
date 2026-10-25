@@ -36,6 +36,7 @@ export const SFX = {
   coin: ["Single bright clean coin clink, premium, short", 0.6],
   stamp: ["Heavy rubber stamp slammed on paper, short punchy thud", 0.6],
   dissolve: ["Digital particles disintegrating, soft sparkling dissolve whoosh", 1.2],
+  faceid: ["Soft futuristic biometric face scan: a quick airy glassy shimmer sweep resolving into a gentle bright two-note confirmation ping, minimal premium phone UI", 1.4],
   outro: ["Cinematic final impact hit followed by a warm uplifting resolving synth pad chord with a long shimmering reverb tail, premium, no drums after the hit", 6],
 };
 

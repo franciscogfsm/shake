@@ -5,12 +5,40 @@
  "takes": 3,
  "tail": 1.6,
  "lines": [
-  { "id": "intro", "gap": 0.6, "text": "Meet Sam. He found the perfect bike online... from a total stranger." },
-  { "id": "problem", "gap": 0.35, "text": "But who pays first? Pay upfront, and the bike might never show. And Ana? She's seen fake payment screenshots before." },
-  { "id": "turn", "gap": 0.55, "text": "So they shake on it." },
-  { "id": "flow", "gap": 1.6, "text": "Sam locks the money in one tap. Ana sees it's real, locked on Stellar. They meet, Sam scans her code... and she's paid." },
-  { "id": "more", "gap": 1.1, "text": "No signal? Still works. It's right inside Vinted and OLX. And Claude or ChatGPT can set it all up... but never touch your money." },
-  { "id": "cases", "gap": 0.35, "text": "Cars, flats, parcels... even your event crew, paid the moment they check in." },
-  { "id": "end", "gap": 0.6, "text": "SHAKE. Pay a stranger, only when you meet." }
+  {
+   "id": "intro",
+   "gap": 0.6,
+   "text": "Meet Sam. He found the perfect bike online... from a total stranger."
+  },
+  {
+   "id": "problem",
+   "gap": 0.35,
+   "text": "But who pays first? Pay upfront, and the bike might never show. And Ana? She's seen fake payment screenshots before."
+  },
+  {
+   "id": "turn",
+   "gap": 0.55,
+   "text": "So they shake on it."
+  },
+  {
+   "id": "flow",
+   "gap": 1.6,
+   "text": "Sam locks the money with a glance. Face ID makes his wallet. Nothing to write down. Ana sees it's real, locked on Stellar. They meet, Sam scans her code... and she's paid."
+  },
+  {
+   "id": "more",
+   "gap": 1.1,
+   "text": "No signal? Still works. It's right inside Vinted and OLX. And Claude or ChatGPT can set it all up... but never touch your money."
+  },
+  {
+   "id": "cases",
+   "gap": 0.35,
+   "text": "Cars, flats, parcels... even your event crew, paid the moment they check in."
+  },
+  {
+   "id": "end",
+   "gap": 0.6,
+   "text": "SHAKE. Pay a stranger, only when you meet."
+  }
  ]
 }

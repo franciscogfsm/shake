@@ -239,12 +239,48 @@ function FakeShot({ t, a, lie, gone }: { t: number; a: number; lie: number; gone
   );
 }
 
+/** the system Face ID sheet: brackets draw in, the face turns while it scans, then a check. The real app makes a passkey wallet here. */
+function FaceId({ t, a, ok, out, k }: { t: number; a: number; ok: number; out: number; k: number }) {
+  const inn = spr(t, a, SPR.snappy), o = lerp(t, [a, a + 0.15]) * (1 - lerp(t, [out, out + 0.25]));
+  if (o <= 0) return null;
+  const draw = lerp(t, [a + 0.05, a + 0.45], [0, 1], io), scan = t < ok, done = lerp(t, [ok, ok + 0.3], [0, 1], io);
+  const turn = scan ? Math.sin((t - a) * 7) * 26 * lerp(t, [a + 0.3, a + 0.5]) : 0;
+  const pop = 1 + 0.08 * Math.sin(Math.PI * lerp(t, [ok, ok + 0.3]));
+  const col = done > 0 ? C.safe : "#fff";
+  const line = { fill: "none", stroke: col, strokeWidth: 5, strokeLinecap: "round", strokeLinejoin: "round" } as const;
+  const dash = (len: number, p: number) => ({ strokeDasharray: len, strokeDashoffset: len * (1 - p) });
+  return (
+    <div style={{ position: "absolute", inset: 0, background: `rgba(0,0,0,${0.45 * o})`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+      <div style={{ width: 210 * k, height: 210 * k, borderRadius: 46 * k, background: "rgba(38,42,48,.92)", boxShadow: "0 30px 80px rgba(0,0,0,.5)", border: "1px solid rgba(255,255,255,.1)", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 14 * k, opacity: o, transform: `scale(${(0.85 + 0.15 * inn) * pop})` }}>
+        <div style={{ width: 104 * k, height: 104 * k, perspective: 300, filter: done > 0 ? `drop-shadow(0 0 ${14 * done}px ${C.safe})` : undefined }}>
+          <svg viewBox="0 0 100 100" width="100%" height="100%" style={{ overflow: "visible" }}>
+            {["M8 30V18a10 10 0 0 1 10-10h12", "M70 8h12a10 10 0 0 1 10 10v12", "M92 70v12a10 10 0 0 1-10 10H70", "M30 92H18A10 10 0 0 1 8 82V70"].map((d) => (
+              <path key={d} d={d} {...line} {...dash(40, draw)} opacity={1 - done} />
+            ))}
+            <g style={{ transform: `rotateY(${turn}deg)`, transformOrigin: "50px 50px", transformBox: "view-box" } as React.CSSProperties} opacity={1 - done}>
+              <path d="M34 36v8M66 36v8" {...line} {...dash(10, lerp(t, [a + 0.25, a + 0.4]))} />
+              <path d="M52 36v18h-5" {...line} {...dash(30, lerp(t, [a + 0.3, a + 0.5]))} />
+              <path d="M36 66c8 7 20 7 28 0" {...line} {...dash(32, lerp(t, [a + 0.35, a + 0.55]))} />
+            </g>
+            <circle cx="50" cy="50" r="42" {...line} {...dash(265, done)} transform="rotate(-90 50 50)" />
+            <path d="M31 51l13 13 26-28" {...line} strokeWidth={6} {...dash(60, lerp(t, [ok + 0.12, ok + 0.4], [0, 1], io))} />
+          </svg>
+        </div>
+        <div style={{ fontFamily: F.text, fontSize: 19 * k, fontWeight: 500, color: "#fff" }}>Face ID</div>
+      </div>
+    </div>
+  );
+}
+
 /* ───────── 2 · lock → Ana sees it → they meet → paid. One continuous camera, real screens. ───────── */
 function Flow({ t }: { t: number }) {
-  const a = W("flow", "Sam") - 0.5, tap = W("flow", "tap") - 0.12;
+  const a = W("flow", "Sam") - 0.5, tap = W("flow", "money") - 0.12;
+  // Face ID makes his wallet (a passkey), then the real lock screen reads "Face ID wallet · paying with Apple Pay"
+  const fid = W("flow", "glance") - 0.1, fidOk = W("flow", "Face") + 0.4, wallet = W("flow", "wallet") + 0.15, nothing = W("flow", "Nothing");
+  const zoom = win(t, fid - 0.2, wallet + 0.2, 0.5, 0.5);
   const ana = W("flow", "Ana") - 0.32, real = W("flow", "real"), locked = W("flow", "locked");
   const meet = W("flow", "They") - 0.3, scans = W("flow", "scans"), her = W("flow", "her") - 0.05;
-  const hold = P("flow", 2).end - 0.12, paid = HIT.paid;
+  const hold = P("flow", 4).end - 0.12, paid = HIT.paid;
   const s = t - paid;
   const [sx, sy] = shake(s, 16);
   const rise = spr(t, a, { stiffness: 110, damping: 20 });
@@ -253,7 +289,7 @@ function Flow({ t }: { t: number }) {
   const anaX = 2300 - 1080 * lerp(t, [ana, ana + 0.75], [0, 1], io) + 20 * back;
   const k = 420 / 393;
   // overlays are in the phone's own pixels, then shifted by the status bar the frame draws on top
-  const tapAt = { x: 107, y: 520 + 50 }; // Apple Pay, measured on d-pay.png
+  const tapAt = { x: 107, y: 432 + 50 }; // Apple Pay, measured on d-pay.png
   const holdAt = { x: 199, y: 557 + 50 }; // the coin, measured on the hold frames
   // Sam's phone faces Ana's while it scans, then turns back so we see him hold
   const turn = spr(t, her, { stiffness: 150, damping: 24 });
@@ -275,8 +311,9 @@ function Flow({ t }: { t: number }) {
       {/* 2a · Sam locks */}
       <div style={{ position: "absolute", left: 1120, top: 540, transform: `translate(${-away * 900}px, -50%)`, opacity: lerp(t, [a + 0.2, a + 0.5]) * (1 - lerp(t, [ana, ana + 0.4])) }}>
         <Rise t={t} at={a + 0.3}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>Sam · buying</div></Rise>
-        <Head t={t} size={104} parts={[[`Locks ${EUR("400")}`, W("flow", "locks")], ["in one tap.", W("flow", "one"), "grad"]]} />
-        <Rise t={t} at={tap + 0.35} style={{ marginTop: 34, fontFamily: F.text, fontSize: 28, color: C.ink2 }}>No sign-up. No app to install.</Rise>
+        <Head t={t} size={104} parts={[[`Locks ${EUR("400")}`, W("flow", "locks")], ["with a glance.", W("flow", "glance"), "grad"]]} />
+        <Rise t={t} at={W("flow", "Face") - 0.05} style={{ marginTop: 34, fontFamily: F.text, fontSize: 30, color: C.ink }}>Face ID makes his wallet.</Rise>
+        <Rise t={t} at={nothing - 0.05} style={{ marginTop: 10, fontFamily: F.text, fontSize: 30, color: C.ink2 }}>Nothing to write down. No app to install.</Rise>
       </div>
       {/* 2b · Ana sees it */}
       <div style={{ position: "absolute", left: 150, top: 540, transform: `translate(${(1 - lerp(t, [ana, ana + 0.75], [0, 1], io)) * 900 - back * 900}px, -50%)`, opacity: lerp(t, [ana + 0.2, ana + 0.5]) * (1 - lerp(t, [meet, meet + 0.35])) }}>
@@ -302,10 +339,11 @@ function Flow({ t }: { t: number }) {
       <div style={{ position: "absolute", inset: 0, transform: `scale(${push})` }}>
         {/* light from Sam's camera to Ana's code */}
         <div style={{ position: "absolute", inset: 0, opacity: beam * 0.75, background: "linear-gradient(90deg, transparent, rgba(143,211,255,.25), transparent)", clipPath: `polygon(${samX + 100}px ${phoneY + 40}px, ${anaX - 140}px ${phoneY + 40 - qr.h * 0.45}px, ${anaX - 140}px ${phoneY + 40 + qr.h * 0.35}px)`, filter: "blur(8px)" }} />
-        <Stage x={samX} y={samY} ry={samRy + Math.sin(t * 0.7) * 2} rx={3 + Math.sin(t * 0.5) * 1.2} s={scale}>
-          <Phone w={420} glow={0.35 + tension * 0.7} layers={cuts(t, [[a, "d-pay.png"], [tap, "d-picked.png"], [tap + 0.42, "d-locking.png"], [tap + 0.95, "d-locking2.png"], [ana - 0.15, "d-share.png"], [meet, "d-scan0.png"], [her, "d-confirm.png"], [hold, "d-hold0.png"], [hold + 0.25, "d-hold1.png"], [hold + 0.5, "d-hold2.png"], [paid, "d-shaken3.png"]], 0.12)}>
+        <Stage x={samX + 40 * zoom} y={samY} ry={samRy * (1 - zoom * 0.6) + Math.sin(t * 0.7) * 2} rx={3 + Math.sin(t * 0.5) * 1.2} s={scale}>
+          <Phone w={420} glow={0.35 + tension * 0.7 + 0.4 * win(t, fidOk, wallet + 0.4, 0.1, 0.4)} layers={cuts(t, [[a, "d-pay.png"], [tap, "d-picked.png"], [wallet, "d-locking.png"], [nothing + 0.3, "d-locking2.png"], [ana - 0.15, "d-share.png"], [meet, "d-scan0.png"], [her, "d-confirm.png"], [hold, "d-hold0.png"], [hold + 0.25, "d-hold1.png"], [hold + 0.5, "d-hold2.png"], [paid, "d-shaken3.png"]], 0.12)}>
             <div style={{ position: "absolute", left: tapAt.x * k - 36, top: tapAt.y * k - 36, width: 72, height: 72, borderRadius: 72, background: "rgba(255,255,255,.38)", opacity: press, transform: `scale(${0.6 + press * 0.4})` }} />
             {ripple > 0 && ripple < 1 && <div style={{ position: "absolute", left: tapAt.x * k - 95 * ripple, top: tapAt.y * k - 95 * ripple, width: 190 * ripple, height: 190 * ripple, borderRadius: 999, border: `2px solid ${C.safe}`, opacity: 1 - ripple }} />}
+            <FaceId t={t} a={fid} ok={fidOk} out={wallet - 0.1} k={k} />
             {t > hold - 0.2 && t < paid && <div style={{ position: "absolute", left: holdAt.x * k - 38, top: holdAt.y * k - 38, width: 76, height: 76, borderRadius: 76, background: "rgba(255,255,255,.3)", boxShadow: "0 0 34px rgba(143,211,255,.7)", opacity: lerp(t, [hold - 0.2, hold]) }} />}
             <div style={{ position: "absolute", inset: 0, background: "#fff", opacity: flash }} />
           </Phone>
@@ -330,7 +368,8 @@ function Flow({ t }: { t: number }) {
         <Burst s={s} x={midX} y={phoneY + 40} scale={1.1} />
       </div>
 
-      <Label t={t} a={tap + 0.5} b={ana + 0.2}>Apple Pay, cards or MB WAY · no account</Label>
+      <Label t={t} a={tap + 0.4} b={fidOk}>Apple Pay, cards or MB WAY · no account</Label>
+      <Label t={t} a={fidOk + 0.1} b={ana + 0.2}>Passkey wallet on Stellar · its key never leaves the phone</Label>
       <Label t={t} a={locked + 0.1} b={meet + 0.1}>Read live from the Stellar network</Label>
       <Label t={t} a={paid + 0.4} b={W("more", "No") - 0.3}>Released in about 5 seconds · on-chain receipt</Label>
     </AbsoluteFill>
@@ -689,9 +728,9 @@ const CUES: Cue[] = [
   // they shake on it
   ["riser", HIT.shake - 2.4, 0.5], ["slam", HIT.shake - 0.04, 0.55], ["shimmer", HIT.shake + 0.1, 0.45],
   // lock · see · meet · paid
-  ["whoosh", W("flow", "Sam") - 0.5, 0.4], ["tick", W("flow", "tap") - 0.12, 0.7], ["lock", W("flow", "tap") + 0.9, 0.55],
+  ["whoosh", W("flow", "Sam") - 0.5, 0.4], ["tick", W("flow", "money") - 0.12, 0.7], ["faceid", W("flow", "glance") - 0.05, 0.6], ["lock", W("flow", "Nothing") + 0.3, 0.55],
   ["whoosh", W("flow", "Ana") - 0.32, 0.45, 1.1], ["shimmer", W("flow", "real"), 0.4],
-  ["whoosh", W("flow", "They") - 0.3, 0.45, 0.9], ["beep", W("flow", "her") - 0.1, 0.55], ["heart", P("flow", 2).end - 0.3, 0.4], ["riser", HIT.paid - 1.6, 0.4, 1.3],
+  ["whoosh", W("flow", "They") - 0.3, 0.45, 0.9], ["beep", W("flow", "her") - 0.1, 0.55], ["heart", P("flow", 4).end - 0.3, 0.4], ["riser", HIT.paid - 1.6, 0.4, 1.3],
   ["slam", HIT.paid - 0.04, 0.5], ["chime", HIT.paid + 0.12, 0.45], ["shimmer", HIT.paid + 0.15, 0.35],
   // no signal · extension · AI
   ["blip", W("more", "No") - 0.25, 0.5], ["whoosh", W("more", "No") - 0.3, 0.4], ["chime", W("more", "Still") - 0.05, 0.35, 1.15],

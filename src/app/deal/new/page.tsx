@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Mark, springs } from "@/components/Mark";
 import { PaySheet } from "@/components/PaySheet";
@@ -15,17 +15,20 @@ import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
 import { buyerKey } from "@/lib/client/offline";
-import { ensurePasskeyWallet, fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
+import { fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
+import { nidoAddress, nidoStatus } from "@/lib/client/nido";
+import { NidoMark, NidoSheet } from "@/components/NidoSheet";
 import { KIND_ORDER, KINDS, type Kind } from "@/lib/kinds";
 import { haptic, sfx } from "@/lib/client/sfx";
 
 const MAX = 2000;
 const DAY = 24 * 60 * 60;
 type Phase = "form" | "locking" | "failed";
-const steps = (faceId: boolean, via: string) => [
-  { key: "account", label: faceId ? (via ? `Face ID wallet · paying with ${via}` : "Creating your Face ID wallet") : via ? `Paying with ${via} · test money` : "Setting up your money" },
+type Wallet = "key" | "nido";
+const steps = (wallet: Wallet, via: string) => [
+  { key: "account", label: wallet === "nido" ? `Nido wallet · paying with ${via || "test money"}` : via ? `Paying with ${via} · test money` : "Setting up your money" },
   { key: "preparing", label: "Preparing the lock" },
-  { key: "signing", label: "Signing on this phone" },
+  { key: "signing", label: wallet === "nido" ? "Face ID signs for your Nido account" : "Signing on this phone" },
   { key: "confirming", label: "Confirming on the network" },
 ];
 
@@ -79,9 +82,15 @@ function NewDeal() {
   const [error, setError] = useState("");
   const busy = useRef(false);
   const [faceIdOk, setFaceIdOk] = useState(false);
-  const [faceId, setFaceId] = useState(false);
-  /** The pay sheet is open (true/false = with or without Face ID), and the method picked in it. */
-  const [paying, setPaying] = useState<boolean | null>(null);
+  const [wallet, setWallet] = useState<Wallet>("key");
+  /** The pay sheet is open for that wallet, and the method picked in it. */
+  const [paying, setPaying] = useState<Wallet | null>(null);
+  const [nidoOpen, setNidoOpen] = useState(false);
+  // Nido approved: pick how to pay, then lock from the Nido account
+  const onNidoReady = useCallback(() => {
+    setNidoOpen(false);
+    setPaying("nido");
+  }, []);
   const [via, setVia] = useState("");
   useEffect(() => setFaceIdOk(passkeySupported()), []);
   const [country, setCountry] = useCountry();
@@ -124,19 +133,19 @@ function NewDeal() {
   };
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
-  const lock = async (withFaceId = faceId) => {
+  const lock = async (using = wallet) => {
     if (!valid || busy.current) return;
-    setFaceId(withFaceId);
+    setWallet(using);
     busy.current = true;
     setPhase("locking");
     setError("");
     try {
       const kp = getKeypair();
       setStep("account");
-      // Face ID: an OpenZeppelin smart account (C… address) is the buyer; otherwise the invisible key
+      // Face ID: the buyer is the person's Nido smart account (C… address); otherwise the invisible key
       let buyer = kp.publicKey();
-      if (withFaceId) {
-        buyer = await ensurePasskeyWallet();
+      if (using === "nido") {
+        buyer = nidoAddress()!;
         await fundPasskeyWallet(buyer, amount, currency);
       } else await ensureAccount(kp, amount, currency);
       const dealId = newDealId();
@@ -172,7 +181,10 @@ function NewDeal() {
             onSubmit={(e) => {
               e.preventDefault();
               if (asking) askLink();
-              else if (valid) setPaying(faceIdOk);
+              else if (!valid) return;
+              else if (!faceIdOk) setPaying("key");
+              else if (nidoStatus(currency) === "ready") setPaying("nido");
+              else setNidoOpen(true);
             }}
             className="flex flex-1 flex-col"
           >
@@ -272,6 +284,11 @@ function NewDeal() {
                   {faceIdOk && !asking && <FaceIdIcon />}
                   {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
                 </Button>
+                {faceIdOk && valid && !asking && (
+                  <a href="https://test.nido.fyi" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 text-xs text-mute lg:justify-start">
+                    <NidoMark size={14} />Face ID wallet by Nido · a smart account on Stellar
+                  </a>
+                )}
                 {linkState && <p className="break-all text-center text-sm text-safe lg:text-left" role="status">{linkState}</p>}
                 {!request && (
                   <button type="button" onClick={() => { setAsking(!asking); setLinkState(""); }} className="text-sm text-mute underline-offset-4 hover:underline">
@@ -279,7 +296,7 @@ function NewDeal() {
                   </button>
                 )}
                 {faceIdOk && valid && !asking && (
-                  <button type="button" onClick={() => setPaying(false)} className="text-sm text-mute underline-offset-4 hover:underline">
+                  <button type="button" onClick={() => setPaying("key")} className="text-sm text-mute underline-offset-4 hover:underline">
                     Lock without Face ID
                   </button>
                 )}
@@ -299,7 +316,7 @@ function NewDeal() {
             locale={country.locale}
             phase={phase}
             step={step}
-            faceId={faceId}
+            wallet={wallet}
             via={via}
             error={error}
             onRetry={() => lock()}
@@ -315,18 +332,19 @@ function NewDeal() {
         currency={currency}
         country={country.code}
         onPay={(m) => {
-          const withFaceId = !!paying;
+          const using = paying ?? "key";
           setPaying(null);
           setVia(m);
-          void lock(withFaceId);
+          void lock(using);
         }}
       />
+      <NidoSheet open={nidoOpen} onClose={() => setNidoOpen(false)} currency={currency} onReady={onNidoReady} />
     </Screen>
   );
 }
 
 function LockMoment({
-  item, amount, currency, locale, phase, step, faceId, via, error, onRetry, onEdit,
+  item, amount, currency, locale, phase, step, wallet, via, error, onRetry, onEdit,
 }: {
   item: string;
   amount: number;
@@ -334,7 +352,7 @@ function LockMoment({
   locale: string;
   phase: "locking" | "failed";
   step: string | null;
-  faceId: boolean;
+  wallet: Wallet;
   via: string;
   error: string;
   onRetry: () => void;
@@ -343,7 +361,7 @@ function LockMoment({
   const reduce = useReducedMotion();
   const sym = moneyParts(amount || 0, currency, locale);
   const failed = phase === "failed";
-  const list = steps(faceId, via);
+  const list = steps(wallet, via);
   const active = list.find((s) => s.key === step);
 
   return (
