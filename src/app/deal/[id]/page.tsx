@@ -9,6 +9,7 @@ import { Mark } from "@/components/Mark";
 import { Seal } from "@/components/Seal";
 import { SellerQR } from "@/components/SellerQR";
 import { ShakeBurst } from "@/components/ShakeBurst";
+import { ShakeMoment } from "@/components/ShakeMoment";
 import { HashTyper, NumberTicker } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
 import { currencyOfToken, explorer, formatMoney, fromUnits } from "@/lib/config";
@@ -41,7 +42,7 @@ function DealScreen() {
 
   const role = deal.buyer === me ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
-  const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
+  const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
   return (
     <Screen right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
@@ -63,7 +64,7 @@ function DealScreen() {
   );
 }
 
-type ViewProps = { deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
+type ViewProps = { deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; replay?: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
 
 /* ------------------------------ buyer ------------------------------ */
 
@@ -279,31 +280,31 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
 
 /* ------------------------------ endings ------------------------------ */
 
-function Released({ deal, events, role, locale, currency }: ViewProps & { role: string }) {
+function Released({ deal, events, role, locale, currency, replay }: ViewProps & { role: string }) {
   const euros = fromUnits(deal.amount);
   const rel = eventOf(events, "released");
-  const [burst, setBurst] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setBurst(true), 150);
-    navigator.vibrate?.([20, 40, 60]);
-    return () => clearTimeout(t);
-  }, []);
+  // play the full shake on both phones when the release just happened (or this phone just shook)
+  const [fresh] = useState(() => replay || !rel || Date.now() - new Date(rel.at).getTime() < 90_000);
+  const [burst, setBurst] = useState(!fresh);
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
-      <div className="relative grid size-56 place-items-center">
+      <ShakeMoment play={fresh} onDone={() => setBurst(true)} />
+      <Stagger className="flex flex-1 flex-col items-center justify-center gap-8" delay={0.05} key={String(burst)}>
+      <Item className="relative grid size-56 place-items-center">
         <ShakeBurst fire={burst} size={224} />
         <Mark size={128} state={burst ? "shut" : "open"} />
-      </div>
-      <div>
+      </Item>
+      <Item>
         <div className="eyebrow">{role === "seller" ? "Paid to you" : "Released to the seller"}</div>
         <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px]" />
         <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2">Final. No chargebacks. No screenshots.</p>
-      </div>
-      <Seal />
-      <div className="flex w-full flex-col gap-3">
+      </Item>
+      <Item>{burst && <Seal />}</Item>
+      <Item className="flex w-full flex-col gap-3">
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
         {rel && <a href={explorer.tx(rel.txHash)} target="_blank" rel="noreferrer" className="text-sm text-mute hover:text-safe">Proof on Stellar ↗</a>}
-      </div>
+      </Item>
+      </Stagger>
     </div>
   );
 }
