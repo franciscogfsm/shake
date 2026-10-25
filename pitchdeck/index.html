@@ -579,6 +579,30 @@ h2 span{color:var(--dim)}
 /* real app screenshots inside the shared phones */
 .sc.shot{padding:0}
 .sc.shot img{display:block;width:100%;height:100%;object-fit:cover;object-position:top}
+/* workflow: buyer · contract · seller, one row per step */
+.seq{display:flex;flex-direction:column;gap:calc(var(--u)*1);margin-top:calc(var(--u)*2.6)}
+.sqh,.sqr{display:grid;grid-template-columns:1fr calc(var(--u)*6) 1.4fr calc(var(--u)*6) 1fr;align-items:center}
+.sqh span{text-align:center;font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.25);color:var(--mute);padding-bottom:calc(var(--u)*.7);border-bottom:1px solid var(--line)}
+.sqh span:nth-child(3){color:var(--ice);border-color:rgba(143,211,255,.4)}
+.sqr{opacity:.12;transform:translateY(8px);transition:opacity .6s var(--ease),transform .7s var(--ease)}
+.sqr.x{opacity:1;transform:none}
+.sqc{padding:calc(var(--u)*1) calc(var(--u)*1.2);border-radius:calc(var(--u)*1);border:1px solid var(--line);background:rgba(255,255,255,.04);font-size:calc(var(--u)*1.25);line-height:1.35;text-align:center}
+.sqc.sqm{border-color:rgba(143,211,255,.3);background:rgba(143,211,255,.06)}
+.sqc.hi{border-color:rgba(143,211,255,.8);font-weight:600;box-shadow:0 0 34px -10px var(--ice)}
+.sqc.ok{border-color:rgba(143,211,255,.5);color:var(--ice);font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.5)}
+.sqc.ok2{color:var(--mute);font-family:var(--display);font-weight:700;font-size:calc(var(--u)*1.4)}
+.sqa{position:relative;height:2px;margin:0 calc(var(--u)*.6);background:rgba(255,255,255,.1)}
+.sqa::after{content:"";position:absolute;inset:0;background:var(--ice);box-shadow:0 0 10px var(--ice);transform:scaleX(0);transform-origin:left;transition:transform .7s var(--ease) .15s}
+.sqa.to-l::after{transform-origin:right}
+.sqa::before{content:"";position:absolute;top:-5px;width:0;height:0;border-top:6px solid transparent;border-bottom:6px solid transparent;opacity:0;transition:opacity .3s .7s}
+.sqa.to-r::before{right:-3px;border-left:9px solid var(--ice)}
+.sqa.to-l::before{left:-3px;border-right:9px solid var(--ice)}
+.sqr.x .sqa::after{transform:scaleX(1)}
+.sqr.x .sqa::before{opacity:1}
+.sqr.dim .sqa::after{background:rgba(255,255,255,.4);box-shadow:none}
+.sqr.dim .sqa.to-l::before{border-right-color:rgba(255,255,255,.4)}
+.feas{display:flex;flex-wrap:wrap;gap:calc(var(--u)*.7);margin-top:calc(var(--u)*2.4)}
+.feas span{font-size:calc(var(--u)*1.05);padding:calc(var(--u)*.5) calc(var(--u)*1.1);border-radius:99px;border:1px solid rgba(143,211,255,.3);background:rgba(143,211,255,.06)}
 /* reveal tally */
 .rside{display:flex;flex-direction:column;gap:calc(var(--u)*1.4);justify-self:center;width:calc(var(--u)*28)}
 .rside .try{width:auto;padding:calc(var(--u)*1.8)}
@@ -774,6 +798,19 @@ h2 span{color:var(--dim)}
   </div></div>
 </section>
 
+<section class="slide" data-n="Workflow">
+ <p class="eyebrow r">Under the hood</p>
+ <h2 class="r" style="--d:1">Two phones. One public contract.<br><span>Nobody in the middle.</span></h2>
+ <div class="seq r" style="--d:2">
+  <div class="sqh"><span>Buyer's phone</span><i></i><span>The contract, on Stellar</span><i></i><span>Seller's phone</span></div>
+  <div class="sqr"><p class="sqc">Locks 400€ with Face ID</p><i class="sqa to-r"></i><p class="sqc sqm">Holds the money</p><i></i><p></p></div>
+  <div class="sqr"><p></p><i></i><p class="sqc sqm">Saves a fingerprint of the seller's one-time code</p><i class="sqa to-l"></i><p class="sqc">Joins the deal</p></div>
+  <div class="sqr"><p class="sqc">Scans the code and approves</p><i class="sqa to-r"></i><p class="sqc sqm hi">Code matches: pays the seller</p><i class="sqa to-r"></i><p class="sqc ok">Paid ✓</p></div>
+  <div class="sqr dim"><p class="sqc ok2">Refunded</p><i class="sqa to-l"></i><p class="sqc sqm">No deal by the deadline: refunds the buyer</p><i></i><p></p></div>
+ </div>
+ <div class="feas r" style="--d:3"><span>Live on Stellar Testnet</span><span>27 contract tests</span><span>Fees paid by us</span><span>Works with no signal</span></div>
+</section>
+
 <section class="slide" data-n="Market">
  <p class="eyebrow r">Market</p>
  <h2 class="r" style="--d:1">Europeans buy 121bn€ of second-hand goods online every year.<br><span>Paying for it still runs on trust.</span></h2>
@@ -914,6 +951,7 @@ const CAPTIONS={
  Ways:"Two ways to start a SHAKE deal without opening our app. Left, the browser extension adds a button to the listing. Right, an AI assistant sets the deal up for you, but it has no way to release the money: only the buyer can.",
  "Use cases":"The four kinds of deal where paying first hurts most.",
  Trust:"We never hold the money. The contract can only pay the seller or refund the buyer, and anyone can check it.",
+ Workflow:"The whole deal in four steps. The money only ever sits in a public contract: SHAKE never holds it, and the seller is paid only when the buyer approves with the seller's code.",
  Market:"How big the market is, where it happens, and what SHAKE could earn. Drag the slider to change how much of the market runs through SHAKE.",
  Built:"Everything here was built by two people during HackMeridian. The commit history proves it.",
  Decide:"Test money only. Hold the ring for about 2 seconds to shake on it.",
@@ -1042,7 +1080,7 @@ function buildQR(){const u=CFG.TRY_URL;$("#tryurl").textContent=u.replace(/^http
 let tok=0;
 function run(fn){const my=++tok,alive=()=>my===tok,S=ms=>new Promise((ok,no)=>setTimeout(()=>alive()?ok():no(0),REDUCED?0:ms));fn(S).catch(()=>{})}
 const SL=$$(".slide"),IX=n=>SL.findIndex(s=>s.dataset.n===n),UC=IX("Use cases"),DECIDE=IX("Decide"),REVEAL=IX("Reveal");
-const G={Start:.12,Hook:.02,Problem:0,Solution:.3,"Living Proof":.25,Product:.5,Offline:.45,Ship:.3,Demo:.2,Ways:.35,"Shake to Bank":.4,"Use cases":.2,"Both win":.55,Trust:.45,Market:.25,Built:.25,Decide:.35,Reveal:.95};
+const G={Start:.12,Hook:.02,Problem:0,Solution:.3,"Living Proof":.25,Product:.5,Offline:.45,Ship:.3,Demo:.2,Ways:.35,"Shake to Bank":.4,"Use cases":.2,"Both win":.55,Trust:.45,Workflow:.35,Market:.25,Built:.25,Decide:.35,Reveal:.95};
 const flash=()=>{const f=$("#flash");f.classList.remove("x");void f.offsetWidth;add(f)};
 const P={
  Hook:async(s,S)=>{const m=$$(".msg,.rcpt",s),o=$$(".opt",s),r=$("#rcpt");await S(900);for(let i=0;i<m.length;i++){add(m[i]);await S(i===2?500:700)}
@@ -1073,6 +1111,7 @@ const P={
   (async()=>{await S(900);for(;;){b.classList.remove("b1","b2","b3");await S(900);add(b,"b1");await S(1500);add(b,"b2");ripple($(".paybtn",b),"140,207,255");await S(350);add(b,"b3");await S(3800)}})().catch(()=>{});
   await S(1600);for(const e of $$(".usm,.tool,.aim",s)){add(e);if(e.classList.contains("lockd"))ripple(e,"140,207,255");await S(e.classList.contains("usm")?1000:e.classList.contains("tool")?650:1300)}},
  "Use cases":async(s,S)=>{paused=false;$("#tabs").classList.remove("paused");pick(0,false);await S(400);cycle()},
+ Workflow:async(s,S)=>{await S(1300);for(const r of $$(".sqr",s)){add(r);const hi=$(".hi",r);if(hi)ripple(hi,"140,207,255");await S(1100)}},
  Market:async(s,S)=>{await S(1300);$$(".vb",s).forEach(b=>$("i",b).style.height=b.dataset.v/121*100+"%");add($(".mk3",s));mkRev()},
  Built:async(s,S)=>{const tp=$$(".tp",s);await S(1100);add($(".fill",s));const step=4200/tp.length;for(const e of tp){add(e);await S(step)}},
  Decide:async(s,S)=>{const locked=deal.status==="locked";hold.disabled=$("#notyet").disabled=!locked;
