@@ -4,6 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/Button";
 import { GlassSheet } from "@/components/GlassSheet";
+import { BumpToShake } from "@/components/BumpToShake";
 import { HoldToShake } from "@/components/HoldToShake";
 import { Scanner } from "@/components/Scanner";
 import { Screen, TestnetNote } from "@/components/ui";
@@ -20,6 +21,7 @@ export default function ScanPage() {
   const [code, setCode] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [problem, setProblem] = useState("");
+  const [bump, setBump] = useState(0);
   const [item, setItem] = useState<string | undefined>();
 
   useEffect(() => {
@@ -106,7 +108,8 @@ export default function ScanPage() {
             <h2 className="display mt-3 text-[30px]">Release {formatEuro(euros)} to the seller?</h2>
             <p className="mt-2 text-sm text-ink-2">Only if you have the item in your hands. This is final.</p>
           </div>
-          <HoldToShake onShake={release} hint="about 5 seconds to final" />
+          <BumpToShake armed={!!code} onBump={() => setBump((n) => n + 1)} />
+          <HoldToShake onShake={release} trigger={bump} hint="or hold · about 5 seconds to final" />
         </div>
       </GlassSheet>
     </Screen>

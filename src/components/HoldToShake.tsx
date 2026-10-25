@@ -15,13 +15,15 @@ type Props = {
   onShake: () => Promise<void>;
   disabled?: boolean;
   size?: number;
+  /** Increment to complete the shake without holding (e.g. a physical bump). */
+  trigger?: number;
 };
 
 /**
  * Press and hold: the ring fills, the coin halves pull apart (tension) with a rising tone,
  * letting go early springs back. On completion the halves slam shut with a light burst.
  */
-export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, size = 216 }: Props) {
+export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, size = 216, trigger = 0 }: Props) {
   const progress = useMotionValue(0);
   const offset = useTransform(progress, [0, 1], [CIRC, 0]);
   const reduce = useReducedMotion();
@@ -85,6 +87,14 @@ export function HoldToShake({ label = "Hold to shake", hint, onShake, disabled, 
   };
 
   useEffect(() => () => stopTone(), []);
+
+  useEffect(() => {
+    if (!trigger || disabled || phase === "sending" || phase === "done") return;
+    anim.current?.stop();
+    setPhase("holding");
+    anim.current = animate(progress, 1, { duration: 0.22, ease: "easeIn", onComplete: complete });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [trigger]);
 
   const done = phase === "done";
   return (
