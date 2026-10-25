@@ -71,6 +71,11 @@ Use separate browser profiles because wallets are stored on each device. For pho
 - **QR rotation:** the bound seller can replace the committed hash before settlement, invalidating the previous code.
 - **Refund controls:** buyer cancellation before acceptance, seller cancellation after acceptance, and permissionless refund submission after expiry.
 - **Ship mode (the shake travels in the box):** the seller puts the QR inside the package and the buyer scans it on opening. The seller marks it shipped (with tracking) and delivered; if the buyer stays silent, anyone can release to the seller 3 days after delivery. Before then the buyer can open a problem, which freezes the money until a resolver chosen at lock splits it between buyer and seller. The resolver can never keep it.
+- **Scam check (`/check`):** paste a chat message to catch the MB WAY “request money” trick, “click to receive” links, courier fees, SMS-code requests, urgency and look-alike domains (runs on the phone). Screenshots are read with Claude vision when `ANTHROPIC_API_KEY` is set. A SHAKE link or deal code jumps to the on-chain receipt.
+- **Track record (`/u/[address]`):** deals shaken and walked away from, counted from contract events.
+- **Listing autofill:** paste an OLX or Vinted link as the item; the title and price are filled from the listing (falling back to the link slug).
+- **Safe meetup spots:** nearby police stations, shopping centres, stations and libraries from OpenStreetMap.
+- **Not built yet (roadmap):** Reflector price oracle, path payments, confidential tokens, Circle USDC/EURC, PWA push, PT/EN switch.
 - **Public receipts:** transaction hashes, timestamps, and Stellar Expert links expose the deal's on-chain history.
 
 ### Accounts, currencies, and cash-out
