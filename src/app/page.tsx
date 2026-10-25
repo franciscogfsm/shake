@@ -43,6 +43,7 @@ export default function Home() {
       fit
       right={
         <nav className="flex items-center gap-1 lg:gap-2">
+          <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Use cases</Link>
           <Link href="/extension" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">Extension</Link>
           <Link href="/ai" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">For AI</Link>
           <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-2 hover:text-ink sm:px-3">With a friend</Link>
@@ -136,8 +137,8 @@ function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; mo
         <Protected live className="justify-center lg:justify-start" />
       </Item>
       <Item>
-        <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[13px] text-mute hover:text-ink">
-          Also for shipping, deposits, jobs and orders <span className="text-safe">→</span>
+        <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="text-[13px] text-mute hover:text-ink">
+          Also for cars, flat deposits, parcels and events <span className="text-safe">→</span>
         </Link>
       </Item>
     </Stagger>

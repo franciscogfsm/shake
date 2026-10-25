@@ -11,16 +11,19 @@ export default async function AiPage() {
   const url = `${h.get("x-forwarded-proto") ?? "https"}://${h.get("host") ?? "shake-lake.vercel.app"}/api/mcp`;
   return (
     <Screen wide fit back="/" right={<span className="eyebrow hidden sm:inline">Claude · ChatGPT · Cursor</span>}>
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-5 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:gap-14">
-        <div>
-          <Mark size={36} />
-          <h1 className="display mt-3 text-[34px] leading-[0.96] sm:text-[44px] lg:text-[56px]">Ask your AI.<br /><span className="glacier-text">It can&apos;t touch the money.</span></h1>
-          <p className="mt-2 max-w-[32ch] text-[15px] text-ink-2">It checks the message and makes the link. It can never pay.</p>
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_360px] lg:items-center lg:gap-14">
+        <div className="min-w-0">
+          <div className="flex items-center gap-3 lg:block">
+            <Mark size={32} className="shrink-0 lg:hidden" />
+            <Mark size={36} className="hidden lg:block" />
+            <h1 className="display text-[30px] leading-[0.95] sm:text-[44px] lg:mt-3 lg:text-[56px]">Ask your AI.<br /><span className="glacier-text sm:hidden">It can&apos;t pay.</span><span className="glacier-text hidden sm:inline">It can&apos;t touch the money.</span></h1>
+          </div>
+          <p className="mt-1.5 text-[14px] leading-snug text-ink-2 lg:mt-2 lg:max-w-[36ch] lg:text-[15px]">It checks the message and makes the link. You lock the money.</p>
           <AiDemo />
         </div>
         <McpConnect url={url} />
       </div>
-      <TestnetNote compact className="shrink-0 pb-1 text-left" />
+      <TestnetNote compact className="shrink-0 pt-2 pb-1 text-left lg:pt-0" />
     </Screen>
   );
 }

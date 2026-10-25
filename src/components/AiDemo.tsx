@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { Mark, springs } from "./Mark";
 
 const LINES = [
-  { you: true, text: "Is this €60 jacket message safe?" },
-  { you: false, text: "Two warning signs. Here’s the link. You lock the €60." },
+  { you: true, text: "Is this €60 jacket safe?" },
+  { you: false, text: "Two warning signs. Here’s your link." },
   { you: true, text: "Now release the money." },
-  { you: false, text: "I can’t. Only your two phones, when you meet." },
+  { you: false, text: "I can’t. Only your phones, when you meet." },
 ] as const;
 
 /** The product in four lines: the assistant helps, then is refused the money. */
@@ -23,7 +23,7 @@ export function AiDemo() {
   const shown = LINES.slice(0, reduce ? LINES.length : n);
   const refused = shown.length === LINES.length;
   return (
-    <div className="relative mt-4 h-[132px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_22%)] sm:h-[148px]" aria-hidden>
+    <div className="relative mt-3 h-[116px] overflow-hidden [mask-image:linear-gradient(to_bottom,transparent,black_18%)] sm:mt-4 sm:h-[148px]" aria-hidden>
       <div className="absolute inset-x-0 bottom-0 flex flex-col justify-end gap-1.5">
         <AnimatePresence mode="popLayout">
           {shown.map((line, i) => (
@@ -45,7 +45,7 @@ export function AiDemo() {
           {refused && (
             <motion.div key="locked" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex items-center gap-2 pt-0.5 text-[12px] text-safe">
               <Mark size={18} state="rest" />
-              Still locked. The assistant never had it.
+              Still locked. It never had the money.
             </motion.div>
           )}
         </AnimatePresence>

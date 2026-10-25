@@ -1,6 +1,7 @@
 "use client";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
+import { AnimatePresence, motion } from "motion/react";
 import { springs } from "./Mark";
 
 function ChromeIcon() {
@@ -38,13 +39,14 @@ export function ExtensionInstall() {
     try { await navigator.clipboard.writeText(manager); setCopied(true); }
     catch { setCopied(false); }
   };
-  const steps = ["Extract the ZIP.", `Open ${manager}. Developer mode on.`, "Load unpacked. Pin SHAKE."];
-  return <div id="install" className="glass p-5 lg:p-6">
+  const steps = ["Extract the ZIP.", "Turn on Developer mode.", "Load it and pin SHAKE."];
+  const stepLabel = downloaded ? "In Downloads. Extract the ZIP." : steps[step];
+  return <div id="install" className="glass p-3.5 lg:p-6">
     <div className="flex items-center justify-between gap-3">
-      <div className="eyebrow">One minute · desktop</div>
+      <div className="eyebrow"><span className="lg:hidden">On a computer</span><span className="hidden lg:inline">One minute · desktop</span></div>
       <span className="rounded-full border border-line bg-white/5 px-2.5 py-1 font-mono text-[10px] text-ink-2">v1.0</span>
     </div>
-    <div className="mt-4 flex gap-2" role="group" aria-label="Choose your desktop browser">
+    <div className="mt-3 flex gap-2" role="group" aria-label="Choose your desktop browser">
       {(["Chrome", "Edge"] as const).map((name) => (
         <button key={name} type="button" aria-pressed={browser === name} onClick={() => { setBrowser(name); setCopied(false); }} className={`flex h-10 flex-1 items-center justify-center gap-2 rounded-full border text-sm transition-colors ${browser === name ? "border-safe/50 bg-safe/12 text-ink" : "border-line bg-white/3 text-ink-2 hover:bg-white/8"}`}>
           {name === "Chrome" ? <ChromeIcon /> : <EdgeIcon />}
@@ -52,21 +54,35 @@ export function ExtensionInstall() {
         </button>
       ))}
     </div>
-    <a href="/shake-extension.zip" download onClick={() => setDownloaded(true)} className="btn-liquid relative mt-3 flex h-12 items-center justify-center gap-2 overflow-hidden rounded-full px-6 font-display text-[16px] font-medium text-on-safe">
+    <a href="/shake-extension.zip" download onClick={() => { setDownloaded(true); setStep(0); }} className="btn-liquid relative mt-3 hidden h-12 items-center justify-center gap-2 overflow-hidden rounded-full px-6 font-display text-[16px] font-medium text-on-safe lg:flex">
       <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="M12 3v12m-5-5 5 5 5-5M5 16v4h14v-4" strokeLinecap="round" strokeLinejoin="round" /></svg>
       <span className="relative z-10">Add SHAKE to {browser}</span>
     </a>
-    {downloaded && <p className="mt-3 text-center text-xs text-safe" role="status">In Downloads: extract shake-extension.zip.</p>}
-    <ol className="mt-4 space-y-2">
+    <div className="mt-3 lg:hidden">
+      <div className="flex items-center gap-2.5">
+        <span className="step-dot shrink-0 !size-7 text-[11px]">{downloaded ? 1 : step + 1}</span>
+        <AnimatePresence mode="wait">
+          <motion.span key={stepLabel} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy} className="min-w-0 flex-1 text-[14px] leading-snug text-ink">{stepLabel}</motion.span>
+        </AnimatePresence>
+        {step === 1 && !downloaded && <button type="button" onClick={copy} aria-label={`Copy ${manager}`} className="shrink-0 rounded-full bg-white/8 px-3 py-1 text-xs text-safe">{copied ? "Copied" : "Copy page"}</button>}
+      </div>
+      <div className="mt-2 flex justify-center gap-1.5" aria-hidden>
+        {steps.map((_, n) => <span key={n} className={`h-1 rounded-full ${n === step ? "w-4 bg-safe" : "w-1.5 bg-white/25"}`} />)}
+      </div>
+      <a href="/shake-extension.zip" download onClick={() => { setDownloaded(true); setStep(0); }} className="mt-2.5 block text-center text-[13px] text-ink-2">Download for {browser}</a>
+      <Link href="/deal/new" className="btn-liquid relative mt-2.5 flex h-11 items-center justify-center rounded-full font-display text-[16px] font-medium text-on-safe">Start the payment here</Link>
+    </div>
+    <ol className="mt-4 hidden space-y-2 lg:block">
       {steps.map((label, n) => (
         <li key={n} className="flex items-center gap-3 text-[14px]">
           <motion.span animate={{ scale: step === n ? 1.08 : 1 }} transition={springs.snappy} className={`step-dot shrink-0 !size-6 text-[11px] ${step === n ? "" : "opacity-40"}`}>{n + 1}</motion.span>
-          <span className={`min-w-0 flex-1 truncate ${step === n ? "text-ink" : "text-mute"}`}>{label}</span>
-          {n === 1 && <button type="button" onClick={copy} className="shrink-0 rounded-full bg-white/8 px-3 py-1 text-xs text-safe">{copied ? "Copied" : "Copy"}</button>}
+          <span className={`min-w-0 flex-1 ${step === n ? "text-ink" : "text-mute"}`}>{label}</span>
+          {n === 1 && <button type="button" onClick={copy} aria-label={`Copy ${manager}`} className="shrink-0 rounded-full bg-white/8 px-3 py-1 text-xs text-safe">{copied ? "Copied" : "Copy page"}</button>}
         </li>
       ))}
     </ol>
-    <p className="mt-4 text-[11px] text-mute">Not in the Web Store yet. The button downloads a ZIP. It cannot install itself.</p>
+    {downloaded && <p className="mt-3 hidden text-center text-xs text-safe lg:block" role="status">In Downloads: extract shake-extension.zip.</p>}
+    <p className="mt-4 hidden text-[11px] text-mute lg:block">Not in the Web Store yet. The button downloads a ZIP. It cannot install itself.</p>
   </div>;
 }
 

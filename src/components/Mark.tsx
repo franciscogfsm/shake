@@ -4,8 +4,8 @@ import { useId } from "react";
 
 // Both halves share one seam, so closed = a perfect coin (see docs/design-system.md).
 const SEAM = "V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12Z";
-const LEFT = `M12 2A10 10 0 0 0 12 22${SEAM}`;
-const RIGHT = `M12 2A10 10 0 0 1 12 22${SEAM}`;
+export const LEFT = `M12 2A10 10 0 0 0 12 22${SEAM}`;
+export const RIGHT = `M12 2A10 10 0 0 1 12 22${SEAM}`;
 
 export type MarkState = "rest" | "open" | "shut";
 const OFFSET: Record<MarkState, number> = { rest: 0.6, open: 2.6, shut: 0 };
