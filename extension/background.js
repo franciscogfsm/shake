@@ -4,6 +4,7 @@ chrome.action.onClicked.addListener(async (tab) => {
   try {
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ["extract.js", "content.js"] });
     await chrome.scripting.executeScript({ target: { tabId: tab.id }, func: () => globalThis.ShakeMount?.(true) });
+    await chrome.action.setBadgeText({ tabId: tab.id, text: "" });
   } catch {
     // Browser-owned pages and the extension store disallow content injection.
     await chrome.action.setBadgeText({ tabId: tab.id, text: "!" });

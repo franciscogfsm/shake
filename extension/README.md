@@ -2,6 +2,16 @@
 
 Bring a public listing into a SHAKE payment without copying its details by hand.
 
+## Try it after a Vercel deployment
+
+1. Deploy the repository, including `public/shake-extension.zip` and `public/extension-preview.png`.
+2. On the homepage select **Add SHAKE to your browser**, or open `https://shake-lake.vercel.app/extension` directly.
+3. Choose Chrome or Edge, select **Add SHAKE**, then follow the page's three installation steps. The button downloads the ZIP; local installation still needs Developer mode and Load unpacked.
+4. Open an individual OLX or Vinted listing and refresh it. Select **Pay safely with SHAKE**, check the imported details, and select **Continue in SHAKE**.
+5. Check the prefilled payment, lock the test funds, and share the deal link with the seller. The seller must join before you complete the handover.
+
+The extension's payment destination is the production origin `https://shake-lake.vercel.app`. A Vercel preview deployment does not change this destination. If production moves to another domain, update the destination in `content.js`, rebuild the ZIP, redeploy, and reload the extension. Deploying the website alone does not update an already installed unpacked extension; use its Reload button and refresh the listing after replacing its files.
+
 ## Install locally in Chrome or Edge
 
 1. Download `https://shake-lake.vercel.app/shake-extension.zip` after deployment, and extract the ZIP. You can also use this repository's `extension` folder directly.
@@ -28,8 +38,13 @@ Static content scripts run only on the named marketplaces. `activeTab` and `scri
 
 ## Maintain and verify
 
-- `node --test scripts/extension.test.cjs`: Chromium tests with controlled marketplace fixtures. These verify extraction, currency handling, editable review, handoff, SPA navigation, and safe text rendering. Fixtures do not establish live-site compatibility.
+- `node --test scripts/extension.test.cjs`: Chromium tests with controlled marketplace fixtures, including an actual unpacked extension load. These verify extraction, currency handling, editable review, handoff, SPA navigation, and safe text rendering. Fixtures do not establish live-site compatibility.
+- `node scripts/extension-handoff.cjs http://localhost:3110`: checks all four currencies in the running app, localized editable amounts, the installation page, and the downloadable ZIP. No payment is submitted.
 - After editing, reload the extension in `chrome://extensions`, then reload the listing tab.
 - `powershell -ExecutionPolicy Bypass -File scripts/package-extension.ps1`: rebuild the downloadable ZIP on Windows.
 
 The screenshot in `docs/assets/extension-review.png` is a controlled listing fixture for visual verification.
+
+Live smoke checks on 25 October 2026: an installed extension automatically appeared on an OLX Portugal bicycle listing and a Vinted Spain clothing listing, and imported their titles, EUR currencies, and prices (150.00 and 2.00 respectively). This verifies those two pages at that time; other marketplace families have fixture coverage.
+
+The implementation follows Chrome's [content script model](https://developer.chrome.com/docs/extensions/develop/concepts/content-scripts) and [activeTab permission](https://developer.chrome.com/docs/extensions/develop/concepts/activeTab).

@@ -8,6 +8,11 @@
     n.textContent = value;
     return n;
   };
+  const symbol = () => {
+    const node = el("span", { class: "symbol", "aria-hidden": "true" });
+    node.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M11.5 2A10 10 0 0 0 11.5 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H11.5Z" fill="#eef5ff"/><path d="M12.5 2A10 10 0 0 1 12.5 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12.5Z" fill="#9acfe9"/><path d="M12.5 2.4A9.6 9.6 0 0 1 12.5 21.6" stroke="#d3efff" stroke-width=".6"/></svg>';
+    return node;
+  };
   function close() {
     host?.remove(); host = null; root = null;
     previousFocus?.focus();
@@ -37,6 +42,21 @@
       .note{font-size:11px;color:#97a6b8;margin:14px 0 0}.warning{font-size:12px;color:#f5d69b;min-height:18px;margin:12px 0 0}.steps{font-size:12px;color:#a4d9fa;margin-top:14px;word-spacing:2px}
       @media(max-width:480px){:host{right:16px!important;bottom:16px!important}.card{padding:20px}}
       @media(prefers-reduced-motion:no-preference){.card,.dock{animation:appear .2s ease-out}@keyframes appear{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}}
+      :host{font-size:13px;line-height:1.45;-webkit-font-smoothing:antialiased}
+      .card,.dock{position:relative;isolation:isolate;background:linear-gradient(135deg,#ffffff15,#ffffff03 45%,#a8dcff13),linear-gradient(155deg,#26394cee,#11151ef5 60%,#181e2aee);border:1px solid #d7eaff45;backdrop-filter:blur(28px) saturate(145%);-webkit-backdrop-filter:blur(28px) saturate(145%);box-shadow:inset 0 1px 0 #ffffff6b,inset 0 -1px 0 #c7e8ff20,0 20px 65px #08101b55,0 2px 6px #0003}
+      .card:before,.dock:before{content:"";pointer-events:none;position:absolute;inset:0;border-radius:inherit;background:radial-gradient(ellipse at 10% 0,#b4dcff20,transparent 50%),radial-gradient(ellipse at 100% 100%,#b5a6f218,transparent 55%);z-index:-1}
+      .card{width:344px;padding:18px;border-radius:26px;scrollbar-width:thin;scrollbar-color:#8da7bf55 transparent}
+      .dock{gap:11px;padding:8px 8px 8px 14px}.launch strong{font-size:13px;font-weight:650;letter-spacing:-.15px}.launch small{font-size:10px;color:#b7c7d8}.symbol{display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;filter:drop-shadow(0 2px 7px #a3dbff25)}
+      .brand{display:inline-flex;align-items:center;gap:8px;font-size:10px;letter-spacing:2.8px}.brand .symbol svg{width:23px;height:23px}.badge{display:inline-flex;align-items:center;gap:5px;font:9px ui-monospace,monospace;letter-spacing:1px;border:1px solid #c2e5ff2c;background:#b9e2ff09;padding:5px 8px;border-radius:99px;color:#c1e6ff}.badge:before{content:"";width:4px;height:4px;background:#9fdaff;border-radius:50%;box-shadow:0 0 8px #9fdaff}
+      .x{width:28px;height:28px;font-size:19px}.x:focus-visible,input:focus-visible,select:focus-visible,a:focus-visible,summary:focus-visible{outline:2px solid #a4dcff;outline-offset:3px}
+      h2{font-size:27px;font-weight:550;line-height:1.06;letter-spacing:-1.1px;margin:18px 0 9px;white-space:pre-line}h2 span{background:linear-gradient(100deg,#eaf7ff,#9dd9ff 48%,#b9aaff);background-clip:text;-webkit-background-clip:text;color:transparent}
+      p{font-size:12px;line-height:1.5;margin-bottom:15px;color:#c1cbd8}label{font-size:10px;font-weight:500;letter-spacing:.2px;margin:11px 0 5px;color:#adbfd0}
+      input,select{height:43px;padding:10px 12px;font-size:13px;border:1px solid #d1e5ff29;border-radius:13px;background:linear-gradient(150deg,#ffffff0a,#ffffff03);box-shadow:inset 0 1px 3px #0002,0 1px 0 #ffffff06;transition:border-color .15s,background .15s}input:hover,select:hover{border-color:#bfe5ff66}input:focus,select:focus{background:#b8dfff0b;border-color:#bfe5ff80}.row{grid-template-columns:1fr 92px;gap:10px}#shake-price{font-size:19px;letter-spacing:-.5px;font-variant-numeric:tabular-nums}
+      .source{font-size:10px;margin:12px 0 0;text-decoration:none;color:#b7d8ee}.source:hover{text-decoration:underline}.warning{font-size:10px;line-height:1.45;color:#a8bacb;min-height:0;margin:8px 0 0}.warning[data-tone="warning"]{color:#f2d39c}
+      .continue{position:relative;isolation:isolate;overflow:hidden;min-height:45px;padding:11px 18px;font-size:13px;font-weight:600;margin-top:15px;border:1px solid #e1f4ff99;background:linear-gradient(170deg,#e8f8ff 0%,#bce6ff 24%,#a7d8f7 60%,#bdbbf3 100%);box-shadow:inset 0 1px 1px #ffffffcf,inset 0 -2px 4px #56759d50,0 4px 18px #8dcfff22;transition:transform .15s,box-shadow .15s}.continue:before{content:"";position:absolute;inset:2px 12% 48%;border-radius:99px;background:linear-gradient(#fff9,#fff0);pointer-events:none}.continue:hover{box-shadow:inset 0 1px 1px white,inset 0 -2px 4px #56759d50,0 6px 25px #8dcfff44;transform:translateY(-1px)}.continue:active{transform:translateY(1px)}.continue:focus-visible{outline:2px solid #e7f6ff;outline-offset:4px}
+      .steps{display:flex;align-items:center;justify-content:center;gap:12px;margin-top:13px;font:9px ui-monospace,monospace;color:#a9c1d3;letter-spacing:.3px}.steps span{color:#5d7c95}.note{margin-top:14px;padding-top:11px;border-top:1px solid #d4e9ff14;font-size:9px;line-height:1.5;color:#90a5b8}.note summary{cursor:pointer;list-style:none;color:#a3b9cc}.note summary:after{content:" +";float:right}.note[open] summary:after{content:" −"}.note p{font-size:9px;color:#90a5b8;margin:8px 0 0}
+      @media(max-width:480px){.card{padding:18px}}
+      @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
     `;
     root.append(style);
     if (!open) {
@@ -46,14 +66,18 @@
       launch.onclick = () => mount(true);
       const dismiss = el("button", { class: "x", type: "button", "aria-label": "Dismiss SHAKE for this listing" }, "×");
       dismiss.onclick = () => { dismissedUrl = location.href; close(); };
-      dock.append(launch, dismiss); root.append(dock);
+      dock.append(symbol(), launch, dismiss); root.append(dock);
     } else {
       const card = el("section", { class: "card", role: "dialog", "aria-label": "Pay safely with SHAKE" });
       const header = el("header");
       const x = el("button", { class: "x", type: "button", "aria-label": "Close SHAKE" }, "×");
-      x.onclick = () => { close(); mount(); };
-      header.append(el("span", { class: "brand" }, "SHAKE"), el("span", { class: "badge" }, "Stellar Testnet"), x);
-      card.append(header, el("h2", {}, "Found it?\nShake on it."), el("p", {}, "Bring this listing into SHAKE. Check the details, then lock the agreed amount."));
+      x.onclick = () => { close(); mount(); root?.querySelector(".launch")?.focus(); };
+      const brand = el("span", { class: "brand" });
+      brand.append(symbol(), el("span", {}, "SHAKE"));
+      header.append(brand, el("span", { class: "badge" }, "Testnet"), x);
+      const heading = el("h2", {}, "Found it?\n");
+      heading.append(el("span", {}, "Shake on it."));
+      card.append(header, heading, el("p", {}, "Review the listing. Lock the agreed amount in SHAKE."));
       const form = el("form");
       const title = el("input", { id: "shake-item", maxlength: "40", required: "", minlength: "2", autocomplete: "off" });
       title.value = listing.title.slice(0, 40);
@@ -69,10 +93,21 @@
       b.append(el("label", { for: "shake-currency" }, "Currency"), code); row.append(a, b);
       const warning = el("p", { class: "warning", role: "status" });
       if (listing.currency && !code.value) {
+        warning.dataset.tone = "warning";
         price.value = "";
         warning.textContent = `${listing.currency} isn’t supported. Agree an amount in EUR, USD, GBP or BRL; SHAKE does not convert currencies.`;
-      } else if (!listing.price || !listing.currency) warning.textContent = "Check the price and currency. This page did not provide both reliably.";
-      else warning.textContent = "Listing details imported. Confirm the agreed price with the seller.";
+      } else if (!listing.price || !listing.currency) {
+        warning.dataset.tone = "warning";
+        warning.textContent = "Check the price and currency. This page did not provide both reliably.";
+      } else warning.textContent = "Details imported. Confirm the price with the seller.";
+      code.onchange = () => {
+        if (code.value && code.value !== listing.currency) {
+          price.value = "";
+          warning.dataset.tone = "warning";
+          warning.textContent = `Enter the amount agreed with the seller in ${code.value}. SHAKE does not convert the listing price.`;
+          price.focus();
+        }
+      };
       const link = el("a", { class: "source", href: listing.url, target: "_blank", rel: "noopener noreferrer" }, `From ${listing.source} · view original listing`);
       const submit = el("button", { class: "continue", type: "submit" }, "Continue in SHAKE →");
       form.append(el("label", { for: "shake-item" }, "What are you buying?"), title, row, link, warning, submit);
@@ -85,7 +120,11 @@
         url.search = new URLSearchParams({ i: title.value.trim(), p, c: code.value, source: listing.url, via: "extension", k: "meet" }).toString();
         window.open(url.href, "_blank", "noopener,noreferrer");
       };
-      card.append(form, el("div", { class: "steps" }, "Lock → Inspect → Shake"), el("p", { class: "note" }, "Independent SHAKE extension. Not affiliated with this marketplace. Continuing does not pay or contact the seller. Test assets have no cash value."));
+      const steps = el("div", { class: "steps" });
+      steps.append(el("b", {}, "01 Lock"), el("span", {}, "→"), el("b", {}, "02 Inspect"), el("span", {}, "→"), el("b", {}, "03 Shake"));
+      const note = el("details", { class: "note" });
+      note.append(el("summary", {}, "Test mode · live on Stellar Testnet"), el("p", {}, "Independent of this marketplace. Continuing does not pay or contact the seller. Test assets have no cash value."));
+      card.append(form, steps, note);
       card.addEventListener("keydown", (event) => { if (event.key === "Escape") { event.preventDefault(); x.click(); } });
       root.append(card);
       setTimeout(() => title.focus(), 0);

@@ -44,8 +44,8 @@ export default function Home() {
       right={
         <div className="flex items-center gap-2">
           {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
-          <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-3 hover:text-ink">Scam check</Link>
-          <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-3 hover:text-ink">With a friend</Link>
+          <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Scam check</Link>
+          <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-2 hover:text-ink sm:px-3">With a friend</Link>
         </div>
       }
     >
@@ -119,17 +119,20 @@ export default function Home() {
 /** Clean on purpose: the film explains it, one line names it, one button tries it, one line proves it's live. */
 function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; money: string; beat: number; nonce: number; onBeat: (b: number) => void }) {
   return (
-    <Stagger className="flex flex-col justify-center gap-7 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
-      <Item className="flex flex-col items-center gap-4 lg:hidden">
-        <HowItWorks beat={beat} money={money} />
-        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
-      </Item>
+    <Stagger className="flex flex-col justify-center gap-6 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
       <Item>
-        <h1 className="display text-[40px] leading-[1.0] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
-        <p className="mt-3 text-[15px] text-mute lg:mt-5 lg:text-lg">For deals on OLX, Vinted and WhatsApp.</p>
+        <h1 className="display text-[40px] leading-[0.98] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
+        <p className="mx-auto mt-3 max-w-[28ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-none lg:text-lg">Lock the money. They see it&apos;s real. It pays only when you meet.</p>
+      </Item>
+      <Item className="flex flex-col items-center gap-3 lg:hidden">
+        <div className="origin-top max-[380px]:scale-[0.86]">
+          <HowItWorks beat={beat} money={money} />
+        </div>
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
       </Item>
       <Item className="flex flex-col gap-4 lg:max-w-[400px]">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
+        <Link href="/extension" className="text-sm text-safe underline-offset-4 hover:underline">Add SHAKE to your browser ↗</Link>
         <Protected live className="justify-center lg:justify-start" />
       </Item>
       <Item>
@@ -277,9 +280,9 @@ const PARTS: { chip: string; icon: string; title: string; body: string; href?: s
 /** One quiet row. Each piece still opens its proof. */
 function Composed() {
   return (
-    <footer className="mt-auto flex shrink-0 flex-col gap-3 border-t border-white/[0.06] pt-4 lg:flex-row lg:items-center lg:gap-5">
-      <h2 className="eyebrow shrink-0 text-[9px] lg:max-w-[100px] lg:leading-relaxed">Composed on Stellar</h2>
-      <nav aria-label="Composed on Stellar" className="flex min-w-0 flex-wrap gap-2 lg:flex-1 lg:gap-1.5">
+    <footer className="mt-auto flex shrink-0 items-center gap-3 border-t border-white/[0.06] pt-3">
+      <h2 className="eyebrow hidden shrink-0 whitespace-nowrap sm:block">Composed on Stellar</h2>
+      <nav aria-label="Composed on Stellar" className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PARTS.map((p, i) => (
           <motion.a
             key={p.chip}
@@ -287,21 +290,21 @@ function Composed() {
             title={`${p.title}. ${p.body}`}
             target={p.href?.startsWith("http") ? "_blank" : undefined}
             rel="noreferrer"
-            className="group inline-flex min-h-10 shrink-0 items-center gap-2 rounded-full border border-white/[0.08] bg-white/[0.025] py-1.5 pl-2 pr-3 font-mono text-[9px] uppercase tracking-[0.08em] text-ink-2 transition-colors hover:border-safe/30 hover:bg-safe/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-safe lg:text-[10px]"
+            className="group inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-white/[0.08] bg-white/[0.025] pl-1.5 pr-2.5 font-mono text-[10px] uppercase tracking-[0.06em] text-ink-2 transition-colors hover:border-safe/30 hover:bg-safe/[0.06] hover:text-ink focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-safe"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ ...springs.snappy, delay: 0.12 + i * 0.04 }}
             whileTap={{ scale: 0.92 }}
             onPointerDown={() => haptic.tick()}
           >
-            <span className="grid size-6 shrink-0 place-items-center rounded-full bg-safe/[0.06] transition-colors group-hover:bg-safe/[0.12]">
-              <Image src={`/integrations/${p.icon}.svg`} alt="" width={16} height={16} unoptimized />
+            <span className="grid size-5 shrink-0 place-items-center rounded-full bg-safe/[0.06] transition-colors group-hover:bg-safe/[0.12]">
+              <Image src={`/integrations/${p.icon}.svg`} alt="" width={14} height={14} unoptimized />
             </span>
             {p.chip}
           </motion.a>
         ))}
       </nav>
-      <TestnetNote className="shrink-0 lg:hidden xl:block" />
+      <TestnetNote compact className="hidden shrink-0 whitespace-nowrap xl:block" />
     </footer>
   );
 }

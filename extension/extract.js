@@ -22,7 +22,7 @@
   function amount(value) {
     if (typeof value === "number") return Number.isFinite(value) && value > 0 ? value.toFixed(2) : "";
     let s = text(value).normalize("NFKC").replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) % 16));
-    if (/\d\s*[-–]\s*\d/.test(s)) return ""; // ranges need a manual agreed price
+    if (/[-−–]/.test(s)) return ""; // negative values and ranges need manual review
     s = s.replace(/[^\d.,\u066b\u066c]/g, "").replace(/\u066b/g, ".").replace(/\u066c/g, ",");
     if (!s) return "";
     const decimal = /[.,]\d{1,2}$/.exec(s);

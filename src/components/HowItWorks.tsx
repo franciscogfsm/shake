@@ -265,7 +265,7 @@ export function StoryCaption({ beat, nonce, money, onBeat, className = "" }: { b
       </div>
       <div className="relative mt-2 h-12 overflow-hidden">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.p key={beat} className="font-display text-[17px] font-medium leading-snug text-ink lg:text-[19px]" initial={{ opacity: 0, y: 12, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} transition={springs.snappy}>
+          <motion.p key={beat} className="font-display text-[15px] font-medium leading-snug text-ink sm:text-[17px] lg:whitespace-nowrap lg:text-[19px]" initial={{ opacity: 0, y: 12, filter: "blur(6px)" }} animate={{ opacity: 1, y: 0, filter: "blur(0px)" }} exit={{ opacity: 0, y: -12, filter: "blur(6px)" }} transition={springs.snappy}>
             {beatLine(beat, money)}
           </motion.p>
         </AnimatePresence>

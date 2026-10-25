@@ -10,7 +10,7 @@ Implementation reviewed against the local source on **25 October 2026**. Hosted 
 
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
-[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
+[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Marketplace extension](#shake-on-marketplace-listings) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
 
@@ -25,6 +25,16 @@ You find a second-hand phone, agree on a price, and arrange to meet. Then comes 
 SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketplace, WhatsApp, or any other channel. A shareable link connects the conversation to the payment; no marketplace integration is required. Buyers can meet in person or choose shipping, with a QR inside the package and a dispute window after delivery. Before committing, either person can check suspicious messages, inspect public deal activity, and find nearby public meetup places.
 
 > **Live on Stellar Testnet · Test mode.** Wallet creation, escrow, settlement, refunds, and transaction proofs run against the live test network. Test assets have no cash value. The bank withdrawal integration submits a real testnet transfer to the anchor; its final bank payout runs in a sandbox and does not credit a bank account.
+
+## SHAKE on marketplace listings
+
+**A listing becomes a SHAKE payment.** The desktop Chrome/Edge extension adds **Pay safely with SHAKE** to listing pages on Vinted, OLX, Wallapop, Depop, eBay, Etsy, Gumtree, Leboncoin, Marktplaats, Kleinanzeigen, Facebook Marketplace, Mercari, Poshmark, OfferUp, Craigslist, and Carousell. Its isolated panel reads the title, price, and currency, lets the buyer review or edit them, then opens a prefilled SHAKE payment with a link to the original listing.
+
+[Install SHAKE for marketplaces](https://shake-lake.vercel.app/extension) · [Extension source and installation guide](extension/README.md)
+
+For the judge walkthrough, load the repository's `extension` folder through **chrome://extensions → Developer mode → Load unpacked**, refresh a supported listing, select **Pay safely with SHAKE**, and continue into the payment form. For other shops, the pinned toolbar action reads the current product page on demand. No money moves until the buyer explicitly locks funds in SHAKE. The seller still needs to agree to use SHAKE and join the shared deal.
+
+Extraction uses Product JSON-LD, Open Graph metadata, and visible listing fields. Marketplace layouts, regional domains, and prices vary; users confirm imported details. EUR, USD, GBP, and BRL test settlement assets are supported. Unsupported currencies require an explicit agreed amount; there is no FX conversion. The extension is independent of these marketplaces and does not verify sellers or inherit their buyer protection. Local unpacked installation is required; there is no Web Store release yet. Chromium fixtures verify the implementation; fixture coverage does not guarantee every live listing.
 
 ## How it works
 
@@ -72,6 +82,22 @@ Use separate browser profiles because wallets are stored on each device. For pho
 6. **Resolver:** settle a disputed deal with `node scripts/resolve.mjs <deal-id> <amount-to-buyer>`. The amount is in the deal's own test currency, not a currency conversion. The script signs with `TEAM_SECRET`; the contract sends the chosen amount to the buyer and the remainder to the seller.
 
 Before shipment, the usual cancellation permissions apply: the buyer can cancel before acceptance, the bound seller can cancel after acceptance, and anyone can refund after expiry. After shipment, expiry does not unlock a refund. A shipped deal needs buyer release, delivery followed by a claim, or a dispute resolved by the assigned resolver.
+
+### Use SHAKE from any AI assistant (MCP)
+
+SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HTTP, no auth). Add it as a custom connector in Claude or ChatGPT, or in Cursor (`{"mcpServers":{"shake":{"url":"https://shake-lake.vercel.app/api/mcp"}}}`).
+
+| Tool | What it does |
+| --- | --- |
+| `protect_purchase` | Returns a prefilled deal link the buyer opens to lock the money; optionally scans the seller's message. |
+| `check_seller_message` | Runs the same scam patterns as `/check` on a pasted chat message. |
+| `verify_payment` | "Did they really pay me?", answered from the contract's state on testnet, not a screenshot. |
+| `deal_status` | Status, parties, and every transaction with Stellar Expert links. |
+| `find_safe_spot` | Public meeting places near an address (Nominatim + Overpass). |
+| `create_payment_request` | A reusable request link for a seller or small business. |
+| `release_payment` | Always refuses, and explains why. |
+
+**Agents can create links and read state; they can never move money.** The endpoint holds no user keys and signs nothing. Release still needs the buyer's passkey or browser key plus the seller's one-time QR secret, in person. Try: *"Someone on Vinted wants €60 for a jacket, here's his message, is it safe?"*, then *"Release the money."*
 
 ### Try the anti-scam check
 
@@ -196,6 +222,7 @@ flowchart TD
     App -->|Optional screenshot analysis| Vision[Server route to Anthropic]
     App -->|Listing metadata| Listings[Marketplace pages]
     App -->|Location permission and nearby query| Maps[OpenStreetMap Overpass]
+    Agent[AI assistant via MCP] -->|Create links, read state; never signs| App
     Seller -->|Cash-out| Anchor[SHAKE test anchor: SEP-1, SEP-10, SEP-24]
     Anchor --> Payment[Signed classic testnet payment]
     Payment --> Bank[Simulated bank payout]
@@ -235,6 +262,7 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 | `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team seller operations for the guided payment flow. |
 | `GET /api/listing?url=…` | Supported marketplace title and available price extraction. |
 | `POST /api/check` | Optional screenshot analysis; returns 501 when no API key is configured. |
+| `POST /api/mcp` | MCP server for AI assistants: deal links, scam check, on-chain verification, safe spots. No signing. |
 | `GET /api/stats`, `/api/reputation/[address]` | Recent contract activity, per-currency totals, and address counts. |
 | `/.well-known/stellar.toml`, `/api/anchor/*`, `/api/wallet/pay` | Anchor discovery, authentication, withdrawal details/status, and signed payment preparation/submission. |
 

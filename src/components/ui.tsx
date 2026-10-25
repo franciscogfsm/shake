@@ -30,8 +30,8 @@ export function Screen({ children, back, right, wide, fit }: { children: React.R
   );
 }
 
-export const TestnetNote = ({ className = "" }: { className?: string }) => (
-  <p className={`text-center font-mono text-[11px] tracking-[0.04em] text-mute ${className}`}>Test mode · Stellar Testnet · assets have no cash value</p>
+export const TestnetNote = ({ className = "", compact = false }: { className?: string; compact?: boolean }) => (
+  <p className={`text-center font-mono text-[11px] tracking-[0.04em] text-mute ${className}`}>{compact ? "Test mode · no cash value" : "Test mode · Stellar Testnet · assets have no cash value"}</p>
 );
 
 /** Staggered entrance for a screen's blocks. */
