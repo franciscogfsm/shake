@@ -2,7 +2,7 @@
 
 The living tracker. **Update the checkboxes and the "Now" line as work lands**, so the next session knows exactly where we are.
 
-**Now:** the contract is deployed and smoke-tested on testnet, and the Next.js 15 app is scaffolded at the repo root. Next: tokens, the glass system and the core components (step 3), then the server APIs (step 5).
+**Now:** the contract is deployed and smoke-tested on testnet, and the Next.js 15 app is scaffolded at the repo root. The server APIs are done and the e2e passes on testnet (deals settle in about 6–10s per step). Next: tokens, the glass system and the core components (step 3), then the deal flow screens.
 
 **Testnet deployment (25 Oct 2026, `scripts/deploy.sh`):**
 - Deal contract: `CC7QNWLSP6W6N5F6A6FB53FLGYTO74HGERKOSBOIPDS6KA5GLYDA4BMX`
@@ -53,7 +53,7 @@ events: ("locked"|"accepted"|"released"|"refunded", deal_id) with amount / addre
   - DealCapsule, HoldToShake, Seal, LiveReceipt, Scanner, GlassSheet, Button, NumberTicker, HashTyper.
 - [x] 4. Contract plus tests (11 passing), deployed. Was:, then a deploy script (`scripts/deploy.ts`):
   - issue tEUR, deploy the SAC, deploy the contract, write the IDs to `.env.local`.
-- [ ] 5. Server APIs:
+- [x] 5. Server APIs (`/api/wallet`, `/api/call`, `/api/deal/[id]`, `/api/pitch`). `node scripts/e2e.mjs` passes the two-phone and pitch flows through Channels. Was:
   - create a sponsored account plus trustline, fund tEUR, build and simulate a call, submit through Channels, read the deal, poll events.
 - [ ] 6. Deal flow, all real on testnet:
   - `/deal/new`, `/deal/[id]` (buyer and seller), `/scan/[id]`, `/r/[id]`, `/try`, plus the OG image.
