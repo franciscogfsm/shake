@@ -46,18 +46,18 @@ export default function Home() {
       fit={phase !== "idle"}
       right={
         <nav className="flex items-center gap-1 lg:gap-2">
-          <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Use cases</Link>
+          <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">Use cases</Link>
           <Link href="/extension" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">Extension</Link>
           <Link href="/ai" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">For AI</Link>
-          <Link href="/try" onPointerDown={() => haptic.tick()} className="glass inline-flex h-10 items-center whitespace-nowrap rounded-full px-4 text-[14px] font-medium transition-transform active:scale-95">Try SHAKE</Link>
+          <Link href="/try" onPointerDown={() => haptic.tick()} className="glass inline-flex h-10 shrink-0 items-center whitespace-nowrap rounded-full px-3.5 text-[13px] font-medium transition-transform active:scale-95 sm:px-4 sm:text-[14px]"><span className="min-[380px]:hidden">Try</span><span className="hidden min-[380px]:inline">Try SHAKE</span></Link>
           {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
         </nav>
       }
     >
       {/* idle: the hero fills the first screen and the story scrolls below it */}
-      <div className={phase === "idle" ? "flex min-h-[calc(100svh-3rem)] flex-col lg:h-[calc(100dvh-3rem)] lg:min-h-0" : "flex min-h-0 flex-1 flex-col"}>
-      <div className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-12 xl:gap-16">
-      <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
+      <div className={phase === "idle" ? "flex min-h-[calc(100dvh-5.25rem-max(env(safe-area-inset-top),16px)-max(env(safe-area-inset-bottom),16px))] flex-col lg:min-h-[calc(100dvh-3rem-32px)]" : "flex min-h-0 flex-1 flex-col"}>
+      <div className="flex flex-1 flex-col justify-center lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-12 xl:gap-16">
+      <div className={`flex flex-col justify-center lg:min-h-0 ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
           {phase === "idle" && <Hero onStart={() => setPaying(true)} money={money} beat={beat} nonce={nonce} onBeat={pickBeat} />}
@@ -127,20 +127,18 @@ export default function Home() {
 /** Clean on purpose: the film explains it, one line names it, one button tries it, one line proves it's live. */
 function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; money: string; beat: number; nonce: number; onBeat: (b: number) => void }) {
   return (
-    <Stagger className="flex flex-col justify-center gap-6 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
+    <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
       <Item>
-        <h1 className="display text-[40px] leading-[0.96] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
+        <h1 className="display text-[34px] leading-[0.96] min-[380px]:text-[40px] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
         <p className="mx-auto mt-3 max-w-[26ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-[28ch] lg:text-lg">Lock the money. They see it&apos;s real, not a screenshot.</p>
       </Item>
-      <Item className="flex flex-col items-center gap-3 lg:hidden">
-        <div className="origin-top max-[380px]:scale-[0.86]">
-          <HowItWorks beat={beat} money={money} />
-        </div>
-        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
-      </Item>
-      <Item className="flex flex-col gap-4 lg:max-w-[400px]">
+      <Item className="flex flex-col gap-3 lg:max-w-[400px] lg:gap-4">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
         <Protected live className="justify-center lg:justify-start" />
+      </Item>
+      <Item className="flex w-full flex-col items-center gap-2 lg:hidden">
+        <HowItWorks beat={beat} money={money} />
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
       </Item>
       <Item>
         <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="text-[13px] text-mute hover:text-ink">
@@ -167,7 +165,7 @@ function Locking({ step, error, money, via }: { step: string; error?: string; mo
       </motion.div>
       <div className="text-center">
         <div className="eyebrow">Locking for the seller</div>
-        <motion.div className="amount mt-3 text-[64px]" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>{money}</motion.div>
+        <motion.div className="amount mt-3 text-[clamp(48px,18vw,64px)]" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>{money}</motion.div>
       </div>
       <div className="glass w-full p-6">
         <Steps

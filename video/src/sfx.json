@@ -1,0 +1,17 @@
+{
+ "whoosh": "audio/sfx/whoosh-08637b.mp3",
+ "swoosh": "audio/sfx/swoosh-a046f8.mp3",
+ "slam": "audio/sfx/slam-c84b3a.mp3",
+ "glitch": "audio/sfx/glitch-461ca3.mp3",
+ "tick": "audio/sfx/tick-6ad4db.mp3",
+ "pop": "audio/sfx/pop-eb1022.mp3",
+ "riser": "audio/sfx/riser-c6b712.mp3",
+ "chime": "audio/sfx/chime-548d1c.mp3",
+ "lock": "audio/sfx/lock-1dd6a5.mp3",
+ "heart": "audio/sfx/heart-91d13a.mp3",
+ "beep": "audio/sfx/beep-cc7352.mp3",
+ "blip": "audio/sfx/blip-8fabeb.mp3",
+ "typing": "audio/sfx/typing-948477.mp3",
+ "shimmer": "audio/sfx/shimmer-53c948.mp3",
+ "denied": "audio/sfx/denied-0536b3.mp3"
+}

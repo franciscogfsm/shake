@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mark, springs } from "@/components/Mark";
 import { haptic } from "@/lib/client/sfx";
 
@@ -88,6 +88,18 @@ function Flight({ from, to, top, money, delay = 0 }: { from: number; to: number;
 export function HowItWorks({ beat, money, big, className = "" }: { beat: number; money: string; big?: boolean; className?: string }) {
   const reduce = useReducedMotion();
   const s = SIZES[big ? "big" : "small"];
+  const frame = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+  useEffect(() => {
+    if (big) return;
+    const el = frame.current;
+    if (!el) return;
+    const fit = () => { const w = el.clientWidth; if (w > 0) setScale(Math.min(1, w / s.w)); };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, [big, s.w]);
   // the second half of each beat (see SUB_MS)
   const [sub, setSub] = useState(false);
   useEffect(() => {
@@ -108,8 +120,8 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
   // the coin waits in the gap, rises over the seam while you scan, then slams down onto it
   const coinY = reduce ? 0 : beat === 2 ? -s.ph / 2 + s.coin / 2 + 4 : 0;
 
-  return (
-    <div className={`relative mx-auto ${className}`} style={{ width: s.w, height: s.ph + 24 }} aria-hidden>
+  const stage = (
+    <div className={big ? `relative mx-auto ${className}` : "relative"} style={{ width: s.w, height: s.ph + 24 }} aria-hidden>
       {/* floor light under the pair, brighter when they meet */}
       <motion.span className="absolute bottom-0 left-1/2 h-10 w-[80%] -translate-x-1/2 rounded-[50%] bg-safe/25 blur-2xl" animate={{ opacity: paid ? 1 : meet ? 0.6 : 0.3, scaleX: meet ? 0.7 : 1 }} transition={springs.smooth} />
 
@@ -233,6 +245,12 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
           </motion.div>
         )}
       </AnimatePresence>
+    </div>
+  );
+  if (big) return stage;
+  return (
+    <div ref={frame} className={`relative mx-auto w-full overflow-hidden ${className}`} style={{ maxWidth: s.w, height: (s.ph + 24) * scale }}>
+      <div className="absolute top-0 left-0 origin-top-left" style={{ width: s.w, transform: `scale(${scale})` }}>{stage}</div>
     </div>
   );
 }

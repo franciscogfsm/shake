@@ -68,7 +68,7 @@ export function SellerPaidOffline({ deal, shaken, locale, currency }: Props) {
         </Item>
         <Item className="lg:col-start-2">
           <div className="eyebrow">Paid to you · no signal</div>
-          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[80px] lg:text-[96px]" />
+          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[clamp(52px,18vw,80px)] lg:text-[96px]" />
           <p className="mx-auto mt-4 max-w-[30ch] text-lg text-ink-2 lg:mx-0">Both halves of the key are on your phone. Nobody else can move this money now. Hand over the item.</p>
         </Item>
         <Item className="lg:col-start-2">{burst && <Seal label="Shaken" sub="No signal needed" />}</Item>

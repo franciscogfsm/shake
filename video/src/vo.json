@@ -1,0 +1,825 @@
+{
+ "total": 45.94,
+ "lines": [
+  {
+   "id": "v01",
+   "text": "Meet Sam.",
+   "file": "audio/vo/v01-977af853.mp3",
+   "start": 0.5,
+   "dur": 0.842,
+   "words": [
+    {
+     "w": "Meet",
+     "start": 0.5,
+     "end": 0.767
+    },
+    {
+     "w": "Sam.",
+     "start": 0.825,
+     "end": 1.162
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Meet Sam.",
+     "start": 0.5,
+     "end": 1.162
+    }
+   ]
+  },
+  {
+   "id": "v02",
+   "text": "And Ana.",
+   "file": "audio/vo/v02-b9ac2dde.mp3",
+   "start": 1.642,
+   "dur": 0.76,
+   "words": [
+    {
+     "w": "And",
+     "start": 1.642,
+     "end": 1.816
+    },
+    {
+     "w": "Ana.",
+     "start": 1.909,
+     "end": 2.222
+    }
+   ],
+   "phrases": [
+    {
+     "text": "And Ana.",
+     "start": 1.642,
+     "end": 2.222
+    }
+   ]
+  },
+  {
+   "id": "v03",
+   "text": "Strangers. One bike. Four hundred euros.",
+   "file": "audio/vo/v03-c2957316.mp3",
+   "start": 2.702,
+   "dur": 2.757,
+   "words": [
+    {
+     "w": "Strangers.",
+     "start": 2.702,
+     "end": 3.329
+    },
+    {
+     "w": "One",
+     "start": 3.561,
+     "end": 3.77
+    },
+    {
+     "w": "bike.",
+     "start": 3.817,
+     "end": 4.188
+    },
+    {
+     "w": "Four",
+     "start": 4.293,
+     "end": 4.49
+    },
+    {
+     "w": "hundred",
+     "start": 4.525,
+     "end": 4.792
+    },
+    {
+     "w": "euros.",
+     "start": 4.838,
+     "end": 5.279
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Strangers.",
+     "start": 2.702,
+     "end": 3.329
+    },
+    {
+     "text": "One bike.",
+     "start": 3.561,
+     "end": 4.188
+    },
+    {
+     "text": "Four hundred euros.",
+     "start": 4.293,
+     "end": 5.279
+    }
+   ]
+  },
+  {
+   "id": "v04",
+   "text": "Sam won't pay first. Ana won't hand it over for a screenshot.",
+   "file": "audio/vo/v04-9453b488.mp3",
+   "start": 5.759,
+   "dur": 3.582,
+   "words": [
+    {
+     "w": "Sam",
+     "start": 5.759,
+     "end": 6.061
+    },
+    {
+     "w": "won't",
+     "start": 6.107,
+     "end": 6.281
+    },
+    {
+     "w": "pay",
+     "start": 6.316,
+     "end": 6.49
+    },
+    {
+     "w": "first.",
+     "start": 6.572,
+     "end": 6.978
+    },
+    {
+     "w": "Ana",
+     "start": 7.233,
+     "end": 7.477
+    },
+    {
+     "w": "won't",
+     "start": 7.524,
+     "end": 7.698
+    },
+    {
+     "w": "hand",
+     "start": 7.744,
+     "end": 7.895
+    },
+    {
+     "w": "it",
+     "start": 7.942,
+     "end": 8.011
+    },
+    {
+     "w": "over",
+     "start": 8.058,
+     "end": 8.278
+    },
+    {
+     "w": "for",
+     "start": 8.325,
+     "end": 8.429
+    },
+    {
+     "w": "a",
+     "start": 8.476,
+     "end": 8.499
+    },
+    {
+     "w": "screenshot.",
+     "start": 8.545,
+     "end": 9.161
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Sam won't pay first.",
+     "start": 5.759,
+     "end": 6.978
+    },
+    {
+     "text": "Ana won't hand it over for a screenshot.",
+     "start": 7.233,
+     "end": 9.161
+    }
+   ]
+  },
+  {
+   "id": "v05",
+   "text": "Because screenshots lie.",
+   "file": "audio/vo/v05-c9e14228.mp3",
+   "start": 9.591,
+   "dur": 1.562,
+   "words": [
+    {
+     "w": "Because",
+     "start": 9.591,
+     "end": 9.916
+    },
+    {
+     "w": "screenshots",
+     "start": 9.951,
+     "end": 10.543
+    },
+    {
+     "w": "lie.",
+     "start": 10.601,
+     "end": 10.973
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Because screenshots lie.",
+     "start": 9.591,
+     "end": 10.973
+    }
+   ]
+  },
+  {
+   "id": "v06",
+   "text": "So they shake on it.",
+   "file": "audio/vo/v06-930a2f91.mp3",
+   "start": 11.603,
+   "dur": 1.086,
+   "words": [
+    {
+     "w": "So",
+     "start": 11.603,
+     "end": 11.742
+    },
+    {
+     "w": "they",
+     "start": 11.789,
+     "end": 11.905
+    },
+    {
+     "w": "shake",
+     "start": 11.951,
+     "end": 12.207
+    },
+    {
+     "w": "on",
+     "start": 12.242,
+     "end": 12.323
+    },
+    {
+     "w": "it.",
+     "start": 12.381,
+     "end": 12.509
+    }
+   ],
+   "phrases": [
+    {
+     "text": "So they shake on it.",
+     "start": 11.603,
+     "end": 12.509
+    }
+   ]
+  },
+  {
+   "id": "v07",
+   "text": "Sam locks the money. One tap. No sign-up.",
+   "file": "audio/vo/v07-818b0169.mp3",
+   "start": 13.689,
+   "dur": 3.024,
+   "words": [
+    {
+     "w": "Sam",
+     "start": 13.689,
+     "end": 13.979
+    },
+    {
+     "w": "locks",
+     "start": 14.037,
+     "end": 14.246
+    },
+    {
+     "w": "the",
+     "start": 14.293,
+     "end": 14.362
+    },
+    {
+     "w": "money.",
+     "start": 14.397,
+     "end": 14.687
+    },
+    {
+     "w": "One",
+     "start": 14.943,
+     "end": 15.163
+    },
+    {
+     "w": "tap.",
+     "start": 15.21,
+     "end": 15.523
+    },
+    {
+     "w": "No",
+     "start": 15.872,
+     "end": 16.034
+    },
+    {
+     "w": "sign-up.",
+     "start": 16.104,
+     "end": 16.533
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Sam locks the money.",
+     "start": 13.689,
+     "end": 14.687
+    },
+    {
+     "text": "One tap.",
+     "start": 14.943,
+     "end": 15.523
+    },
+    {
+     "text": "No sign-up.",
+     "start": 15.872,
+     "end": 16.533
+    }
+   ]
+  },
+  {
+   "id": "v08",
+   "text": "Ana sees it's real. Locked on Stellar. Not a screenshot.",
+   "file": "audio/vo/v08-c4b915ee.mp3",
+   "start": 16.963,
+   "dur": 3.814,
+   "words": [
+    {
+     "w": "Ana",
+     "start": 16.963,
+     "end": 17.253
+    },
+    {
+     "w": "sees",
+     "start": 17.311,
+     "end": 17.543
+    },
+    {
+     "w": "it's",
+     "start": 17.602,
+     "end": 17.741
+    },
+    {
+     "w": "real.",
+     "start": 17.811,
+     "end": 18.124
+    },
+    {
+     "w": "Locked",
+     "start": 18.774,
+     "end": 19.053
+    },
+    {
+     "w": "on",
+     "start": 19.099,
+     "end": 19.181
+    },
+    {
+     "w": "Stellar.",
+     "start": 19.262,
+     "end": 19.622
+    },
+    {
+     "w": "Not",
+     "start": 19.691,
+     "end": 19.854
+    },
+    {
+     "w": "a",
+     "start": 19.889,
+     "end": 19.912
+    },
+    {
+     "w": "screenshot.",
+     "start": 19.958,
+     "end": 20.597
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Ana sees it's real.",
+     "start": 16.963,
+     "end": 18.124
+    },
+    {
+     "text": "Locked on Stellar.",
+     "start": 18.774,
+     "end": 19.622
+    },
+    {
+     "text": "Not a screenshot.",
+     "start": 19.691,
+     "end": 20.597
+    }
+   ]
+  },
+  {
+   "id": "v09",
+   "text": "They meet. Sam scans her code... and holds.",
+   "file": "audio/vo/v09-3fa57f9a.mp3",
+   "start": 21.177,
+   "dur": 3.129,
+   "words": [
+    {
+     "w": "They",
+     "start": 21.177,
+     "end": 21.409
+    },
+    {
+     "w": "meet.",
+     "start": 21.479,
+     "end": 21.781
+    },
+    {
+     "w": "Sam",
+     "start": 22.036,
+     "end": 22.326
+    },
+    {
+     "w": "scans",
+     "start": 22.408,
+     "end": 22.756
+    },
+    {
+     "w": "her",
+     "start": 22.802,
+     "end": 22.907
+    },
+    {
+     "w": "code...",
+     "start": 22.977,
+     "end": 23.336
+    },
+    {
+     "w": "and",
+     "start": 23.522,
+     "end": 23.685
+    },
+    {
+     "w": "holds.",
+     "start": 23.766,
+     "end": 24.126
+    }
+   ],
+   "phrases": [
+    {
+     "text": "They meet.",
+     "start": 21.177,
+     "end": 21.781
+    },
+    {
+     "text": "Sam scans her code...",
+     "start": 22.036,
+     "end": 23.336
+    },
+    {
+     "text": "and holds.",
+     "start": 23.522,
+     "end": 24.126
+    }
+   ]
+  },
+  {
+   "id": "v10",
+   "text": "Paid. Only face to face.",
+   "file": "audio/vo/v10-a3601183.mp3",
+   "start": 25.056,
+   "dur": 1.875,
+   "words": [
+    {
+     "w": "Paid.",
+     "start": 25.056,
+     "end": 25.486
+    },
+    {
+     "w": "Only",
+     "start": 25.625,
+     "end": 25.88
+    },
+    {
+     "w": "face",
+     "start": 25.95,
+     "end": 26.171
+    },
+    {
+     "w": "to",
+     "start": 26.205,
+     "end": 26.263
+    },
+    {
+     "w": "face.",
+     "start": 26.333,
+     "end": 26.751
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Paid.",
+     "start": 25.056,
+     "end": 25.486
+    },
+    {
+     "text": "Only face to face.",
+     "start": 25.625,
+     "end": 26.751
+    }
+   ]
+  },
+  {
+   "id": "v11",
+   "text": "No signal? Still paid.",
+   "file": "audio/vo/v11-1d27f2b7.mp3",
+   "start": 27.381,
+   "dur": 1.631,
+   "words": [
+    {
+     "w": "No",
+     "start": 27.381,
+     "end": 27.544
+    },
+    {
+     "w": "signal?",
+     "start": 27.602,
+     "end": 27.973
+    },
+    {
+     "w": "Still",
+     "start": 28.229,
+     "end": 28.472
+    },
+    {
+     "w": "paid.",
+     "start": 28.53,
+     "end": 28.832
+    }
+   ],
+   "phrases": [
+    {
+     "text": "No signal?",
+     "start": 27.381,
+     "end": 27.973
+    },
+    {
+     "text": "Still paid.",
+     "start": 28.229,
+     "end": 28.832
+    }
+   ]
+  },
+  {
+   "id": "v12",
+   "text": "Right inside Vinted and OLX.",
+   "file": "audio/vo/v12-6aedcaf6.mp3",
+   "start": 29.262,
+   "dur": 1.921,
+   "words": [
+    {
+     "w": "Right",
+     "start": 29.262,
+     "end": 29.517
+    },
+    {
+     "w": "inside",
+     "start": 29.564,
+     "end": 29.947
+    },
+    {
+     "w": "Vinted",
+     "start": 29.993,
+     "end": 30.295
+    },
+    {
+     "w": "and",
+     "start": 30.342,
+     "end": 30.411
+    },
+    {
+     "w": "OLX.",
+     "start": 30.493,
+     "end": 31.003
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Right inside Vinted and OLX.",
+     "start": 29.262,
+     "end": 31.003
+    }
+   ]
+  },
+  {
+   "id": "v13",
+   "text": "Ask Claude or ChatGPT. It does everything... except touch the money.",
+   "file": "audio/vo/v13-75073171.mp3",
+   "start": 31.433,
+   "dur": 5.137,
+   "words": [
+    {
+     "w": "Ask",
+     "start": 31.433,
+     "end": 31.793
+    },
+    {
+     "w": "Claude",
+     "start": 31.886,
+     "end": 32.222
+    },
+    {
+     "w": "or",
+     "start": 32.246,
+     "end": 32.327
+    },
+    {
+     "w": "ChatGPT.",
+     "start": 32.373,
+     "end": 33.058
+    },
+    {
+     "w": "It",
+     "start": 33.813,
+     "end": 33.941
+    },
+    {
+     "w": "does",
+     "start": 33.976,
+     "end": 34.15
+    },
+    {
+     "w": "everything...",
+     "start": 34.219,
+     "end": 34.73
+    },
+    {
+     "w": "except",
+     "start": 35.183,
+     "end": 35.589
+    },
+    {
+     "w": "touch",
+     "start": 35.647,
+     "end": 35.903
+    },
+    {
+     "w": "the",
+     "start": 35.961,
+     "end": 36.031
+    },
+    {
+     "w": "money.",
+     "start": 36.077,
+     "end": 36.39
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Ask Claude or ChatGPT.",
+     "start": 31.433,
+     "end": 33.058
+    },
+    {
+     "text": "It does everything...",
+     "start": 33.813,
+     "end": 34.73
+    },
+    {
+     "text": "except touch the money.",
+     "start": 35.183,
+     "end": 36.39
+    }
+   ]
+  },
+  {
+   "id": "v14",
+   "text": "Next: pay a whole event crew, the moment they check in.",
+   "file": "audio/vo/v14-45a0b385.mp3",
+   "start": 36.92,
+   "dur": 3.233,
+   "words": [
+    {
+     "w": "Next:",
+     "start": 36.92,
+     "end": 37.35
+    },
+    {
+     "w": "pay",
+     "start": 37.512,
+     "end": 37.686
+    },
+    {
+     "w": "a",
+     "start": 37.733,
+     "end": 37.768
+    },
+    {
+     "w": "whole",
+     "start": 37.814,
+     "end": 38
+    },
+    {
+     "w": "event",
+     "start": 38.035,
+     "end": 38.313
+    },
+    {
+     "w": "crew,",
+     "start": 38.383,
+     "end": 38.65
+    },
+    {
+     "w": "the",
+     "start": 38.882,
+     "end": 38.975
+    },
+    {
+     "w": "moment",
+     "start": 39.033,
+     "end": 39.254
+    },
+    {
+     "w": "they",
+     "start": 39.288,
+     "end": 39.405
+    },
+    {
+     "w": "check",
+     "start": 39.451,
+     "end": 39.672
+    },
+    {
+     "w": "in.",
+     "start": 39.753,
+     "end": 39.973
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Next:",
+     "start": 36.92,
+     "end": 37.35
+    },
+    {
+     "text": "pay a whole event crew, the moment they check in.",
+     "start": 37.512,
+     "end": 39.973
+    }
+   ]
+  },
+  {
+   "id": "v15",
+   "text": "Shake. Pay a stranger. Only when you meet.",
+   "file": "audio/vo/v15-6296c7eb.mp3",
+   "start": 40.853,
+   "dur": 3.187,
+   "words": [
+    {
+     "w": "Shake.",
+     "start": 40.853,
+     "end": 41.317
+    },
+    {
+     "w": "Pay",
+     "start": 41.724,
+     "end": 41.921
+    },
+    {
+     "w": "a",
+     "start": 41.968,
+     "end": 42.002
+    },
+    {
+     "w": "stranger.",
+     "start": 42.049,
+     "end": 42.56
+    },
+    {
+     "w": "Only",
+     "start": 42.989,
+     "end": 43.233
+    },
+    {
+     "w": "when",
+     "start": 43.268,
+     "end": 43.396
+    },
+    {
+     "w": "you",
+     "start": 43.442,
+     "end": 43.523
+    },
+    {
+     "w": "meet.",
+     "start": 43.581,
+     "end": 43.86
+    }
+   ],
+   "phrases": [
+    {
+     "text": "Shake.",
+     "start": 40.853,
+     "end": 41.317
+    },
+    {
+     "text": "Pay a stranger.",
+     "start": 41.724,
+     "end": 42.56
+    },
+    {
+     "text": "Only when you meet.",
+     "start": 42.989,
+     "end": 43.86
+    }
+   ]
+  }
+ ]
+}

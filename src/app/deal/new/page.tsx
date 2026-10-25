@@ -185,7 +185,7 @@ function NewDeal() {
                   <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-sm text-ink underline underline-offset-4">{source.host} · view original listing ↗</a>
                   <p className="mt-2 text-sm text-ink-2">Check the item and agree the amount with the seller. SHAKE is independent of this marketplace; importing a listing does not verify its seller.</p>
                 </div>}
-                {!request && <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] lg:mx-0 lg:flex-wrap lg:px-0">
+                {!request && <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-5 sm:px-5 lg:mx-0 lg:flex-wrap lg:px-0">
                   {KIND_ORDER.map((v) => (
                     <button
                       key={v}

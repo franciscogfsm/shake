@@ -25,7 +25,7 @@ export default function Try() {
 
   return (
     <Screen wide fit>
-      <Stagger className="flex min-h-0 flex-1 flex-col justify-center lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-8">
+      <Stagger className="flex flex-1 flex-col justify-start py-4 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1.15fr)_minmax(340px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-8 lg:py-0">
         <Item className="pt-6 lg:col-start-1 lg:row-start-1 lg:pt-0">
           <div className="eyebrow">Two phones · two minutes</div>
           <h1 className="display mt-3 text-[42px] leading-[1.02] lg:text-[68px] lg:leading-[0.96]">Try it with<br /><span className="lg:glacier-text">a friend.</span></h1>

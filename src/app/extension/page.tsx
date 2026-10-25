@@ -9,7 +9,7 @@ export const metadata = { title: "SHAKE for marketplaces", description: "Bring a
 export default function ExtensionPage() {
   return (
     <Screen wide fit back="/" right={<span className="eyebrow hidden sm:inline">Chrome & Edge</span>}>
-      <div className="flex min-h-0 flex-1 flex-col justify-center gap-3 lg:grid lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center lg:gap-14">
+      <div className="flex flex-1 flex-col justify-start gap-3 py-3 lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_380px] lg:items-center lg:gap-14 lg:py-0">
         <div className="min-w-0">
           <div className="flex items-center gap-3 lg:block">
             <Mark size={32} className="shrink-0 lg:hidden" />

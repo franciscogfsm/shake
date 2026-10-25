@@ -29,7 +29,7 @@ export function ExtensionDemo() {
   return (
     <div className="mt-3 max-w-[420px] lg:mt-5">
       <div className="relative flex h-[132px] flex-col overflow-hidden rounded-[22px] border border-white/10 bg-white/[0.03] px-3.5 py-3 sm:h-[164px] sm:rounded-[24px] sm:px-4 sm:py-3.5">
-        <div className="mb-2 flex gap-1.5">
+        <div className="mb-2 flex flex-wrap gap-1.5">
           {LISTINGS.map((l, n) => (
             <span key={l.market} className={`rounded-full border px-2.5 py-0.5 text-[11px] transition-colors sm:px-3 sm:text-[12px] ${n === i ? "border-safe/40 bg-safe/10 text-ink" : "border-white/10 text-mute"}`}>{l.market}</span>
           ))}

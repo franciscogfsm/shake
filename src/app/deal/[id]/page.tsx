@@ -151,8 +151,8 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency,
   return (
     <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
       <Item className="lg:col-start-1">
-        <div className="eyebrow"><span className="lg:hidden">{meta.item || "Your deal"}{meta.seller ? ` · ${meta.seller}` : ""}</span><span className="hidden lg:inline">Your deal</span></div>
-        <h1 className="display mt-3 hidden text-[52px] leading-[0.98] lg:block">{meta.item || "Your deal"}</h1>
+        <div className="eyebrow">Your deal{meta.seller ? ` · ${meta.seller}` : ""}</div>
+        <h1 className="display mt-2 text-[34px] leading-[0.98] lg:mt-3 lg:text-[52px]">{meta.item || "Your deal"}</h1>
         <div className="mt-3 flex items-center gap-3">
           <span className="pulse-dot" />
           <span className="text-ink-2">{status}</span>
@@ -163,7 +163,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency,
         <div className="halo hidden lg:block" aria-hidden />
         <div className="glass p-6 lg:p-8">
         <div className="eyebrow">Locked by you</div>
-        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[76px] lg:text-[88px]" />
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[clamp(48px,16vw,76px)] lg:text-[88px]" />
         {lockEv && (
           <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-3 block text-xs text-mute hover:text-safe">
             proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
@@ -575,7 +575,7 @@ function Released({ deal, events, role, locale, currency, replay, shaken }: View
       </Item>
       <Item className="lg:col-start-2">
         <div className="eyebrow">{role === "seller" ? "Paid to you" : "Released to the seller"}</div>
-        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px] lg:text-[96px]" />
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[clamp(52px,18vw,80px)] lg:text-[96px]" />
         <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2 lg:mx-0">Final. No chargebacks. No screenshots.</p>
         {shaken && rel && (
           <p className="mx-auto mt-3 inline-flex items-center gap-2 text-sm text-mute lg:mx-0">
@@ -603,7 +603,7 @@ function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?:
         <div className="flex max-w-[440px] flex-col items-center gap-8 lg:items-start">
         <div>
           <div className="eyebrow">Problem resolved</div>
-          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] lg:text-[88px]" />
+          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[clamp(48px,16vw,72px)] lg:text-[88px]" />
           <p className="mx-auto mt-4 max-w-[30ch] text-ink-2 lg:mx-0">{deal.mode === "Hold" ? "The claim was settled. Every cent of the deposit went to one of you." : "The resolver split the money between the buyer and the seller. Every cent went to one of you."}</p>
         </div>
         <Seal label="Resolved" sub="Split on Stellar" tone="mute" />
@@ -617,7 +617,7 @@ function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?:
       <div className="flex max-w-[440px] flex-col items-center gap-8 lg:items-start">
       <div>
         <div className="eyebrow">{hold ? "Deposit returned" : "Refunded"}</div>
-        <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] text-ink-2 lg:text-[88px] [text-shadow:none]" />
+        <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[clamp(48px,16vw,72px)] text-ink-2 lg:text-[88px] [text-shadow:none]" />
         <p className="mx-auto mt-4 max-w-[28ch] text-ink-2 lg:mx-0">{hold ? "The whole deposit went back to the payer. Every cent." : "No deal, no problem. The money went back to the buyer."}</p>
       </div>
       <Seal label={hold ? "Returned" : "Refunded"} sub={hold ? "Back to payer" : "Back to buyer"} tone="mute" />
@@ -719,7 +719,7 @@ function HoldPayer({ kind, deal, events, meta, refresh, isNew, locale, currency 
         <div className="halo hidden lg:block" aria-hidden />
         <div className="glass p-6 lg:p-8">
           <div className="eyebrow">Your deposit</div>
-          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[76px] lg:text-[88px]" />
+          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[clamp(48px,16vw,76px)] lg:text-[88px]" />
           {lockEv && (
             <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-3 block text-xs text-mute hover:text-safe">
               proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗

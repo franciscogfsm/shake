@@ -368,7 +368,7 @@ function Only() {
           <p className="mt-2 text-[14px] text-ink-2">Claude, ChatGPT and Cursor check the scam and make the link. Paying stays human. <span className="text-safe">See it →</span></p>
         </Tile>
         <Tile className="lg:col-span-3" i={3} href="/extension">
-          <div className="-mx-5 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)] lg:-mx-7">
+          <div className="-mx-4 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_15%,#000_85%,transparent)] sm:-mx-5 lg:-mx-7">
             <motion.div className="flex w-max gap-2" animate={reduce ? undefined : { x: ["0%", "-50%"] }} transition={{ duration: 22, repeat: Infinity, ease: "linear" }}>
               {[...SHOPS, ...SHOPS].map((s, j) => (
                 <span key={j} className="rounded-full border border-line bg-white/[0.03] px-3 py-1.5 text-[13px] whitespace-nowrap text-ink-2">{s}</span>

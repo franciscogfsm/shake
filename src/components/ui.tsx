@@ -1,29 +1,47 @@
 "use client";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./Mark";
 import { NumberTicker } from "./Ticker";
 import { useCountry } from "./Money";
 import { availableCurrencies, explorer, formatMoney, fromUnits } from "@/lib/config";
 
+const PAGES = [
+  ["/use-cases", "Use cases"],
+  ["/extension", "Extension"],
+  ["/ai", "For AI"],
+] as const;
+
 /** Phone-first page shell: safe areas, centred column, top bar with the wordmark. `fit` locks the desktop page to one screen. */
 export function Screen({ children, back, right, wide, fit }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean; fit?: boolean }) {
+  const path = usePathname();
+  const showNav = path === "/" || path === "/try" || path === "/use-cases" || path === "/extension" || path === "/ai";
   return (
-    <main className={`pt-safe pb-safe mx-auto flex w-full max-w-[480px] flex-col px-5 ${fit ? "min-h-dvh lg:h-dvh lg:overflow-hidden" : "min-h-dvh"} ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
-      <header className="flex h-12 items-center justify-between">
-        {back ? (
-          <Link href={back} className="-ml-2 grid size-11 place-items-center rounded-full text-ink-2 hover:text-ink" aria-label="Back">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-          </Link>
-        ) : (
-          <Link href="/" aria-label="SHAKE home">
-            <Wordmark />
-          </Link>
+    <main className={`pb-safe mx-auto flex w-full max-w-[480px] min-w-0 flex-col px-4 sm:px-5 ${fit ? "min-h-dvh lg:h-dvh lg:overflow-hidden" : "min-h-dvh"} ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
+      <header className="sticky top-0 z-30 -mx-4 bg-[#0d0f12]/75 pt-safe backdrop-blur-xl sm:-mx-5 lg:-mx-10">
+        <div className="flex h-12 items-center justify-between gap-2 px-4 sm:px-5 lg:px-10">
+          {back ? (
+            <Link href={back} className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-2 hover:text-ink" aria-label="Back">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M15 18l-6-6 6-6" />
+              </svg>
+            </Link>
+          ) : (
+            <Link href="/" aria-label="SHAKE home" className="shrink-0">
+              <Wordmark />
+            </Link>
+          )}
+          <div className="flex min-w-0 items-center justify-end">{right}</div>
+        </div>
+        {showNav && (
+          <nav aria-label="Pages" className="flex gap-1 overflow-x-auto px-2 pb-1 lg:hidden [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {PAGES.map(([href, label]) => (
+              <Link key={href} href={href} aria-current={path === href ? "page" : undefined} className={`eyebrow shrink-0 rounded-full px-3 py-1.5 ${path === href ? "text-ink" : ""}`}>{label}</Link>
+            ))}
+          </nav>
         )}
-        {right}
       </header>
       {children}
     </main>
@@ -116,9 +134,9 @@ export function Protected({ className = "justify-center", live }: { className?: 
     return currency && BigInt(t.protectedNow) > 0n ? [formatMoney(fromUnits(t.protectedNow), currency.code, country.locale)] : [];
   });
   const line = (
-    <div className={`flex items-center gap-2 text-sm text-ink-2 ${className}`}>
+    <div className={`flex min-w-0 max-w-full items-center gap-2 text-sm text-ink-2 ${className}`}>
       <span className="pulse-dot" />
-      <span>
+      <span className="min-w-0 truncate">
         {totals.length ? <><span className="font-medium text-ink">{totals.join(" · ")}</span> protected right now</> : <><NumberTicker value={s.openDeals ?? 0} format={(n) => new Intl.NumberFormat(country.locale, { maximumFractionDigits: 0 }).format(n)} className="font-medium text-ink" /> open deals</>} · {new Intl.NumberFormat(country.locale).format(s.deals)} deals on Stellar
       </span>
     </div>
@@ -155,9 +173,9 @@ function LiveLine({ line, shakes, locale }: { line: React.ReactNode; shakes: Sha
       <AnimatePresence mode="wait" initial={false}>
         <motion.div key={x ? x.txHash : "count"} initial={{ opacity: 0, y: reduce ? 0 : 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reduce ? 0 : -12 }} transition={{ type: "spring", stiffness: 500, damping: 32 }}>
           {x ? (
-            <a href={explorer.tx(x.txHash)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 text-sm text-ink-2 hover:text-ink lg:justify-start">
+            <a href={explorer.tx(x.txHash)} target="_blank" rel="noreferrer" className="flex min-w-0 max-w-full items-center justify-center gap-2 text-sm text-ink-2 hover:text-ink lg:justify-start">
               <span className={x.type === "released" ? "text-safe" : "text-mute"} aria-hidden>{x.type === "released" ? "✓" : "↩"}</span>
-              <span><span className="font-medium text-ink">{x.money}</span> {x.type === "released" ? "paid on the shake" : "back to the buyer"} · {ago(x.at)}</span>
+              <span className="min-w-0 truncate"><span className="font-medium text-ink">{x.money}</span> {x.type === "released" ? "paid on the shake" : "back to the buyer"} · {ago(x.at)}</span>
               <span className="text-mute" aria-hidden>↗</span>
             </a>
           ) : line}

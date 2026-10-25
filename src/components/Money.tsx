@@ -86,7 +86,7 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
         type="button"
         whileTap={{ scale: 0.96 }}
         onClick={() => setOpen(true)}
-        className="glass inline-flex h-10 items-center gap-2 rounded-full pl-3 pr-4 text-[14px]"
+        className="glass inline-flex h-10 shrink-0 items-center gap-1.5 rounded-full pl-2.5 pr-3 text-[13px] sm:gap-2 sm:pl-3 sm:pr-4 sm:text-[14px]"
         aria-label={`Country: ${country.name}, currency ${country.currency}. Change`}
       >
         <span className="font-mono text-xs text-mute">{country.code}</span>

@@ -76,7 +76,7 @@ export function UseCases() {
 
   return (
     <section ref={ref} style={{ height: `${N * 90 + 100}svh` }} className="relative" aria-label="Use cases">
-      <div className="sticky top-0 flex h-svh flex-col justify-center gap-4 py-4 lg:gap-10">
+      <div className="sticky top-[calc(5.25rem+max(env(safe-area-inset-top),16px))] flex h-[calc(100svh-5.25rem-max(env(safe-area-inset-top),16px))] min-h-0 flex-col justify-center gap-3 overflow-y-auto py-3 lg:top-[calc(3rem+max(env(safe-area-inset-top),16px))] lg:h-[calc(100svh-3rem-max(env(safe-area-inset-top),16px))] lg:gap-10 lg:py-4">
         <nav className="grid grid-cols-4 gap-2" aria-label="Choose a use case">
           {CASES.map((x, i) => <Segment key={x.id} fill={i === idx ? lp : i < idx ? 1 : 0} label={x.where} active={i === idx} onClick={() => jump(i)} />)}
         </nav>
