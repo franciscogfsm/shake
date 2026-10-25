@@ -51,8 +51,8 @@ export function Backdrop({ t, danger = 0, calm = 0 }: { t: number; danger?: numb
   const dx = Math.sin(t * 0.21) * 5, dy = Math.cos(t * 0.17) * 4, r = Math.sin(t * 0.13) * 8;
   return (
     <AbsoluteFill style={{ background: C.bg, overflow: "hidden" }}>
-      <AbsoluteFill style={{ inset: "-25%", opacity: (1 - danger) * (1 - calm * 0.45), transform: `translate(${dx}%, ${dy}%) rotate(${r}deg)`, background: "radial-gradient(40% 30% at 20% 25%, rgba(80,140,255,.5), transparent 70%), radial-gradient(35% 30% at 85% 70%, rgba(143,211,255,.38), transparent 70%), radial-gradient(30% 25% at 60% 10%, rgba(170,120,255,.28), transparent 70%)" }} />
-      <AbsoluteFill style={{ inset: "-25%", opacity: danger, transform: `translate(${-dx}%, ${dy}%)`, background: "radial-gradient(40% 30% at 30% 35%, rgba(255,69,58,.42), transparent 70%), radial-gradient(35% 30% at 80% 70%, rgba(80,140,255,.22), transparent 70%)" }} />
+      <div style={{ position: "absolute", inset: "-25%", opacity: (1 - danger) * (1 - calm * 0.45), transform: `translate(${dx}%, ${dy}%) rotate(${r}deg)`, background: "radial-gradient(40% 30% at 20% 25%, rgba(80,140,255,.5), transparent 70%), radial-gradient(35% 30% at 85% 70%, rgba(143,211,255,.38), transparent 70%), radial-gradient(30% 25% at 60% 10%, rgba(170,120,255,.28), transparent 70%)" }} />
+      <div style={{ position: "absolute", inset: "-25%", opacity: danger, transform: `translate(${-dx}%, ${dy}%)`, background: "radial-gradient(40% 30% at 30% 35%, rgba(255,69,58,.42), transparent 70%), radial-gradient(35% 30% at 80% 70%, rgba(80,140,255,.22), transparent 70%)" }} />
       <AbsoluteFill style={{ background: "radial-gradient(120% 90% at 50% 45%, transparent 55%, rgba(0,0,0,.55) 100%)" }} />
     </AbsoluteFill>
   );
@@ -174,8 +174,10 @@ export function Phone({ w, layers, airplane, glow = 0.4, children, time = "9:41"
           <Img src={staticFile(`shots/${top}`)} style={{ position: "absolute", left: 0, top: 0, width: w, height: h, filter: "blur(18px)", transform: "scale(1.1)", opacity: 0.9 }} />
           {layers.map((l, i) =>
             l.o > 0.001 ? (
-              <div key={i} style={{ position: "absolute", left: 0, top: SB * k, width: w, height: h, opacity: l.o, transform: `scale(${l.scale ?? 1})`, transformOrigin: l.origin ?? "50% 40%", WebkitMaskImage: `linear-gradient(transparent, #000 ${14 * k}px)` }}>
-                <Img src={staticFile(`shots/${l.src}`)} style={{ width: w, height: h, display: "block" }} />
+              <div key={i} style={{ position: "absolute", left: 0, top: SB * k, width: w, height: h - SB * k, overflow: "hidden", opacity: l.o, WebkitMaskImage: `linear-gradient(transparent, #000 ${14 * k}px)` }}>
+                <div style={{ transform: `scale(${l.scale ?? 1})`, transformOrigin: l.origin ?? "50% 40%" }}>
+                  <Img src={staticFile(`shots/${l.src}`)} style={{ width: w, height: h, display: "block" }} />
+                </div>
               </div>
             ) : null,
           )}

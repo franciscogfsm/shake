@@ -1,82 +1,16 @@
 {
-  "voice": "JBFqnCBsd6RMkjVDRZzb",
-  "tail": 1.9,
-  "lines": [
-    {
-      "id": "v01",
-      "gap": 0.5,
-      "text": "Meet Sam."
-    },
-    {
-      "id": "v02",
-      "gap": 0.3,
-      "text": "And Ana."
-    },
-    {
-      "id": "v03",
-      "gap": 0.3,
-      "text": "Strangers. One bike. Four hundred euros."
-    },
-    {
-      "id": "v04",
-      "gap": 0.3,
-      "text": "Sam won't pay first. Ana won't hand it over for a screenshot."
-    },
-    {
-      "id": "v05",
-      "gap": 0.25,
-      "text": "Because screenshots lie."
-    },
-    {
-      "id": "v06",
-      "gap": 0.45,
-      "text": "So they shake on it."
-    },
-    {
-      "id": "v07",
-      "gap": 1.0,
-      "text": "Sam locks the money. One tap. No sign-up."
-    },
-    {
-      "id": "v08",
-      "gap": 0.25,
-      "text": "Ana sees it's real. Locked on Stellar. Not a screenshot."
-    },
-    {
-      "id": "v09",
-      "gap": 0.4,
-      "text": "They meet. Sam scans her code... and holds."
-    },
-    {
-      "id": "v10",
-      "gap": 0.75,
-      "text": "Paid. Only face to face."
-    },
-    {
-      "id": "v11",
-      "gap": 0.45,
-      "text": "No signal? Still paid."
-    },
-    {
-      "id": "v12",
-      "gap": 0.25,
-      "text": "Right inside Vinted and OLX."
-    },
-    {
-      "id": "v13",
-      "gap": 0.25,
-      "text": "Ask Claude or ChatGPT. It does everything... except touch the money."
-    },
-    {
-      "id": "v14",
-      "gap": 0.35,
-      "text": "Next: pay a whole event crew, the moment they check in."
-    },
-    {
-      "id": "v15",
-      "gap": 0.7,
-      "text": "Shake. Pay a stranger. Only when you meet."
-    }
-  ],
-  "speed": 1.05
+ "voice": "XcXEQzuLXRU9RcfWzEJt",
+ "model": "eleven_v3",
+ "stability": 0.5,
+ "takes": 3,
+ "tail": 1.7,
+ "lines": [
+  { "id": "intro", "gap": 0.8, "text": "Meet Sam. He found the perfect bike online... from a total stranger." },
+  { "id": "problem", "gap": 0.35, "text": "But who pays first? Pay upfront, and the bike might never show. And Ana? She's seen fake payment screenshots before." },
+  { "id": "turn", "gap": 0.55, "text": "So they shake on it." },
+  { "id": "flow", "gap": 1, "text": "Sam locks the money in one tap. Ana sees it's real, locked on Stellar. They meet, Sam scans her code... and she's paid." },
+  { "id": "more", "gap": 0.7, "text": "No signal? Still works. It's right inside Vinted and OLX. And Claude or ChatGPT can set it all up... but never touch your money." },
+  { "id": "cases", "gap": 0.35, "text": "Cars, flats, parcels... even your event crew, paid the moment they check in." },
+  { "id": "end", "gap": 0.6, "text": "SHAKE. Pay a stranger, only when you meet." }
+ ]
 }

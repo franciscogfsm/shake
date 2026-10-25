@@ -13,5 +13,8 @@
  "blip": "audio/sfx/blip-8fabeb.mp3",
  "typing": "audio/sfx/typing-948477.mp3",
  "shimmer": "audio/sfx/shimmer-53c948.mp3",
- "denied": "audio/sfx/denied-0536b3.mp3"
+ "denied": "audio/sfx/denied-0536b3.mp3",
+ "coin": "audio/sfx/coin-2ebaef.mp3",
+ "stamp": "audio/sfx/stamp-b1c826.mp3",
+ "dissolve": "audio/sfx/dissolve-4efe7f.mp3"
 }

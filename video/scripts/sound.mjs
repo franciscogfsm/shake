@@ -1,5 +1,5 @@
 // Sound effects and the score from ElevenLabs, cached by prompt. The score's sections follow src/vo.json,
-// so the drops land on "So they shake on it" and "Paid".   node scripts/sound.mjs [sfx|music]
+// so the drops land on "So they shake on it", "she's paid" and the closing "SHAKE.".   node scripts/sound.mjs [sfx|music]
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { XI } from "./env.mjs";
@@ -32,6 +32,9 @@ export const SFX = {
   typing: ["Fast soft laptop keyboard typing, short burst", 1.3],
   shimmer: ["Delicate magical glass shimmer sparkle sweep, light glint, subtle", 1.5],
   denied: ["Short low muted error thud, access denied, soft and deep", 0.7],
+  coin: ["Single bright clean coin clink, premium, short", 0.6],
+  stamp: ["Heavy rubber stamp slammed on paper, short punchy thud", 0.6],
+  dissolve: ["Digital particles disintegrating, soft sparkling dissolve whoosh", 1.2],
 };
 
 if (only !== "music") {
@@ -47,19 +50,20 @@ if (only !== "music") {
 if (only !== "sfx") {
   const vo = JSON.parse(readFileSync(new URL("../src/vo.json", import.meta.url)));
   const line = (id) => vo.lines.find((l) => l.id === id);
-  // the three hits the film slams on: after "shake on it", just before "Paid", just before the closing "Shake."
-  const hits = { shake: line("v06").words.at(-1).end + 0.1, paid: line("v10").start - 0.12, end: line("v15").start - 0.3 };
+  const word = (id, w) => line(id).words.find((x) => x.w.toLowerCase().replace(/[^a-z]/g, "") === w).start;
+  // the three hits the film slams on: after "shake on it", on "paid", just before the closing "SHAKE."
+  const hits = { shake: line("turn").words.at(-1).end + 0.12, paid: word("flow", "paid") - 0.04, end: line("end").start - 0.2 };
   const total = Math.round(vo.total * 1000);
   const cuts = [0, hits.shake * 1000, hits.paid * 1000, hits.end * 1000, total].map(Math.round);
   const style = [
-    ["Suspense intro: sparse ticking pulse, low warm drone, a few soft felt-piano notes, tension and curiosity, quiet", "drums", "loud"],
-    ["Confident build: a deep impact hit at the very start, then a driving modern electronic pulse, warm analog synth bass, clean hi-hats, rising", "vocals"],
-    ["Release: a big uplifting drop at the very start, bright glassy arpeggios, full punchy beat, euphoric and fast moving", "vocals"],
-    ["Ending: one final huge hit, then a warm resolving synth chord with a long reverb tail, fading out", "drums", "vocals"],
+    ["Intro: soft warm ambient pad, a curious glassy synth pluck motif, a muted low pulse creeping in halfway, gentle tension and anticipation, building quietly", "loud", "vocals"],
+    ["Drop: a deep impact hit at the very start, then a confident driving beat, clean four-on-the-floor kick, crisp claps, warm analog synth bass, glassy plucks", "vocals"],
+    ["Lift: a bright impact at the very start, then the full beat with shimmering arpeggios, uplifting and euphoric, steady forward momentum", "vocals"],
+    ["Ending: one final huge impact hit at the very start, then a warm resolving synth chord with a long reverb tail, fading out", "drums", "vocals"],
   ];
   const plan = {
-    positive_global_styles: ["cinematic electronic", "Apple keynote product film", "minimal", "premium", "modern", "116 bpm", "instrumental"],
-    negative_global_styles: ["vocals", "lo-fi", "guitar", "cheesy", "corporate ukulele"],
+    positive_global_styles: ["modern minimal electronic", "sleek tech product film", "premium", "clean punchy kick", "glassy synth plucks", "120 bpm", "instrumental"],
+    negative_global_styles: ["vocals", "lo-fi", "guitar", "cheesy", "orchestral trailer", "dubstep", "corporate ukulele"],
     sections: style.map(([desc, ...neg], i) => ({ section_name: `part ${i + 1}`, positive_local_styles: [desc], negative_local_styles: neg, duration_ms: cuts[i + 1] - cuts[i], lines: [] })),
   };
   const name = `music-${tag(plan)}.mp3`;
