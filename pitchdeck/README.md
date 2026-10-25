@@ -7,4 +7,4 @@
 - `index.html?present` hides the "What you're seeing" captions for the live stage version.
 - Phones and tablets get an "Open this on a computer" screen.
 
-Settings live at the top of the script in `CFG`: `API` to wire the real contract (the deck runs in demo mode until it is set), `DEMO_VIDEO` for the 30s demo slide, `TRY_URL` for the closing QR.
+Settings live at the top of the script in `CFG`: `API` (empty = the app serving /pitch runs real testnet deals through `/api/pitch/deck`; `null` = demo mode), `DEMO_VIDEO` for the 30s demo slide, `TRY_URL` for the closing QR.

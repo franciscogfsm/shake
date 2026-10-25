@@ -267,9 +267,8 @@ export async function prepareCall(fn: DealFn, args: xdr.ScVal[]) {
   };
 }
 
-/** Sign any auth entries that belong to the team key (pitch seller). */
-export async function signTeamEntries(auth: string[], latestLedger: number) {
-  const t = team();
+/** Sign any auth entries that belong to the team key (pitch seller), or to another server-held key. */
+export async function signTeamEntries(auth: string[], latestLedger: number, t: Keypair = team()) {
   return Promise.all(
     auth.map(async (b64) => {
       const e = xdr.SorobanAuthorizationEntry.fromXDR(b64, "base64");

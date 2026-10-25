@@ -185,19 +185,16 @@ function NewDeal() {
                   <a href={source.url} target="_blank" rel="noopener noreferrer" className="mt-1 block truncate text-sm text-ink underline underline-offset-4">{source.host} · view original listing ↗</a>
                   <p className="mt-2 text-sm text-ink-2">Check the item and agree the amount with the seller. SHAKE is independent of this marketplace; importing a listing does not verify its seller.</p>
                 </div>}
-                {!request && <div role="radiogroup" aria-label="What is it for?" className="-mx-4 mt-3 flex gap-2 overflow-x-auto px-4 pb-1 [scrollbar-width:none] sm:-mx-5 sm:px-5 lg:mx-0 lg:flex-wrap lg:px-0">
-                  {KIND_ORDER.map((v) => (
-                    <button
-                      key={v}
-                      type="button"
-                      role="radio"
-                      aria-checked={kind === v}
-                      onClick={() => setKind(v)}
-                      className={`shrink-0 rounded-full px-4 py-2 text-[14px] font-medium transition-colors ${kind === v ? "bg-safe text-on-safe" : "glass text-ink-2 hover:text-ink"}`}
-                    >
-                      {KINDS[v].label}
-                    </button>
-                  ))}
+                {!request && <div className="relative mt-3 w-fit max-w-full">
+                  <select
+                    aria-label="What is it for?"
+                    value={kind}
+                    onChange={(e) => setKind(e.target.value as Kind)}
+                    className="max-w-full appearance-none rounded-full border border-safe/30 bg-safe/10 py-2 pl-4 pr-10 text-[14px] font-medium text-safe outline-none focus-visible:ring-2 focus-visible:ring-safe"
+                  >
+                    {KIND_ORDER.map((v) => <option key={v} value={v} className="bg-[#101419] text-white">{KINDS[v].label}</option>)}
+                  </select>
+                  <svg aria-hidden="true" viewBox="0 0 16 16" fill="none" className="pointer-events-none absolute right-4 top-1/2 size-3 -translate-y-1/2 text-safe"><path d="m4 6 4 4 4-4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg>
                 </div>}
                 <h1 className="display mt-5 text-[40px] lg:text-[64px] lg:leading-[0.96]">{k.ask}</h1>
               </div>
