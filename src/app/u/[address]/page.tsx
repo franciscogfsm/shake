@@ -1,0 +1,60 @@
+import type { Metadata } from "next";
+import Link from "next/link";
+import { Button } from "@/components/Button";
+import { Mark } from "@/components/Mark";
+import { Item, Screen, Stagger } from "@/components/ui";
+import { explorer } from "@/lib/config";
+import { reputation } from "@/lib/server/ledger";
+
+export const dynamic = "force-dynamic";
+
+const valid = (a: string) => /^[GC][A-Z2-7]{55}$/.test(a);
+const short = (a: string) => `${a.slice(0, 4)}…${a.slice(-4)}`;
+
+export async function generateMetadata({ params }: { params: Promise<{ address: string }> }): Promise<Metadata> {
+  const { address } = await params;
+  if (!valid(address)) return { title: "Reputation" };
+  const r = await reputation(address).catch(() => null);
+  const title = r ? `${r.shaken} deals shaken · ${r.cancelled} walked away` : "Reputation";
+  return { title, description: "Read from the Stellar network. Nobody can edit it, not even SHAKE." };
+}
+
+/** Public track record, counted from contract events: it can't be bought, faked or deleted. */
+export default async function Reputation({ params }: { params: Promise<{ address: string }> }) {
+  const { address } = await params;
+  const r = valid(address) ? await reputation(address).catch(() => null) : null;
+  return (
+    <Screen back="/">
+      <Stagger className="flex flex-1 flex-col items-center justify-center gap-8 pb-10 text-center">
+        <Item>
+          <Mark size={88} state={r && r.shaken > 0 ? "shut" : "open"} />
+        </Item>
+        {r ? (
+          <>
+            <Item>
+              <div className="eyebrow">Track record · {short(address)}</div>
+              <div className="amount mt-4 text-[96px] leading-none">{r.shaken}</div>
+              <p className="mt-2 text-lg text-ink-2">{r.shaken === 1 ? "deal shaken" : "deals shaken"}</p>
+            </Item>
+            <Item className="glass grid w-full grid-cols-2 divide-x divide-white/10 p-5">
+              <div><div className="amount text-[34px]">{r.deals}</div><div className="text-[13px] text-mute">deals locked</div></div>
+              <div><div className={`amount text-[34px] ${r.cancelled ? "text-danger" : ""}`}>{r.cancelled}</div><div className="text-[13px] text-mute">walked away</div></div>
+            </Item>
+            <Item className="flex w-full flex-col gap-3">
+              <p className="text-[14px] text-ink-2">Counted from the last {r.windowDays} days of Stellar network events. Nobody can edit it, not even SHAKE.</p>
+              <a href={explorer.account(address)} target="_blank" rel="noreferrer" className="text-sm text-mute hover:text-safe">See this address on Stellar ↗</a>
+            </Item>
+          </>
+        ) : (
+          <Item>
+            <h1 className="display text-[30px]">That isn&apos;t a SHAKE address.</h1>
+            <p className="mt-2 text-ink-2">Check the link with the person who sent it.</p>
+          </Item>
+        )}
+        <Item className="w-full">
+          <Link href="/deal/new" className="contents"><Button full variant="glass">Start a safe deal</Button></Link>
+        </Item>
+      </Stagger>
+    </Screen>
+  );
+}

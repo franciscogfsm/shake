@@ -12,7 +12,8 @@ import { ShakeBurst } from "@/components/ShakeBurst";
 import { ShakeMoment } from "@/components/ShakeMoment";
 import { CashOut } from "@/components/CashOut";
 import { ProofLink } from "@/components/LiveReceipt";
-import { HashTyper, NumberTicker } from "@/components/Ticker";
+import { SafeSpots } from "@/components/SafeSpots";
+import { HashTyper } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
 import { currencyOfToken, formatMoney, fromUnits } from "@/lib/config";
 import { Money, useCountry } from "@/components/Money";
@@ -138,7 +139,7 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
           ) : (
             <div><div className="text-mute">Refund if no deal</div><div className="mt-0.5 text-ink">{expired ? "Available now" : <Countdown to={deal.expiry} />}</div></div>
           )}
-          <div><div className="text-mute">Seller</div><div className="mt-0.5 text-ink">{inBox ? "Shipped ✓" : joined ? "Joined ✓" : "Not yet"}</div></div>
+          <div><div className="text-mute">Seller</div><div className="mt-0.5 text-ink">{inBox ? "Shipped ✓" : joined ? "Joined ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
         </div>
       </Item>
       <div className="flex-1" />
@@ -174,6 +175,7 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
             {expired ? "Refund me now" : "Cancel and refund"}
           </Button>
         )}
+        {joined && !expired && !ship && <SafeSpots />}
         {joined && !expired && !ship && <p className="text-center text-sm text-mute">Only the seller can cancel now. If you don&apos;t meet, you&apos;re refunded automatically.</p>}
         {err && <p className="text-center text-sm text-ink-2" role="alert">{err}</p>}
         <TestnetNote />
@@ -304,6 +306,7 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
         <div className="mt-4 flex items-center gap-2 text-[15px] font-medium text-safe">
           <span className="pulse-dot" /> Verified on the Stellar network
         </div>
+        <Link href={`/u/${deal.buyer}`} className="mt-1 block text-xs text-mute hover:text-safe">buyer&apos;s track record ↗</Link>
         {lockEv && (
           <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-2 block text-xs text-mute hover:text-safe">
             see proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
@@ -349,7 +352,10 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
         ) : ship && s === "Disputed" ? null : expired ? (
           <p className="text-center text-ink-2">This deal expired. The buyer can take the money back.</p>
         ) : ready ? (
-          <Button full onClick={() => setShowQR(true)}>Show my QR</Button>
+          <>
+            <Button full onClick={() => setShowQR(true)}>Show my QR</Button>
+            <SafeSpots />
+          </>
         ) : (
           <Button full loading={busy === "joining"} onClick={join}>{mine ? "Make a new QR" : ship ? "I'll ship it, make my QR" : "I'm meeting them, show my QR"}</Button>
         )}

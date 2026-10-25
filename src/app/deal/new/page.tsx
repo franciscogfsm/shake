@@ -27,6 +27,20 @@ export default function NewDeal() {
   const [price, setPrice] = useState("");
   const [seller, setSeller] = useState("");
   const [ship, setShip] = useState(false);
+  const [from, setFrom] = useState("");
+  const autofill = async (url: string) => {
+    setFrom("Reading the listing…");
+    try {
+      const r = await fetch(`/api/listing?url=${encodeURIComponent(url)}`);
+      const j = await r.json();
+      if (!r.ok) throw new Error(j.error);
+      if (j.title) setItem(j.title);
+      if (j.price && j.price <= MAX) setPrice(String(j.price));
+      setFrom(`Filled from ${j.source}. Check it matches.`);
+    } catch (e) {
+      setFrom(e instanceof Error && e.message ? `${e.message}. Type the item instead.` : "Couldn’t read that link. Type the item instead.");
+    }
+  };
   const [phase, setPhase] = useState<Phase>("form");
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -97,11 +111,17 @@ export default function NewDeal() {
                 <input
                   id="item"
                   value={item}
-                  onChange={(e) => setItem(e.target.value.slice(0, 40))}
+                  onChange={(e) => {
+                    const v = e.target.value.trim();
+                    if (/^https:\/\/\S+$/.test(v)) return autofill(v);
+                    setItem(e.target.value.slice(0, 40));
+                  }}
                   placeholder="iPhone 13, 128GB"
                   autoComplete="off"
+                  aria-describedby="item-hint"
                   className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
+                <p id="item-hint" className="mt-2 text-[13px] text-mute" aria-live="polite">{from || "Or paste the OLX or Vinted link"}</p>
               </Item>
               <Item>
                 <label htmlFor="price" className="eyebrow">Price</label>
