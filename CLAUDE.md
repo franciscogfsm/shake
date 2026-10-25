@@ -2,6 +2,19 @@
 
 Read `CONTEXT.md` (the full project context) and `docs/build-prompt.md` (the detailed UI/UX and build spec) before doing anything.
 
+## Start here (every new session)
+1. **`docs/plan.md`**: the current status, the locked decisions, the contract spec and the next step. Update its checkboxes and its "Now" line as work lands.
+2. **`docs/design-system.md`**: the LOCKED visual system (Graphite Glacier: tokens, fonts, glass, the split-coin mark, motion). The reference page is `design/reference.html`.
+3. **`docs/research.md`**: the verified stack versions and sources.
+
+Locked decisions (the team chose them; don't reopen):
+- **Design:** Graphite Glacier. Glacier blue `#8fd3ff` is safe money, on graphite `#0d0f12`. Fonts are Satoshi (display), Inter (text) and JetBrains Mono.
+- **Contract:** `soroban-sdk 29.0.1` (testnet protocol 29).
+- **Wallet:** `@stellar/stellar-sdk 16.3.x`, because smart-account-kit needs it.
+- **Money:** tEUR, our own asset, wrapped as a SAC.
+- **Fees:** OpenZeppelin Channels on testnet.
+- **Wallet order:** an invisible keypair with sponsored reserves first, then a passkey smart account (time-boxed).
+
 ## What we're building
 SHAKE is the safe way to pay strangers for second-hand deals arranged elsewhere (OLX, Vinted, WhatsApp). It is **not a marketplace**:
 1. The buyer locks stablecoins in a Soroban escrow.
@@ -24,7 +37,7 @@ Escrow already exists on Stellar: Trustless Work, plus dozens of "freelance mark
 ## UI/UX is the whole bet
 The biggest risk: if the UX is average, SHAKE looks like "another escrow" and loses. Most hackathon projects look like crypto dashboards; SHAKE must look and feel like an Apple-designed consumer app. Non-negotiables:
 - **Instantly understood.** A judge with zero context understands what SHAKE does in 5 seconds and how to try it in 10. One idea per screen. Huge, clear type. No jargon.
-- **Its own identity.** It must not look like a template, shadcn defaults or a copy of other decks. The concept is "two halves that meet". Show 3 visual directions first.
+- **Its own identity.** It must not look like a template, shadcn defaults or a copy of other decks. The concept is "two halves that meet". The direction is locked: see `docs/design-system.md`.
 - **Real liquid glass** done properly (see `docs/build-prompt.md` §4.4), only on chrome, never on body text.
 - **Signature moments must be breathtaking:**
   - the fake-screenshot glitch;
@@ -65,7 +78,7 @@ The biggest risk: if the UX is average, SHAKE looks like "another escrow" and lo
 - Disclose prior work. Before the event there was only ideation and docs. All code is written during the event.
 
 ## Tools to use
-- **Stellar Raven MCP** (`stellar-raven`): use it FIRST for any Stellar or Soroban question (SDK versions, RPC, SAC, fee-bump, passkeys, anchors, SEPs). Don't rely on memory for the Stellar APIs; they change.
+- **Stellar Raven MCP** (`stellar-raven`, installed at user scope and authenticated): use it FIRST for any Stellar or Soroban question (SDK versions, RPC, SAC, fee-bump, passkeys, anchors, SEPs). Don't rely on memory for the Stellar APIs; they change.
 - **OpenZeppelin skills and Contracts MCP:** use them for Stellar contract setup and for OpenZeppelin Stellar libraries (smart accounts, tokens).
 - **Playwright MCP:** after every major screen, screenshot it at 393×852 (iPhone) and 1440×900, review it critically like an Apple design reviewer, fix the issues and repeat.
 - **Context7 MCP** (if installed): use it for up-to-date Next.js, Framer Motion and Tailwind docs.
@@ -76,8 +89,9 @@ The biggest risk: if the UX is average, SHAKE looks like "another escrow" and lo
 - `qrcode` to generate QR codes and `@zxing/browser` to scan them.
 
 ## Working rules
+- On Windows the Stellar CLI is at `C:\Program Files (x86)\Stellar CLI\stellar.exe`. Playwright 1.48 with Chromium is installed in `%TEMP%\shotpw` for screenshots.
 - Small working increments. Commit often with clear messages; the commit history is the evidence of hackathon progress.
-- Before building the UI, show 3 visual directions and wait for the team to pick one.
+- The 3 visual directions were shown and the team picked **Graphite Glacier** (25 Oct). Build straight from `docs/design-system.md`.
 - iPhone Safari first. 60fps. Animate only transform and opacity. Real liquid glass with fallbacks (see `docs/build-prompt.md` §4.4).
 - Never use the words crypto, gas or seed in the user-facing UI.
 - Secrets live only in `.env.local`, never committed. Keep `.env.example` up to date.
