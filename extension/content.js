@@ -61,6 +61,7 @@
       .amount-field:focus-within{border-color:#bfe5ff80;outline:2px solid #a4dcff;outline-offset:3px;background:#b8dfff0b}.amount-symbol{flex-shrink:0;font-size:17px;font-weight:500;color:#bad9ed;letter-spacing:-.5px}
       .amount-field #shake-price{min-width:0;width:100%;height:42px;padding:0;border:0;outline:none;background:transparent;box-shadow:none;font-size:23px;font-weight:500;letter-spacing:-.7px;-moz-appearance:textfield}.amount-field #shake-price::-webkit-inner-spin-button,.amount-field #shake-price::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
       .row{grid-template-columns:minmax(0,1fr) 110px;gap:9px}#shake-currency{height:46px;padding-left:10px;font-size:12px}
+      .amount-hint{font-size:10px;line-height:1.45;color:#9fb6ca;margin:7px 0 0;font-variant-numeric:tabular-nums}.amount-hint[data-invalid="true"]{color:#f2d39c}.amount-field:has(input:invalid:not(:placeholder-shown)){border-color:#edc88777}
     `;
     root.append(style);
     if (!open) {
@@ -85,8 +86,14 @@
       const form = el("form");
       const title = el("input", { id: "shake-item", maxlength: "40", required: "", minlength: "2", autocomplete: "off" });
       title.value = listing.title.slice(0, 40);
-      const price = el("input", { id: "shake-price", type: "number", min: "1", max: "2000", step: "0.01", required: "", inputmode: "decimal" });
-      price.value = listing.price;
+      const pageLocale = document.documentElement.lang || navigator.language || "en-US";
+      // Portuguese marketplaces conventionally show 14.500,00 rather than an ungrouped 14500.
+      let locale = /^pt\b/i.test(pageLocale) ? "pt-BR" : pageLocale;
+      try { new Intl.NumberFormat(locale); } catch { locale = "en-US"; }
+      const number = (value, grouping = true) => new Intl.NumberFormat(locale, { useGrouping: grouping ? "always" : false, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+      const price = el("input", { id: "shake-price", type: "text", maxlength: "32", required: "", inputmode: "decimal", autocomplete: "off", placeholder: number(0), "aria-describedby": "shake-amount-hint" });
+      price.value = listing.price ? number(Number(listing.price)) : "";
+      const priceValue = () => globalThis.ShakeListing.parseInput(price.value, locale);
       const code = el("select", { id: "shake-currency", required: "" });
       code.append(el("option", { value: "" }, "Choose"));
       const symbols = { EUR: "€", USD: "US$", GBP: "£", BRL: "R$" };
@@ -95,6 +102,19 @@
       const amountSymbol = el("span", { class: "amount-symbol", "aria-hidden": "true" }, symbols[code.value] || "—");
       const amountField = el("div", { class: "amount-field" });
       amountField.append(amountSymbol, price);
+      const amountHint = el("p", { id: "shake-amount-hint", class: "amount-hint" });
+      const validatePrice = () => {
+        const n = Number(priceValue());
+        const valid = !!priceValue() && n >= 1 && n <= 2000;
+        const message = !price.value ? "Enter the agreed amount." : !priceValue() ? `Use a valid amount, like ${number(1250.5)}, with up to two decimal places.` : n > 2000 ? `This listing exceeds the ${number(2000)} ${code.value || ""} test limit. Enter a lower amount only if agreed with the seller.` : n < 1 ? `The minimum test payment is ${number(1)}.` : "";
+        price.setCustomValidity(message);
+        price.setAttribute("aria-invalid", String(!valid && !!price.value));
+        amountHint.dataset.invalid = String(!valid && !!price.value);
+        amountHint.textContent = message || `${code.value || "Choose a currency"} · test payments up to ${number(2000)}`;
+        return valid;
+      };
+      price.oninput = validatePrice;
+      price.onblur = () => { const p = priceValue(); if (p) price.value = number(Number(p)); validatePrice(); };
       const row = el("div", { class: "row" });
       const a = el("div"), b = el("div");
       a.append(el("label", { for: "shake-price" }, "Agreed price"), amountField);
@@ -116,14 +136,16 @@
           warning.textContent = `Enter the amount agreed with the seller in ${code.value}. SHAKE does not convert the listing price.`;
           price.focus();
         }
+        validatePrice();
       };
+      validatePrice();
       const link = el("a", { class: "source", href: listing.url, target: "_blank", rel: "noopener noreferrer" }, `From ${listing.source} · view original listing`);
       const submit = el("button", { class: "continue", type: "submit" }, "Continue in SHAKE →");
-      form.append(el("label", { for: "shake-item" }, "What are you buying?"), title, row, link, warning, submit);
+      form.append(el("label", { for: "shake-item" }, "What are you buying?"), title, row, amountHint, link, warning, submit);
       form.onsubmit = (event) => {
         event.preventDefault();
-        if (!form.reportValidity()) return;
-        const p = globalThis.ShakeListing.amount(price.value);
+        if (!validatePrice() || !form.reportValidity()) { price.reportValidity(); return; }
+        const p = priceValue();
         if (!p || !["EUR", "USD", "GBP", "BRL"].includes(code.value)) return;
         const url = new URL("https://shake-lake.vercel.app/deal/new");
         url.search = new URLSearchParams({ i: title.value.trim(), p, c: code.value, source: listing.url, via: "extension", k: "meet" }).toString();

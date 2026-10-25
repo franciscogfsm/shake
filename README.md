@@ -10,7 +10,7 @@ Implementation reviewed against the local source on **25 October 2026**. Hosted 
 
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
-[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Marketplace extension](#shake-on-marketplace-listings) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
+[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Marketplace extension](#shake-on-marketplace-listings) · [Features](#features) · [Safety](#safety) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
 
@@ -90,7 +90,7 @@ SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HT
 | Tool | What it does |
 | --- | --- |
 | `protect_purchase` | Returns a prefilled deal link the buyer opens to lock the money; optionally scans the seller's message. |
-| `check_seller_message` | Runs the same scam patterns as `/check` on a pasted chat message. |
+| `check_seller_message` | Flags known scam patterns (MB WAY request-money, fake payment links, SMS codes, look-alike domains) in a pasted chat message. |
 | `verify_payment` | "Did they really pay me?", answered from the contract's state on testnet, not a screenshot. |
 | `deal_status` | Status, parties, and every transaction with Stellar Expert links. |
 | `find_safe_spot` | Public meeting places near an address (Nominatim + Overpass). |
@@ -98,10 +98,6 @@ SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HT
 | `release_payment` | Always refuses, and explains why. |
 
 **Agents can create links and read state; they can never move money.** The endpoint holds no user keys and signs nothing. Release still needs the buyer's passkey or browser key plus the seller's one-time QR secret, in person. Try: *"Someone on Vinted wants €60 for a jacket, here's his message, is it safe?"*, then *"Release the money."*
-
-### Try the anti-scam check
-
-Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet. Use the built-in **MB WAY request**, **Fake link**, or **Screenshot** examples, or paste `Envio-te um pedido de dinheiro no MB WAY, é só aceitar` to see the request-money warning. Paste a SHAKE deal link or short code to open its public receipt. The **Screenshot** button uses optional server-side vision; message checking works without an API key.
 
 ## Features
 
@@ -116,11 +112,8 @@ Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet
 - **Ship mode:** QR in the package, optional tracking text, shipment and delivery states, a three-day review window, permissionless claims after that window, and buyer disputes with resolver-controlled splits. See the [shipping walkthrough](#shipped-deal-the-shake-travels-in-the-box).
 - **Public receipts:** transaction hashes, timestamps, and Stellar Expert links expose the deal's on-chain history.
 
-### Anti-scam and deal preparation
+### Deal preparation
 
-- **Scam check (`/check`):** Portuguese and English message patterns, danger/warning results, plain-language explanations, and checks for suspicious brand domains. Text is checked locally without an API key.
-- **Optional screenshot analysis:** upload a payment or chat screenshot for Claude vision to flag suspicious details. If reading is unavailable, the page explains that a screenshot cannot prove payment and offers the text checker.
-- **Verify a deal from a message:** recognized SHAKE links and short codes lead to the public receipt so the recipient can check the actual deal.
 - **Public track record (`/u/[address]`):** deals locked, released, and attributed cancellations counted from recent contract events, for classic and smart-account addresses. The window is three days.
 - **Listing title autofill:** paste an HTTPS OLX or Vinted listing into the item field. The listing API also accepts Wallapop and Depop hosts, extracts available title/price metadata, and falls back to the URL slug for the title. The form fills a price only when the response identifies the selected currency; the current API does not return a currency, so enter the price manually.
 - **Nearby meetup suggestions:** on request, geolocation finds police stations, shopping centres, railway stations, libraries, and town halls within 2 km using OpenStreetMap's Overpass API. Up to five suggestions are shown, prioritizing police stations, with distances and Google Maps links. Location-denied, empty, and network-error states offer manual guidance.
@@ -143,33 +136,15 @@ Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet
 - **Mobile presentation:** safe-area layouts, reduced-motion support in signature animations, an app manifest, and generated app icons.
 - **Public activity APIs:** recent contract events power payment statistics and address activity summaries over a bounded three-day lookback. These are activity signals, not identity verification or permanent reputation records.
 
-## Anti-scam tools
-
-SHAKE combines checks before a deal with verification during payment. The message checker highlights known patterns; the deal screen and receipt read actual contract state.
-
-| Message signal | What the checker flags |
-| --- | --- |
-| MB WAY request-money language | Requests or codes presented as a step to receive a payment. |
-| SMS codes, PINs, or OTPs | Someone asking for a code from the recipient's phone. |
-| “Click to receive” links | A link presented as necessary to collect money. |
-| Courier payment requests | Courier names alongside payment, fee, or confirmation language. |
-| Payment screenshots or “already paid” claims | A picture or message offered as proof instead of independently checked funds. |
-| Urgency | Pressure to act immediately or miss the deal. |
-| Moving off-platform | Certain requests to continue via messaging or email. |
-| Overpayment | Paying extra and asking for the difference back. |
-| Look-alike domains | OLX, Vinted, MB WAY, CTT, or SHAKE names in a host outside the checker's configured official domains. |
-
-The checker returns **danger**, **warn**, or **clear**, with an explanation for each matched signal. It uses Portuguese and English regular expressions and a configured domain list. A clear result means no configured pattern matched; it does not authenticate a sender, certify a website, or prove that money arrived. The UI currently accepts up to 2,000 message characters.
-
-**Data handling:** pasted message text stays in the browser. Choosing **Screenshot** sends the selected image to `/api/check`, which forwards it to Anthropic when `ANTHROPIC_API_KEY` is configured. The screenshot picker accepts PNG, JPEG, and WebP; the server also accepts GIF and rejects base64 payloads above 7,000,000 characters. No screenshot storage is implemented in the route. AI output is advisory, and failed or disabled analysis falls back to guidance and local text checking. Nearby-place lookup separately sends coordinates to Overpass only after requesting the user's location.
+## Safety
 
 **Payment protection:** the seller checks the contract's amount and status; the current QR flow requires buyer authorization and the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop QR release and the timed claim. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself. Deposit and approval methods are described below.
 
-Public track records describe recent address activity, not a verified person's identity. Cancellation attribution follows the implementation: the accepted seller, or the buyer if nobody accepted, is counted as having walked away even when a refund was submitted after expiry. Meetup suggestions come from map categories; the app does not verify opening hours, cameras, or the safety of a particular location.
+Public track records describe recent address activity, not a verified person's identity. Cancellation attribution follows the implementation: the accepted seller, or the buyer if nobody accepted, is counted as having walked away even when a refund was submitted after expiry. Meetup suggestions come from map categories; the app does not verify opening hours, cameras, or the safety of a particular location. Nearby-place lookup sends coordinates to Overpass only after requesting the user's location.
 
 ## Current scope and roadmap
 
-Meetup payments, shipping/disputes, local message checks, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository. Screenshot analysis additionally requires an Anthropic key and successful access to the model configured in `src/app/api/check/route.ts`; its presence in source does not confirm that a hosted deployment has enabled it.
+Meetup payments, shipping/disputes, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository.
 
 Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The app manifest does not provide an offline payment mode. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
@@ -218,8 +193,6 @@ flowchart TD
     Resolver[Assigned resolver] -->|Authorize buyer/seller split| Contract
     App -->|Read state and events| RPC[Stellar Testnet RPC]
     RPC --> Contract
-    App -->|Local message patterns| Check[Browser scam checker]
-    App -->|Optional screenshot analysis| Vision[Server route to Anthropic]
     App -->|Listing metadata| Listings[Marketplace pages]
     App -->|Location permission and nearby query| Maps[OpenStreetMap Overpass]
     Agent[AI assistant via MCP] -->|Create links, read state; never signs| App
@@ -230,7 +203,7 @@ flowchart TD
 
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |
-| Web application | Next.js 15, React 19, TypeScript | Meetup/shipping deals, scanner, settlement, disputes, receipts, scam check, public profiles, and interactive introduction. |
+| Web application | Next.js 15, React 19, TypeScript | Meetup/shipping deals, scanner, settlement, disputes, receipts, public profiles, and interactive introduction. |
 | Interface | Tailwind CSS 4, Motion, custom components | Responsive layouts, glass surfaces, transitions, and confirmation interactions. |
 | Authorization | Stellar SDK 16.3.x; `smart-account-kit` 0.8.x | Sign with a browser keypair or optional passkey smart account. |
 | Server orchestration | Next.js route handlers; Stellar SDK | Sponsor onboarding, simulate calls, relay authorizations, and read state and events. |
@@ -238,7 +211,6 @@ flowchart TD
 | Assets | Classic test assets wrapped as Stellar Asset Contracts | Transfer test currency through the contract's token interface. |
 | Sponsorship | OpenZeppelin Channels; 24 derived channel accounts | Submit transactions and pay fees without user-held XLM. |
 | Test anchor | Application-owned SEP endpoints | Discover services, authenticate a classic account, and demonstrate withdrawals. |
-| Anti-scam checks | Local TypeScript patterns; optional Anthropic vision route | Explain suspicious messages/domains and optionally analyze screenshots. |
 | Deal preparation | Listing metadata fetch; OpenStreetMap Overpass | Import item titles and suggest nearby public meeting places. |
 | Activity | RPC contract-event index with a short-lived memory cache | Per-asset totals, recent activity, and three-day address track records. |
 
@@ -254,15 +226,13 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 | `/deal/[id]` | Buyer/seller views, verified funds, sharing, QR rotation, refunds, shipping, claims, and disputes. |
 | `/scan/[id]` | QR/manual-code verification and deliberate buyer release. |
 | `/r/[id]` | Public status, amount, participants, and core payment transaction timeline without signing in. |
-| `/check` | Local message/domain checks, deal recognition, and optional screenshot analysis. |
 | `/u/[address]` | Public three-day activity summary for an address. |
 | `/anchor/withdraw` | Interactive test-anchor bank-details flow. |
 | `GET /api/deal/[id]` | Contract state and available deal events. |
 | `POST /api/call` | Prepare a contract call or submit its signed authorizations. |
 | `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team seller operations for the guided payment flow. |
 | `GET /api/listing?url=…` | Supported marketplace title and available price extraction. |
-| `POST /api/check` | Optional screenshot analysis; returns 501 when no API key is configured. |
-| `POST /api/mcp` | MCP server for AI assistants: deal links, scam check, on-chain verification, safe spots. No signing. |
+| `POST /api/mcp` | MCP server for AI assistants: deal links, message check, on-chain verification, safe spots. No signing. |
 | `GET /api/stats`, `/api/reputation/[address]` | Recent contract activity, per-currency totals, and address counts. |
 | `/.well-known/stellar.toml`, `/api/anchor/*`, `/api/wallet/pay` | Anchor discovery, authentication, withdrawal details/status, and signed payment preparation/submission. |
 
@@ -393,12 +363,11 @@ Public variables are embedded in the client bundle by Next.js. Set them before b
 | `SPONSOR_SECRET` | Server-only reserve sponsor; derives channels and anchor signing material. | `deploy.sh` |
 | `TEAM_SECRET` | Server-only seller key for pitch acceptance/cancellation; resolver signing key for `scripts/resolve.mjs`. | `deploy.sh` |
 | `CHANNELS_API_KEY` | Optional OpenZeppelin Channels sponsorship key. | Developer configuration |
-| `ANTHROPIC_API_KEY` | Optional server-only key for screenshot checks through `/api/check`; local message checking works without it. | Developer configuration |
 | `NEXT_PUBLIC_SITE_URL` | Optional canonical origin for metadata and social previews. | Developer configuration |
 
 Keep `.env.local` private. The passkey account WASM hash and WebAuthn verifier address are public constants in [`src/lib/config.ts`](src/lib/config.ts). Changing `NEXT_PUBLIC_NETWORK` alone does not switch networks.
 
-The nearby-place finder requires browser geolocation permission and access to Overpass, with no map API key. Listing import fetches supported marketplace pages from the server and may fall back to a title derived from the URL when fetching fails. For screenshot checks, add `ANTHROPIC_API_KEY` to `.env.local` or the hosting environment and restart/redeploy; the configured model must also be accessible to that account. These optional services are independent of the core testnet payment flow.
+The nearby-place finder requires browser geolocation permission and access to Overpass, with no map API key. Listing import fetches supported marketplace pages from the server and may fall back to a title derived from the URL when fetching fails. These optional services are independent of the core testnet payment flow.
 
 ### Production build
 
@@ -425,18 +394,18 @@ For Vercel, configure the same public IDs and server-only variables before build
 | `node scripts/load.mjs http://localhost:3100 10` | Concurrent test-wallet onboarding; submits testnet transactions. |
 | `npm run commits` | Refresh the commit-history data used to document development progress. |
 
-The contract suite covers custody, authorized release, wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Shipping tests cover QR release, blocked refunds after shipment, timed claims, frozen disputes, resolver split limits, the dispute deadline, stage/mode restrictions, and cancellation before acceptance. The scam-check suite runs locally without an Anthropic key; it does not exercise screenshot vision. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
+The contract suite covers custody, authorized release, wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Shipping tests cover QR release, blocked refunds after shipment, timed claims, frozen disputes, resolver split limits, the dispute deadline, stage/mode restrictions, and cancellation before acceptance. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
 
 ## Project map
 
 ```text
 contracts/escrow/       Rust deal contract and unit tests
-src/app/               Meetup/shipping screens, scam check, profiles, metadata, APIs
+src/app/               Meetup/shipping screens, profiles, metadata, APIs
 src/app/api/anchor/     Authentication and withdrawal endpoints
 src/components/        Payment controls, QR scanner, receipts, and visual system
 src/lib/client/        Wallets, passkeys, handshake codes, polling, and pitch session
 src/lib/server/        Stellar orchestration, event index, and test anchor
-src/lib/scamCheck.ts   Local Portuguese/English scam patterns and domain checks
+src/lib/scamCheck.ts   Portuguese/English scam patterns used by the MCP `check_seller_message` tool
 src/lib/amount.ts      Locale-aware amount parsing and cent-precision validation
 src/lib/regions.ts     Worldwide regions, locale detection, and currency preferences
 src/lib/totals.ts      Activity totals kept separate for each test asset

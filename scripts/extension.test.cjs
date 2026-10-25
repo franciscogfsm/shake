@@ -12,7 +12,7 @@ after(async () => { await browser?.close(); });
 test("the unpacked Manifest V3 extension loads and injects its own content scripts", async () => {
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), "shake-extension-"));
   const ctx = await chromium.launchPersistentContext(profile, {
-    headless: false, ignoreDefaultArgs: ["--disable-extensions"],
+    headless: false, locale: "en-US", ignoreDefaultArgs: ["--disable-extensions"],
     args: ["--headless=new", `--disable-extensions-except=${EXT}`, `--load-extension=${EXT}`],
   });
   try {
@@ -31,7 +31,7 @@ test("the unpacked Manifest V3 extension loads and injects its own content scrip
 });
 
 async function listing(url, html) {
-  const page = await browser.newPage();
+  const page = await browser.newPage({ locale: "en-US" });
   await page.route("**/*", (r) => r.fulfill({ contentType: "text/html; charset=utf-8", body: html }));
   await page.goto(url);
   await page.addScriptTag({ path: path.join(EXT, "extract.js") });
@@ -128,6 +128,33 @@ test("choosing a different currency requires a newly agreed amount", async () =>
     await page.locator("#shake-currency").selectOption("USD");
     assert.equal(await page.locator("#shake-price").inputValue(), "");
     assert.match(await page.getByRole("status").textContent(), /amount agreed with the seller in USD/);
+  } finally { await page.close(); }
+});
+
+test("Portuguese listing prices have thousands separators, validate limits and submit exact cents", async () => {
+  const page = await listing("https://www.olx.pt/d/anuncio/audi-ID123.html", '<html lang="pt-PT"><h1>Audi TT</h1><meta property="product:price:amount" content="14500"><meta property="product:price:currency" content="EUR"></html>');
+  try {
+    await page.addScriptTag({ path: path.join(EXT, "content.js") });
+    await page.getByRole("button", { name: "Pay safely with SHAKE" }).click();
+    assert.equal(await page.locator("#shake-price").inputValue(), "14.500,00");
+    assert.match(await page.locator("#shake-amount-hint").textContent(), /exceeds the 2\.000,00 EUR test limit/);
+    assert.equal(await page.locator("#shake-price").evaluate((n) => n.checkValidity()), false);
+    await page.locator("#shake-price").fill("1.450,50");
+    await page.locator("#shake-item").click();
+    assert.equal(await page.locator("#shake-price").inputValue(), "1.450,50");
+    await page.evaluate(() => { window.open = (url) => { window.testOpened = url; }; });
+    await page.getByRole("button", { name: "Continue in SHAKE" }).click();
+    assert.equal(new URL(await page.evaluate(() => window.testOpened)).searchParams.get("p"), "1450.50");
+  } finally { await page.close(); }
+});
+
+test("manual amounts reject malformed numbers rather than silently changing their value", async () => {
+  const page = await listing("https://www.vinted.pt/items/123-coat", '<h1>Coat</h1>');
+  try {
+    const results = await page.evaluate(() => ["-25", "1e3", "12.34.56", "25,999", "free", "1,23,4"].map((s) => ShakeListing.parseInput(s, "pt-BR")));
+    assert.deepEqual(results, ["", "", "", "", "", ""]);
+    assert.equal(await page.evaluate(() => ShakeListing.parseInput("1,450.50", "en-US")), "1450.50");
+    assert.equal(await page.evaluate(() => ShakeListing.parseInput("1.450,50", "pt-BR")), "1450.50");
   } finally { await page.close(); }
 });
 

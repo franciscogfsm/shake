@@ -1,42 +1,88 @@
 "use client";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import { haptic } from "@/lib/client/sfx";
+import { springs } from "./Mark";
 
 const APPS = {
-  Claude: ["Open Settings → Connectors.", "Choose Add custom connector and paste the address.", "Ask: “Is this seller's message safe?”"],
-  ChatGPT: ["Open Settings → Apps & Connectors → Advanced, and turn on Developer mode.", "Create a connector and paste the address.", "Start a chat, add SHAKE from the + menu, and ask."],
-  Cursor: ["Open Settings → MCP → Add new server.", "Paste the config below.", "Ask the agent to protect a purchase."],
+  Claude: "Settings → Connectors → paste.",
+  ChatGPT: "Settings → Apps → Developer mode → paste.",
+  Cursor: "Settings → MCP → paste the config.",
 } as const;
 type App = keyof typeof APPS;
 
-/** The one thing a person needs: the address, copied, plus three steps for their assistant. Menu names drift; keep these short. */
+function ClaudeIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      {Array.from({ length: 8 }, (_, i) => (
+        <rect key={i} x="11" y="1.5" width="2" height="6.5" rx="1" fill="#E8A087" transform={`rotate(${i * 45} 12 12)`} />
+      ))}
+    </svg>
+  );
+}
+function ChatGptIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden>
+      <path d="M12 3.2a3.2 3.2 0 0 1 2.8 1.7 3.2 3.2 0 0 1 3.4 1.4 3.2 3.2 0 0 1 .6 3.6 3.2 3.2 0 0 1-1.6 3.3 3.2 3.2 0 0 1-2.8 1.7 3.2 3.2 0 0 1-2.8-1.7 3.2 3.2 0 0 1-3.4-1.4 3.2 3.2 0 0 1-.6-3.6 3.2 3.2 0 0 1 1.6-3.3A3.2 3.2 0 0 1 12 3.2Z" stroke="#ececec" strokeWidth="1.4" />
+      <circle cx="12" cy="12" r="2.1" fill="#10a37f" />
+    </svg>
+  );
+}
+function CursorIcon() {
+  return (
+    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
+      <rect x="2" y="2" width="20" height="20" rx="6" fill="#0b0d10" stroke="#8fd3ff" strokeOpacity="0.7" />
+      <path d="M8 6.5 17 12l-5.2 1.4L9.6 18 8 6.5Z" fill="#8fd3ff" />
+    </svg>
+  );
+}
+const ICONS = { Claude: ClaudeIcon, ChatGPT: ChatGptIcon, Cursor: CursorIcon };
+
+/** One click: copy the address for the assistant they picked. The assistant still cannot move the money. */
 export function McpConnect({ url }: { url: string }) {
   const [app, setApp] = useState<App>("Claude");
-  const [copied, setCopied] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
   const cursor = JSON.stringify({ mcpServers: { shake: { url } } }, null, 2);
-  const copy = async (what: string, text: string) => {
-    try { await navigator.clipboard.writeText(text); haptic.tick(); setCopied(what); }
-    catch { setCopied(null); }
+  const text = app === "Cursor" ? cursor : url;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      haptic.tick();
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1600);
+    } catch {
+      setCopied(false);
+    }
   };
-  return <div id="connect" className="glass scroll-mt-6 p-5 sm:p-7">
-    <div className="flex items-center justify-between gap-3">
-      <div className="eyebrow">Connect · about 30 seconds</div>
-      <span className="rounded-full border border-line bg-white/5 px-2.5 py-1 font-mono text-[10px] text-ink-2">No login</span>
+  return (
+    <div className="glass p-4 lg:p-5">
+      <div className="eyebrow">Pick one. Copy. Paste.</div>
+      <div className="mt-3 grid grid-cols-3 gap-2" role="group" aria-label="Choose your assistant">
+        {(Object.keys(APPS) as App[]).map((name) => {
+          const Icon = ICONS[name];
+          const on = app === name;
+          return (
+            <button
+              key={name}
+              type="button"
+              aria-pressed={on}
+              onClick={() => { haptic.tick(); setCopied(false); setApp(name); }}
+              className={`flex h-14 flex-col items-center justify-center gap-1 rounded-2xl border text-[13px] transition-colors ${on ? "border-safe/50 bg-safe/10 text-ink" : "border-line bg-white/3 text-ink-2 hover:bg-white/8"}`}
+            >
+              <motion.span animate={{ scale: on ? 1.08 : 1 }} transition={springs.snappy}><Icon /></motion.span>
+              {name}
+            </button>
+          );
+        })}
+      </div>
+      <button type="button" onClick={copy} className="btn-liquid relative mt-3 flex h-12 w-full items-center justify-center overflow-hidden rounded-full font-display text-[16px] font-medium text-on-safe">
+        <span className="relative z-10">{copied ? "Copied" : `Copy for ${app}`}</span>
+      </button>
+      <AnimatePresence mode="wait">
+        <motion.p key={copied ? `${app}-done` : app} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy} className="mt-2.5 text-center text-[13px] text-ink-2">
+          {copied ? `Now paste it. ${APPS[app]}` : APPS[app]}
+        </motion.p>
+      </AnimatePresence>
     </div>
-    <div className="mt-5 flex items-center justify-between gap-2 rounded-2xl border border-line bg-black/20 p-2 pl-4">
-      <code className="min-w-0 truncate select-all font-mono text-[13px] text-ink">{url}</code>
-      <button type="button" onClick={() => copy("url", url)} aria-label="Copy the SHAKE address" className="shrink-0 rounded-xl bg-safe/12 px-4 py-2 text-sm text-safe hover:bg-safe/20">{copied === "url" ? "Copied ✓" : "Copy"}</button>
-    </div>
-    <div className="mt-5 flex gap-2" role="group" aria-label="Choose your assistant">
-      {(Object.keys(APPS) as App[]).map((name) => <button key={name} type="button" aria-pressed={app === name} onClick={() => { haptic.tick(); setApp(name); }} className={`min-h-10 flex-1 rounded-full border text-sm transition-colors ${app === name ? "border-safe/50 bg-safe/12 text-safe" : "border-line bg-white/3 text-ink-2 hover:bg-white/8"}`}>{name}</button>)}
-    </div>
-    <ol className="mt-6 space-y-4">
-      {APPS[app].map((step, i) => <li key={app + i} className="flex gap-3"><span className="step-dot shrink-0 !size-7 text-xs">{i + 1}</span><p className="pt-1 text-[14px] leading-relaxed text-ink-2">{step}</p></li>)}
-    </ol>
-    {app === "Cursor" && <div className="relative mt-4 rounded-xl border border-line bg-black/20 p-3">
-      <pre className="overflow-x-auto font-mono text-[11px] leading-relaxed text-ink-2">{cursor}</pre>
-      <button type="button" onClick={() => copy("cursor", cursor)} className="absolute right-2 top-2 rounded-lg bg-white/7 px-3 py-1.5 text-xs text-safe">{copied === "cursor" ? "Copied ✓" : "Copy"}</button>
-    </div>}
-    <p className="mt-6 border-t border-line pt-4 text-xs leading-relaxed text-mute">Menu names change between versions. If you can&apos;t find one, look for “connectors” or “MCP” in your assistant&apos;s settings.</p>
-  </div>;
+  );
 }

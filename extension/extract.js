@@ -71,5 +71,28 @@
     url.search = ""; url.hash = ""; url.username = ""; url.password = "";
     return { title, price, currency: code, source: market?.[0] || host, url: url.href, isListing, structured: !!product };
   }
-  globalThis.ShakeListing = { read, amount, currency };
+  // Manual entry must never use the permissive metadata-price extractor.
+  function parseInput(value, locale) {
+    const parts = new Intl.NumberFormat(locale, { useGrouping: "always" }).formatToParts(12345.6);
+    const decimal = parts.find((p) => p.type === "decimal")?.value || ".";
+    const group = parts.find((p) => p.type === "group")?.value || ",";
+    let s = String(value).normalize("NFKC").replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) % 16)).replace(/[\u200e\u200f\u061c]/g, "").trim();
+    if (!s || /[^\d.,\s\u066b\u066c]/.test(s)) return "";
+    // NFKC makes narrow and non-breaking grouping spaces ordinary spaces.
+    const separator = group.normalize("NFKC");
+    if (decimal !== "." && !s.includes(decimal) && /\.\d{1,2}$/.test(s) && s.split(".").length === 2) s = s.replace(".", decimal);
+    else if (decimal === "." && !s.includes(".") && /,\d{1,2}$/.test(s) && s.split(",").length === 2) s = s.replace(",", ".");
+    const chunks = s.split(decimal);
+    if (chunks.length > 2 || (chunks.length === 2 && !/^\d{1,2}$/.test(chunks[1]))) return "";
+    const integer = chunks[0];
+    const digits = integer.split(separator).join("");
+    if (!/^\d+$/.test(digits)) return "";
+    if (integer.includes(separator)) {
+      const grouped = new Intl.NumberFormat(locale, { useGrouping: "always", maximumFractionDigits: 0 }).format(Number(digits)).normalize("NFKC").replace(/[\u0660-\u0669\u06f0-\u06f9]/g, (c) => String(c.charCodeAt(0) % 16));
+      if (integer !== grouped) return "";
+    }
+    const n = Number(`${digits}.${chunks[1] || "00"}`);
+    return Number.isFinite(n) && n > 0 && Number.isSafeInteger(Math.round(n * 100)) ? n.toFixed(2) : "";
+  }
+  globalThis.ShakeListing = { read, amount, currency, parseInput };
 })();
