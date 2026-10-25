@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { HoldToShake } from "@/components/HoldToShake";
-import { HowItWorks, StoryCaption, useBeat } from "@/components/HowItWorks";
+import { HowItWorks, StoryCaption, stageBox, useBeat } from "@/components/HowItWorks";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { LiveReceipt } from "@/components/LiveReceipt";
 import { Mark, springs } from "@/components/Mark";
@@ -55,9 +55,9 @@ export default function Home() {
       }
     >
       {/* idle: the hero fills the first screen and the story scrolls below it */}
-      <div className={phase === "idle" ? "flex min-h-[calc(100dvh-5.25rem-max(env(safe-area-inset-top),16px)-max(env(safe-area-inset-bottom),16px))] flex-col lg:min-h-[calc(100dvh-3rem-32px)]" : "flex min-h-0 flex-1 flex-col"}>
-      <div className="flex flex-1 flex-col justify-center lg:grid lg:min-h-0 lg:grid-cols-[minmax(0,1fr)_460px] lg:items-center lg:gap-12 xl:gap-16">
-      <div className={`flex flex-col justify-center lg:min-h-0 ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
+      <div className={phase === "idle" ? "flex h-[calc(100svh-5.25rem-max(env(safe-area-inset-top),16px)-max(env(safe-area-inset-bottom),16px))] min-h-0 flex-col overflow-hidden lg:h-[calc(100svh-3rem-max(env(safe-area-inset-top),16px)-max(env(safe-area-inset-bottom),16px))]" : "flex min-h-0 flex-1 flex-col"}>
+      <div className={`flex min-h-0 flex-1 flex-col justify-center overflow-hidden lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,460px)] lg:gap-10 xl:gap-14 ${phase === "idle" ? "lg:items-stretch" : "lg:items-center"}`}>
+      <div className={`flex min-h-0 flex-col justify-center overflow-hidden lg:h-full ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
           {phase === "idle" && <Hero onStart={() => setPaying(true)} money={money} beat={beat} nonce={nonce} onBeat={pickBeat} />}
@@ -127,20 +127,24 @@ export default function Home() {
 /** Clean on purpose: the film explains it, one line names it, one button tries it, one line proves it's live. */
 function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; money: string; beat: number; nonce: number; onBeat: (b: number) => void }) {
   return (
-    <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
-      <Item>
-        <h1 className="display text-[34px] leading-[0.96] min-[380px]:text-[40px] sm:text-[48px] lg:text-[60px] lg:leading-[0.94] xl:text-[76px]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
+    <Stagger className="flex min-h-0 flex-1 flex-col justify-center gap-3 py-1 text-center lg:flex-none lg:gap-5 lg:py-0 lg:text-left">
+      <Item className="shrink-0">
+        <h1 className="display text-[clamp(32px,8.5vw,40px)] leading-[0.96] sm:text-[44px] lg:text-[clamp(46px,6.6vh,72px)] lg:leading-[0.94]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
         <p className="mx-auto mt-3 max-w-[26ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-[28ch] lg:text-lg">Lock the money. They see it&apos;s real, not a screenshot.</p>
       </Item>
-      <Item className="flex flex-col gap-3 lg:max-w-[400px] lg:gap-4">
+      <Item className="flex shrink-0 flex-col gap-3 lg:max-w-[400px] lg:gap-3.5">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
         <Protected live className="justify-center lg:justify-start" />
       </Item>
-      <Item className="flex w-full flex-col items-center gap-2 lg:hidden">
-        <HowItWorks beat={beat} money={money} />
-        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] text-left" />
+      <Item className="flex min-h-0 w-full flex-1 items-center justify-center lg:hidden">
+        <div className="flex max-h-full min-h-0 w-full flex-col items-center">
+          <div className="w-full min-h-0 shrink" style={{ height: stageBox.small.h, flexBasis: stageBox.small.h }}>
+            <HowItWorks beat={beat} money={money} className="h-full" />
+          </div>
+          <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[332px] shrink-0 text-left" />
+        </div>
       </Item>
-      <Item>
+      <Item className="shrink-0">
         <Link href="/use-cases" onPointerDown={() => haptic.tick()} className="text-[13px] text-mute hover:text-ink">
           Also for cars, flat deposits, parcels and events <span className="text-safe">→</span>
         </Link>
@@ -218,10 +222,14 @@ function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePit
 /** Desktop, before they start: the deal they are about to make, as a short film. */
 function StoryPanel({ beat, nonce, onBeat, money }: { beat: number; nonce: number; onBeat: (b: number) => void; money: string }) {
   return (
-    <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
+    <motion.div className="relative hidden h-full min-h-0 w-full items-center lg:flex" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
       <div className="halo" aria-hidden />
-      <HowItWorks beat={beat} money={money} big className="relative" />
-      <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="relative mx-auto mt-6 max-w-[456px]" />
+      <div className="flex max-h-full min-h-0 w-full flex-col">
+        <div className="w-full min-h-0 shrink" style={{ height: stageBox.big.h, flexBasis: stageBox.big.h }}>
+          <HowItWorks beat={beat} money={money} big className="h-full" />
+        </div>
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="relative mx-auto mt-3 w-full max-w-[456px] shrink-0" />
+      </div>
     </motion.div>
   );
 }
@@ -276,7 +284,7 @@ function LivePanel({ session, money }: { session: PitchSession; money: string })
 /** One quiet row. Each piece still opens its proof. */
 function Composed() {
   return (
-    <footer className="mt-auto flex shrink-0 items-center gap-3 border-t border-white/[0.06] pt-3">
+    <footer className="mt-auto flex shrink-0 items-center gap-3 border-t border-white/[0.06] pt-2.5 pb-1">
       <h2 className="eyebrow hidden shrink-0 whitespace-nowrap sm:block">Composed on Stellar</h2>
       <nav aria-label="Composed on Stellar" className="flex min-w-0 flex-1 flex-nowrap items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         {PARTS.map((p, i) => (

@@ -359,50 +359,91 @@ function NoSignal({ t }: { t: number }) {
   );
 }
 
-// Every marketplace the extension actually reads a listing from (extension/extract.js).
-const MARKETS: [string, string][] = [
-  ["Vinted", "vinted.pt"], ["OLX", "olx.pt"], ["Wallapop", "wallapop.com"], ["Depop", "depop.com"],
-  ["eBay", "ebay.com"], ["Etsy", "etsy.com"], ["Gumtree", "gumtree.com"], ["Leboncoin", "leboncoin.fr"],
-  ["Marktplaats", "marktplaats.nl"], ["Kleinanzeigen", "kleinanzeigen.de"], ["Facebook", "facebook.com"], ["Mercari", "mercari.com"],
-  ["Poshmark", "poshmark.com"], ["OfferUp", "offerup.com"], ["Craigslist", "craigslist.org"], ["Carousell", "carousell.sg"],
+// Every marketplace the extension reads. Real favicons, sitting under the headline. eBay's favicon is a broken colour bar, so that one is the wordmark.
+const MORE: { name: string; file?: string; ebay?: boolean }[] = [
+  { name: "Vinted", file: "markets/vinted.png" },
+  { name: "OLX", file: "markets/olx.png" },
+  { name: "Wallapop", file: "markets/wallapop.png" },
+  { name: "Depop", file: "markets/depop.png" },
+  { name: "eBay", ebay: true },
+  { name: "Etsy", file: "markets/etsy.png" },
+  { name: "Gumtree", file: "markets/gumtree.png" },
+  { name: "Leboncoin", file: "markets/leboncoin.png" },
+  { name: "Marktplaats", file: "markets/marktplaats.png" },
+  { name: "Kleinanzeigen", file: "markets/kleinanzeigen.png" },
+  { name: "Facebook", file: "markets/facebook.png" },
+  { name: "Mercari", file: "markets/mercari.png" },
+  { name: "Poshmark", file: "markets/poshmark.png" },
+  { name: "OfferUp", file: "markets/offerup.png" },
+  { name: "Craigslist", file: "markets/craigslist.png" },
+  { name: "Carousell", file: "markets/carousell.png" },
 ];
 
-/** the extension: one beat names Vinted and OLX, the screen shows everywhere else it already works */
+/** the SHAKE extension on a listing. The window stays one simple panel; the other markets sit under the title. */
 function Extension({ t }: { t: number }) {
   const a = W("more", "It's") - 0.3, vinted = W("more", "Vinted"), olx = W("more", "OLX");
   const p = spr(t, a, { stiffness: 130, damping: 22 });
-  const icon = spr(t, vinted - 0.15, { stiffness: 170, damping: 22 });
-  const sweep = Math.min(13, Math.floor(lerp(t, [a + 0.08, vinted - 0.08]) * 14));
-  const lit = t >= olx - 0.06 ? "OLX" : t >= vinted - 0.06 ? "Vinted" : MARKETS[sweep + 2][0];
-  const host = MARKETS.find((m) => m[0] === lit)?.[1] ?? "vinted.pt";
+  const panel = spr(t, vinted - 0.1, { stiffness: 170, damping: 22 });
+  const click = olx + 0.35, ripple = lerp(t, [click, click + 0.5]), press = win(t, click - 0.12, click + 0.18, 0.08, 0.12);
+  const site = t < olx - 0.05 ? "vinted.pt/items/city-bike" : "olx.pt/d/anuncio/city-bike";
+  const swap = win(t, olx - 0.15, olx + 0.05, 0.08, 0.08);
   return (
     <>
-      <div style={{ position: "absolute", left: 150, top: 520, transform: "translateY(-50%)" }}>
+      <div style={{ position: "absolute", left: 150, top: 500, transform: "translateY(-50%)" }}>
         <Rise t={t} at={a + 0.1}><div style={{ ...eyebrow, color: C.safe, marginBottom: 22 }}>Browser extension</div></Rise>
-        <Head t={t} size={110} parts={[["Right inside", W("more", "right")], ["Vinted & OLX.", vinted, "grad"]]} />
+        <Head t={t} size={104} parts={[["Right inside", W("more", "right")], ["Vinted & OLX.", vinted, "grad"]]} />
+        <div style={{ marginTop: 28, display: "flex", flexWrap: "wrap", gap: 10, width: 470 }}>
+          {MORE.map((m, i) => {
+            const inn = spr(t, a + 0.12 + i * 0.03, SPR.snappy);
+            const hot = (m.name === "Vinted" && t >= vinted - 0.06 && t < olx - 0.12) || (m.name === "OLX" && t >= olx - 0.06);
+            return (
+              <div key={m.name} title={m.name} style={{ width: 50, height: 50, borderRadius: 14, overflow: "hidden", display: "grid", placeItems: "center", background: m.ebay ? "#fff" : "transparent", opacity: inn, transform: `translateY(${(1 - inn) * 12}px) scale(${hot ? 1.12 : 1})`, boxShadow: hot ? `0 0 0 2px ${C.safe}, 0 0 22px rgba(143,211,255,.55)` : "0 8px 18px rgba(0,0,0,.28)" }}>
+                {m.ebay
+                  ? <span style={{ fontFamily: F.display, fontWeight: 800, fontSize: 16, letterSpacing: "-0.06em", lineHeight: 1 }}><span style={{ color: "#E53238" }}>e</span><span style={{ color: "#0064D2" }}>b</span><span style={{ color: "#F5AF02" }}>a</span><span style={{ color: "#86B817" }}>y</span></span>
+                  : <Img src={staticFile(m.file!)} style={{ width: 50, height: 50, objectFit: "cover" }} />}
+              </div>
+            );
+          })}
+        </div>
       </div>
       <Stage x={1330 + (1 - p) * 900} y={545} ry={-9} rx={3}>
         <div style={{ width: 980, borderRadius: 20, overflow: "hidden", background: "#f3f4f6", border: "1px solid rgba(255,255,255,.14)", boxShadow: "0 50px 140px rgba(0,0,0,.6), 0 0 90px rgba(143,211,255,.16)", fontFamily: F.text }}>
           <div style={{ height: 50, display: "flex", alignItems: "center", gap: 8, padding: "0 18px", background: "#1b1e23" }}>
             {["#ff5f57", "#febc2e", "#28c840"].map((c) => <i key={c} style={{ width: 12, height: 12, borderRadius: 12, background: c }} />)}
-            <div style={{ marginLeft: 18, flex: 1, height: 30, borderRadius: 8, background: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", padding: "0 14px", fontSize: 15, color: C.ink2 }}>{host}</div>
-            <div style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(143,211,255,.18)", boxShadow: `0 0 ${18 * icon}px rgba(143,211,255,.55)`, transform: `scale(${0.9 + icon * 0.1})` }}><Coin size={20} gap={1} glow={0.2} /></div>
+            <div style={{ marginLeft: 18, flex: 1, height: 30, borderRadius: 8, background: "rgba(255,255,255,.08)", display: "flex", alignItems: "center", padding: "0 14px", fontSize: 15, color: C.ink2, opacity: 1 - swap }}>{site}</div>
+            <div style={{ width: 32, height: 32, borderRadius: 8, display: "grid", placeItems: "center", background: "rgba(143,211,255,.18)", boxShadow: `0 0 ${18 * panel}px rgba(143,211,255,.5)` }}><Coin size={20} gap={1} glow={0.2} /></div>
           </div>
-          <div style={{ height: 560, padding: 18, display: "grid", gridTemplateColumns: "1fr 1fr 1fr 1fr", gap: 10 }}>
-            {MARKETS.map(([name, domain], i) => {
-              const on = name === lit;
-              const inn = spr(t, a + i * 0.04, SPR.snappy);
-              return (
-                <div key={name} style={{ borderRadius: 16, background: on ? "#0d0f12" : "#fff", display: "flex", flexDirection: "column", justifyContent: "center", padding: "0 16px", opacity: inn, transform: `translateY(${(1 - inn) * 18}px) scale(${on ? 1.03 : 1})`, boxShadow: on ? "0 0 0 2px #8fd3ff, 0 0 32px rgba(143,211,255,.4)" : "0 8px 18px rgba(15,23,42,.06)" }}>
-                  <div style={{ fontFamily: F.display, fontWeight: 500, fontSize: name.length > 11 ? 22 : 28, letterSpacing: "-0.03em", color: on ? C.ink : "#0f172a", lineHeight: 1 }}>{name}</div>
-                  <div style={{ marginTop: 6, fontSize: 13, color: on ? C.safe : "#64748b" }}>{on ? "Pay safely with SHAKE" : domain}</div>
+          <div style={{ position: "relative", height: 560, padding: 34, display: "flex", gap: 30 }}>
+            <div style={{ width: 400, borderRadius: 16, background: "#e7e9ee", display: "grid", placeItems: "center" }}><Bike p={1} w={300} color="#334155" dim={0} /></div>
+            <div style={{ flex: 1, color: "#0f172a" }}>
+              <div style={{ fontSize: 30, fontWeight: 600, letterSpacing: "-0.02em" }}>City bike · like new</div>
+              <div style={{ fontSize: 26, marginTop: 8, color: "#334155" }}>{EUR("400")}</div>
+              {[260, 220, 240].map((w, i) => <div key={i} style={{ width: w, height: 12, borderRadius: 6, background: "#d5d9e0", marginTop: i ? 12 : 26 }} />)}
+              <div style={{ marginTop: 30, width: 190, height: 46, borderRadius: 12, background: "#cfd5de" }} />
+            </div>
+            <div style={{ position: "absolute", right: 22, top: 22, width: 360, borderRadius: 24, padding: 24, background: "linear-gradient(180deg,#1d2228,#12151a)", border: "1px solid rgba(255,255,255,.12)", boxShadow: "0 30px 80px rgba(0,0,0,.45)", transform: `translateX(${(1 - panel) * 420}px)`, opacity: Math.min(panel * 1.4, 1) }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span style={{ display: "flex", alignItems: "center", gap: 10, fontFamily: F.display, fontWeight: 700, fontSize: 15, letterSpacing: "0.2em", color: C.ink }}><Coin size={22} gap={1} glow={0.2} />SHAKE</span>
+                <span style={{ fontFamily: F.mono, fontSize: 11, letterSpacing: "0.1em", color: C.safe, border: `1px solid ${C.safe}55`, borderRadius: 999, padding: "4px 10px" }}>TESTNET</span>
+              </div>
+              <div style={{ marginTop: 22, fontFamily: F.display, fontWeight: 500, fontSize: 34, letterSpacing: "-0.03em", lineHeight: 1.05, color: C.ink }}>Found it?<br /><span style={{ color: C.safe }}>Shake on it.</span></div>
+              <div style={{ marginTop: 10, fontSize: 14, color: C.mute }}>Review the listing. Lock the agreed amount in SHAKE.</div>
+              {[["What are you buying?", "City bike"], ["Agreed price", EUR("400")]].map(([k, v]) => (
+                <div key={k} style={{ marginTop: 16 }}>
+                  <div style={{ fontSize: 12, color: C.mute }}>{k}</div>
+                  <div style={{ marginTop: 6, borderRadius: 12, border: "1px solid rgba(255,255,255,.12)", background: "rgba(255,255,255,.04)", padding: "11px 14px", fontSize: 17, color: C.ink }}>{v}</div>
                 </div>
-              );
-            })}
+              ))}
+              <div style={{ position: "relative", marginTop: 20, borderRadius: 999, padding: "14px 0", textAlign: "center", fontSize: 16, fontWeight: 600, color: "#0b0c0e", background: "linear-gradient(90deg,#bfe6ff,#8fd3ff)", boxShadow: `0 0 ${30 * press}px rgba(143,211,255,.8)`, transform: `scale(${1 - press * 0.04})` }}>
+                Continue in SHAKE →
+                {ripple > 0 && ripple < 1 && <div style={{ position: "absolute", left: "50%", top: "50%", width: 260 * ripple, height: 260 * ripple, transform: "translate(-50%,-50%)", borderRadius: 999, border: `2px solid ${C.safe}`, opacity: 1 - ripple }} />}
+              </div>
+              <div style={{ marginTop: 14, textAlign: "center", fontFamily: F.mono, fontSize: 11, letterSpacing: "0.08em", color: C.mute }}>01 Lock · 02 Inspect · 03 Shake</div>
+            </div>
           </div>
         </div>
       </Stage>
-      <Label t={t} a={a + 0.45} b={W("more", "Claude") - 0.2}>16 marketplaces. The same extension.</Label>
+      <Label t={t} a={olx + 0.15} b={W("more", "Claude") - 0.2}>Chrome & Edge · the same extension</Label>
     </>
   );
 }

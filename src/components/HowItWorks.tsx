@@ -44,6 +44,11 @@ const SIZES = {
   small: { w: 332, pw: 120, ph: 214, r: 28, coin: 44, gap: 10, amount: "text-[30px]", label: "text-[11px]", qr: 72 },
   big: { w: 456, pw: 164, ph: 324, r: 36, coin: 72, gap: 14, amount: "text-[44px]", label: "text-[13px]", qr: 104 },
 };
+/** Natural size of the phone stage, before it scales down to fit the screen. */
+export const stageBox = {
+  small: { w: SIZES.small.w, h: SIZES.small.ph + 24 },
+  big: { w: SIZES.big.w, h: SIZES.big.ph + 24 },
+};
 
 function Phone({ who, children, s, lit, sweep }: { who: string; children: React.ReactNode; s: (typeof SIZES)["big"]; lit?: boolean; sweep?: boolean }) {
   return (
@@ -91,15 +96,22 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
   const frame = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   useEffect(() => {
-    if (big) return;
     const el = frame.current;
     if (!el) return;
-    const fit = () => { const w = el.clientWidth; if (w > 0) setScale(Math.min(1, w / s.w)); };
+    const natural = s.ph + 24;
+    const fit = () => {
+      const w = el.clientWidth;
+      const h = el.clientHeight;
+      if (w <= 0) return;
+      // Height is only a constraint once the frame has been given one. Otherwise fit the width.
+      const sy = h > 48 ? h / natural : 1;
+      setScale(Math.min(1, w / s.w, sy));
+    };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(el);
     return () => ro.disconnect();
-  }, [big, s.w]);
+  }, [s.w, s.ph]);
   // the second half of each beat (see SUB_MS)
   const [sub, setSub] = useState(false);
   useEffect(() => {
@@ -121,7 +133,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
   const coinY = reduce ? 0 : beat === 2 ? -s.ph / 2 + s.coin / 2 + 4 : 0;
 
   const stage = (
-    <div className={big ? `relative mx-auto ${className}` : "relative"} style={{ width: s.w, height: s.ph + 24 }} aria-hidden>
+    <div className="relative" style={{ width: s.w, height: s.ph + 24 }} aria-hidden>
       {/* floor light under the pair, brighter when they meet */}
       <motion.span className="absolute bottom-0 left-1/2 h-10 w-[80%] -translate-x-1/2 rounded-[50%] bg-safe/25 blur-2xl" animate={{ opacity: paid ? 1 : meet ? 0.6 : 0.3, scaleX: meet ? 0.7 : 1 }} transition={springs.smooth} />
 
@@ -247,10 +259,9 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
       </AnimatePresence>
     </div>
   );
-  if (big) return stage;
   return (
-    <div ref={frame} className={`relative mx-auto w-full overflow-hidden ${className}`} style={{ maxWidth: s.w, height: (s.ph + 24) * scale }}>
-      <div className="absolute top-0 left-0 origin-top-left" style={{ width: s.w, transform: `scale(${scale})` }}>{stage}</div>
+    <div ref={frame} className={`relative mx-auto h-full min-h-0 w-full ${className}`}>
+      <div className="absolute top-0 left-1/2" style={{ width: s.w, height: s.ph + 24, transform: `translateX(-50%) scale(${scale})`, transformOrigin: "top center" }}>{stage}</div>
     </div>
   );
 }
