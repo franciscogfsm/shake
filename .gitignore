@@ -1,0 +1,19 @@
+# secrets
+.env*.local
+.env
+
+# node / next
+node_modules/
+.next/
+out/
+*.tsbuildinfo
+next-env.d.ts
+.vercel
+
+# rust / soroban
+target/
+contracts/**/test_snapshots/
+
+# misc
+.DS_Store
+*.log
