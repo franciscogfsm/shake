@@ -127,7 +127,7 @@ export default function Home() {
 /** Clean on purpose: the film explains it, one line names it, one button tries it, one line proves it's live. */
 function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; money: string; beat: number; nonce: number; onBeat: (b: number) => void }) {
   return (
-    <Stagger className="flex min-h-0 flex-1 flex-col justify-center gap-3 py-1 text-center lg:flex-none lg:gap-5 lg:py-0 lg:text-left">
+    <Stagger className="flex min-h-0 flex-1 flex-col justify-center gap-3 py-1 text-center lg:my-auto lg:flex-none lg:gap-5 lg:py-0 lg:text-left">
       <Item className="shrink-0">
         <h1 className="display text-[clamp(32px,8.5vw,40px)] leading-[0.96] sm:text-[44px] lg:text-[clamp(46px,6.6vh,72px)] lg:leading-[0.94]">Pay a stranger.<br /><span className="glacier-text">Only when<br className="lg:hidden" /> you meet.</span></h1>
         <p className="mx-auto mt-3 max-w-[26ch] text-[16px] leading-snug text-ink-2 lg:mx-0 lg:mt-5 lg:max-w-[28ch] lg:text-lg">Lock the money. They see it&apos;s real, not a screenshot.</p>

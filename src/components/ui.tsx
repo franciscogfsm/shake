@@ -18,9 +18,17 @@ const PAGES = [
 export function Screen({ children, back, right, wide, fit }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean; fit?: boolean }) {
   const path = usePathname();
   const showNav = path === "/" || path === "/try" || path === "/use-cases" || path === "/extension" || path === "/ai";
+  const [scrolled, setScrolled] = useState(false);
+  useEffect(() => {
+    const on = () => setScrolled(window.scrollY > 8);
+    on();
+    window.addEventListener("scroll", on, { passive: true });
+    return () => window.removeEventListener("scroll", on);
+  }, []);
   return (
     <main className={`pb-safe mx-auto flex w-full max-w-[480px] min-w-0 flex-col px-4 sm:px-5 ${fit ? "min-h-dvh lg:h-dvh lg:overflow-hidden" : "min-h-dvh"} ${wide ? "lg:max-w-[1240px] lg:px-10" : ""}`}>
-      <header className="sticky top-0 z-30 -mx-4 bg-[#0d0f12]/75 pt-safe backdrop-blur-xl sm:-mx-5 lg:-mx-10">
+      <header className="sticky top-0 z-30 -mx-4 pt-safe sm:-mx-5 lg:-mx-10">
+        <div aria-hidden className={`pointer-events-none absolute inset-y-0 left-1/2 -z-10 w-screen -translate-x-1/2 border-b border-white/[0.06] bg-[#0d0f12]/70 backdrop-blur-xl transition-opacity duration-300 ${scrolled ? "opacity-100" : "opacity-0"}`} />
         <div className="flex h-12 items-center justify-between gap-2 px-4 sm:px-5 lg:px-10">
           {back ? (
             <Link href={back} className="-ml-2 grid size-11 shrink-0 place-items-center rounded-full text-ink-2 hover:text-ink" aria-label="Back">
@@ -152,7 +160,7 @@ function LiveLine({ line, shakes, locale }: { line: React.ReactNode; shakes: Sha
   const reduce = useReducedMotion();
   const now = useNow(30_000);
   const [i, setI] = useState(0);
-  const rel = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
+  const rel = new Intl.RelativeTimeFormat("en", { numeric: "auto", style: "short" });
   const ago = (at: string) => {
     const s = Math.max(0, now - Date.parse(at) / 1000);
     return s < 60 ? rel.format(0, "second") : s < 3600 ? rel.format(-Math.floor(s / 60), "minute") : s < 86400 ? rel.format(-Math.floor(s / 3600), "hour") : rel.format(-Math.floor(s / 86400), "day");
