@@ -2,12 +2,15 @@
 import { AnimatePresence, motion } from "motion/react";
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { GlassSheet } from "@/components/GlassSheet";
 import { Mark } from "@/components/Mark";
 import { Seal } from "@/components/Seal";
 import { SellerQR } from "@/components/SellerQR";
+import { Plane, BuyerPayQR, SellerPaidOffline } from "@/components/OfflineShake";
+import { ScanFlow } from "@/components/ScanFlow";
+import { Scanner, preloadScanner } from "@/components/Scanner";
 import { ShakeBurst } from "@/components/ShakeBurst";
 import { ShakeMoment } from "@/components/ShakeMoment";
 import { CashOut } from "@/components/CashOut";
@@ -21,6 +24,7 @@ import { KINDS, kindOf, type Kind } from "@/lib/kinds";
 import { Money, useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/client/handshake";
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
+import { checkPay, offlineShake, useOfflineSettle, type OfflineShake } from "@/lib/client/offline";
 import { ApiError, callDeal, ensureAccount, getKeypair, isMine, sha256Hex } from "@/lib/client/wallet";
 
 export default function DealPage() {
@@ -37,8 +41,29 @@ function DealScreen() {
   const { deal, events, state, refresh } = useDeal(id);
   const [me, setMe] = useState<string | null>(null);
   const [country] = useCountry();
-  useEffect(() => setMe(getKeypair().publicKey()), []);
+  const [shaken, setShaken] = useState<OfflineShake | null>(null);
+  useEffect(() => {
+    setMe(getKeypair().publicKey());
+    setShaken(offlineShake.get(id));
+  }, [id]);
   const local = useMemo(() => ({ ...dealMeta.get(id), ...(q.get("s") ? { seller: q.get("s")! } : {}) }), [id, q]);
+  // a shake with no signal: whichever phone gets signal first puts it on Stellar
+  useOfflineSettle(deal, shaken, refresh);
+  const onShaken = useCallback((s: OfflineShake) => {
+    offlineShake.set(id, s);
+    setShaken(s);
+  }, [id]);
+  // fetch the QR reader while there's signal, so the meetup works with none
+  useEffect(() => {
+    if (deal?.key) preloadScanner();
+  }, [deal?.key]);
+  // the buyer's half opened with the phone camera instead of the in-app scanner: same check
+  useEffect(() => {
+    if (!deal || !me || isMine(deal.buyer) || !location.hash.startsWith("#paid=")) return;
+    const url = location.href;
+    history.replaceState(null, "", location.pathname + location.search);
+    checkPay(deal, sellerCode.get(deal.id), url).then((r) => typeof r !== "string" && onShaken(r));
+  }, [deal, me, onShaken]);
 
   if (state === "loading" || !me) return <Screen wide fit><Loading /></Screen>;
   if (state === "missing") return <Screen wide fit back="/try"><Empty title="We couldn't find this deal." body="Check the link with the person who sent it." /></Screen>;
@@ -48,13 +73,16 @@ function DealScreen() {
   const role = isMine(deal.buyer) ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
   const kind = kindOf(deal.mode, q.get("k") ?? local.kind);
-  const props = { kind, deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
+  const props = { kind, deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code, shaken, onShaken };
+  const paidOffline = !!shaken && deal.status === "Accepted" && role !== "other";
   return (
     <Screen wide fit right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
-        <motion.div key={`${role}-${["Released", "Refunded", "Resolved"].includes(deal.status) ? deal.status : "open"}`} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
+        <motion.div key={`${role}-${paidOffline ? "offline" : ["Released", "Refunded", "Resolved"].includes(deal.status) ? deal.status : "open"}`} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
           {deal.status === "Released" ? (
             <Released {...props} role={role} />
+          ) : paidOffline ? (
+            role === "buyer" ? <BuyerPayQR deal={deal} shaken={shaken} locale={props.locale} currency={props.currency} /> : <SellerPaidOffline deal={deal} shaken={shaken} locale={props.locale} currency={props.currency} />
           ) : deal.status === "Refunded" ? (
             <Refunded {...props} />
           ) : deal.status === "Resolved" ? (
@@ -72,11 +100,11 @@ function DealScreen() {
   );
 }
 
-type ViewProps = { kind: Kind; deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string; kind?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; replay?: boolean; locale: string; currency: import("@/lib/config").CurrencyCode };
+type ViewProps = { kind: Kind; deal: Deal; events: DealEvent[]; meta: { item?: string; seller?: string; kind?: string }; me: string; refresh: () => Promise<void>; isNew: boolean; replay?: boolean; locale: string; currency: import("@/lib/config").CurrencyCode; shaken: OfflineShake | null; onShaken: (s: OfflineShake) => void };
 
 /* ------------------------------ buyer ------------------------------ */
 
-function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency }: ViewProps) {
+function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency, onShaken }: ViewProps) {
   const job = kind === "service";
   const euros = fromUnits(deal.amount);
   const now = useNow();
@@ -91,6 +119,8 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency 
   const [err, setErr] = useState("");
   const link = useDealLink(deal.id, meta, kind, isNew, setShare);
   const lockEv = eventOf(events, "locked");
+  // scanning stays on this page, so it works even if the signal is already gone
+  const [scan, setScan] = useState(false);
 
   const run = async (fn: "refund" | "dispute" | "approve") => {
     setCancelling(true);
@@ -117,6 +147,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency 
             ? job ? "Marked done. Check the work." : "Delivered. Scan the QR inside the box."
             : "Problem opened. The money is frozen.";
 
+  if (scan && joined && !ship && !expired) return <ScanFlow deal={deal} onBack={() => setScan(false)} onReleased={refresh} onOffline={onShaken} />;
   return (
     <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
       <Item className="lg:col-start-1">
@@ -174,9 +205,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency 
             </p>
           </>
         ) : joined && !expired ? (
-          <Link href={`/scan/${deal.id}`} className="contents">
-            <Button full>Scan seller&apos;s QR</Button>
-          </Link>
+          <Button full onClick={() => setScan(true)}>Scan seller&apos;s QR</Button>
         ) : !joined ? (
           <>
             <div className="hidden lg:block">
@@ -292,7 +321,7 @@ function ShareSheet({ link, money, item, kind }: { link: string; money: string; 
 
 /* ------------------------------ seller ------------------------------ */
 
-function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }: ViewProps) {
+function SellerView({ kind, deal, events, meta, me, refresh, locale, currency, onShaken }: ViewProps) {
   const job = kind === "service";
   const euros = fromUnits(deal.amount);
   const now = useNow();
@@ -359,6 +388,22 @@ function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }:
   };
 
   const ready = mine && code && codeOk;
+  // no signal at the meetup: read the buyer's half from their screen instead
+  const [scanPay, setScanPay] = useState(false);
+  const [payErr, setPayErr] = useState("");
+  const took = useRef(false);
+  const onPay = async (text: string) => {
+    if (took.current) return;
+    const r = await checkPay(deal, code, text);
+    if (typeof r === "string") return setPayErr(r);
+    took.current = true;
+    setShowQR(false);
+    onShaken(r);
+  };
+  const closeQR = () => {
+    setShowQR(false);
+    setScanPay(false);
+  };
   return (
     <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
       <Item className="lg:col-start-1">
@@ -454,15 +499,32 @@ function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }:
         <TestnetNote />
       </Item>
 
-      <GlassSheet open={showQR && !!ready} onClose={() => setShowQR(false)} label="Your QR">
+      <GlassSheet open={showQR && !!ready} onClose={closeQR} label="Your QR">
         <div className="flex flex-col items-center gap-5 pb-3">
           <div className="text-center">
-            <h2 className="display text-[28px]">{ship ? "Put this in the box." : "Let the buyer scan this."}</h2>
+            <h2 className="display text-[28px]">{scanPay ? "Scan the buyer's screen." : ship ? "Put this in the box." : "Let the buyer scan this."}</h2>
             <p className="mt-1.5 text-sm text-ink-2">
-              {ship ? "Print it or write the code on a note inside the package. The buyer scans it when they open it." : "Hand over the item once your screen says released. Turn your brightness up."}
+              {scanPay
+                ? "After they scan your QR and hold, their phone shows their half of the key. No signal needed."
+                : ship ? "Print it or write the code on a note inside the package. The buyer scans it when they open it." : "Hand over the item once your screen says released. Turn your brightness up."}
             </p>
           </div>
-          {code && <SellerQR payload={qrPayload(location.origin, deal.id, code)} code={code} />}
+          {scanPay ? (
+            <>
+              <Scanner onCode={onPay} hint="Point at the buyer's screen" className="max-w-[320px]" />
+              {payErr && <p className="text-center text-sm text-ink-2" role="alert">{payErr}</p>}
+              <button type="button" onClick={() => setScanPay(false)} className="text-sm text-mute underline-offset-4 hover:text-safe hover:underline">Show my QR again</button>
+            </>
+          ) : (
+            <>
+              {code && <SellerQR payload={qrPayload(location.origin, deal.id, code)} code={code} />}
+              {deal.key && !ship && (
+                <button type="button" onClick={() => { setPayErr(""); setScanPay(true); }} className="inline-flex items-center gap-2 rounded-full px-3 py-2 text-sm text-ink-2 hover:text-safe">
+                  <Plane className="text-safe" /> No signal? Scan the buyer&apos;s phone
+                </button>
+              )}
+            </>
+          )}
         </div>
       </GlassSheet>
     </Stagger>
@@ -471,11 +533,13 @@ function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }:
 
 /* ------------------------------ endings ------------------------------ */
 
-function Released({ deal, events, role, locale, currency, replay }: ViewProps & { role: string }) {
+function Released({ deal, events, role, locale, currency, replay, shaken }: ViewProps & { role: string }) {
   const euros = fromUnits(deal.amount);
   const rel = eventOf(events, "released");
-  // play the full shake on both phones when the release just happened (or this phone just shook)
-  const [fresh] = useState(() => replay || !rel || Date.now() - new Date(rel.at).getTime() < 90_000);
+  // play the full shake on both phones when the release just happened (or this phone just shook);
+  // a seller paid with no signal already saw it at the meetup
+  const [fresh] = useState(() => replay || (!(shaken && role === "seller") && (!rel || Date.now() - new Date(rel.at).getTime() < 90_000)));
+  const clock = (t: number | string) => new Date(t).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
   const [burst, setBurst] = useState(!fresh);
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
@@ -489,6 +553,11 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
         <div className="eyebrow">{role === "seller" ? "Paid to you" : "Released to the seller"}</div>
         <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px] lg:text-[96px]" />
         <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2 lg:mx-0">Final. No chargebacks. No screenshots.</p>
+        {shaken && rel && (
+          <p className="mx-auto mt-3 inline-flex items-center gap-2 text-sm text-mute lg:mx-0">
+            <Plane className="text-safe" /> Shaken with no signal at {clock(shaken.at)} · on Stellar at {clock(rel.at)}
+          </p>
+        )}
       </Item>
       <Item className="lg:col-start-2">{burst && <Seal />}</Item>
       <Item className="flex w-full max-w-[420px] flex-col gap-3 lg:col-start-2 lg:justify-self-start">

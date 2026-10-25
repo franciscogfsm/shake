@@ -1,6 +1,6 @@
 import "server-only";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
-import { DEAL_CONTRACT_ID } from "@/lib/config";
+import { DEAL_CONTRACT_ID, PAST_DEAL_CONTRACT_IDS } from "@/lib/config";
 import { readDeal, server } from "./stellar";
 import { currencyTotals } from "@/lib/totals";
 
@@ -12,6 +12,7 @@ import { currencyTotals } from "@/lib/totals";
 export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; dealId: string; who: string; amount: bigint; token?: string; at: string; ledger: number; txHash: string };
 
 const LOOKBACK_LEDGERS = 3 * 17_280; // ~3 days
+const CONTRACTS = [...new Set([DEAL_CONTRACT_ID, ...PAST_DEAL_CONTRACT_IDS])];
 const CHUNK = 9_000;
 let cache: { at: number; events: IndexedEvent[]; latest: number } | null = null;
 let inflight: Promise<IndexedEvent[]> | null = null;
@@ -26,8 +27,8 @@ async function scan(): Promise<IndexedEvent[]> {
     let cursor: string | undefined;
     for (let page = 0; page < 20; page++) {
       const res = cursor
-        ? await server.getEvents({ cursor, filters: [{ type: "contract", contractIds: [DEAL_CONTRACT_ID] }], limit: 200 })
-        : await server.getEvents({ startLedger: s, endLedger: Math.min(s + CHUNK, health.latestLedger + 1), filters: [{ type: "contract", contractIds: [DEAL_CONTRACT_ID] }], limit: 200 });
+        ? await server.getEvents({ cursor, filters: [{ type: "contract", contractIds: CONTRACTS }], limit: 200 })
+        : await server.getEvents({ startLedger: s, endLedger: Math.min(s + CHUNK, health.latestLedger + 1), filters: [{ type: "contract", contractIds: CONTRACTS }], limit: 200 });
       for (const e of res.events) {
         const type = String(scValToNative(e.topic[0])) as IndexedEvent["type"];
         const data = scValToNative(e.value) ?? {};

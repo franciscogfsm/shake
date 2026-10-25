@@ -4,6 +4,8 @@ import { WORLD_COUNTRIES } from "./regions";
 export const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
 export const RPC_URL = "https://soroban-testnet.stellar.org";
 export const DEAL_CONTRACT_ID = process.env.NEXT_PUBLIC_DEAL_CONTRACT_ID!;
+/** Earlier deploys of the deal contract: their public events still count on the live counter and track records. */
+export const PAST_DEAL_CONTRACT_IDS = ["CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY"];
 export const TOKEN_CONTRACT_ID = process.env.NEXT_PUBLIC_TOKEN_EUR ?? process.env.NEXT_PUBLIC_TOKEN_CONTRACT_ID!;
 export const TOKEN_ISSUER = process.env.NEXT_PUBLIC_TOKEN_ISSUER!;
 export const TEAM_ADDRESS = process.env.NEXT_PUBLIC_TEAM_ADDRESS!;

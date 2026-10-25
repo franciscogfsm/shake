@@ -99,16 +99,17 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
           <div className="mt-4 grid shrink-0 gap-3 lg:grid-cols-2">
             <label className="flex flex-col gap-2 text-sm">
               Payment currency
-              <select value={country.currency} onChange={(e) => onChange({ ...country, currency: e.target.value as CurrencyCode })} className="h-11 rounded-xl border border-line bg-bg px-3 text-ink">
+              <select value={country.currency} onChange={(e) => onChange({ ...country, currency: e.target.value as CurrencyCode })} className="scheme-dark h-11 rounded-xl border border-line bg-bg px-3 text-ink">
                 {availableCurrencies().map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name} · test money</option>)}
               </select>
             </label>
-            <label className="flex flex-col gap-2 text-sm">
-              Number format
-              <select value={country.locale} onChange={(e) => onChange({ ...country, locale: e.target.value })} className="h-11 rounded-xl border border-line bg-bg px-3">
-                {[...new Set([country.locale, "en-US", "en-GB", "pt-PT", "pt-BR", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "nl-NL", "pl-PL", "tr-TR", "en-IN", "hi-IN", "bn-BD", "ar-EG", "ar-SA", "fa-IR", "he-IL", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "id-ID", "th-TH", "vi-VN", "en-ZA"])].map((locale) => <option key={locale} value={locale}>{locale} · {new Intl.NumberFormat(locale).format(1234.56)}</option>)}
-              </select>
-            </label>
+            <div className="flex flex-col gap-2 text-sm">
+              How {country.name} writes numbers
+              <div className="flex h-11 items-center justify-between rounded-xl border border-line bg-bg px-3 text-ink">
+                <span className="truncate">{country.name}</span>
+                <span className="ml-3 shrink-0 font-mono text-[13px] text-safe">{new Intl.NumberFormat(country.locale).format(1234.56)}</span>
+              </div>
+            </div>
           </div>
           <input aria-label="Find country or region" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find your country or region" className="mt-4 h-11 w-full shrink-0 rounded-xl border border-line bg-transparent px-3" />
           <ul className="mt-3 grid min-h-0 flex-1 content-start grid-cols-1 gap-1 overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin] lg:grid-cols-2">
@@ -116,13 +117,14 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
               <li key={c.code}>
                 <button
                   onClick={() => {
-                    onChange({ ...c, locale: country.locale, currency: country.currency });
+                    onChange({ ...c, currency: country.currency });
                     setOpen(false);
                   }}
                   className={`flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left hover:bg-white/5 ${c.code === country.code ? "bg-white/8" : ""}`}
                 >
-                  <span className="font-mono text-xs text-mute">{c.code}</span>
-                  <span className="flex-1">{c.name}</span>
+                  <span className="w-6 shrink-0 font-mono text-xs text-mute">{c.code}</span>
+                  <span className="min-w-0 flex-1 truncate">{c.name}</span>
+                  <span className={`shrink-0 font-mono text-[12px] ${c.code === country.code ? "text-safe" : "text-mute"}`}>{new Intl.NumberFormat(c.code === country.code ? country.locale : c.locale).format(1234.56)}</span>
                 </button>
               </li>
             ))}

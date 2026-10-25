@@ -16,6 +16,8 @@ export type Deal = {
   releaseAfter: number;
   /** Hold mode: what the holder claimed from the deposit, in units. */
   claimed: string;
+  /** sha256 of the buyer's half of the key: this deal can be paid with no signal. */
+  key: string | null;
 };
 export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved" | "claimed"; txHash: string; at: string; ledger: number };
 

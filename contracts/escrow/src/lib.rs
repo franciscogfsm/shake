@@ -5,6 +5,11 @@
 //! auth *and* that secret, i.e. both phones in the same place. Otherwise the
 //! buyer is refunded after expiry (or when the seller cancels).
 //!
+//! Offline: the buyer can also commit sha256 of a second secret at lock (their
+//! half of the key). At the meetup, with no signal, the buyer's phone shows it
+//! as a QR; the seller now holds both halves. `settle` needs no signature, so
+//! either phone submits it later, and until expiry only the seller can cancel.
+//!
 //! Ship mode: "the shake travels in the box". The seller puts the QR inside the
 //! package; the buyer scans it on opening. If the buyer goes silent the money
 //! releases to the seller 3 days after delivery, unless the buyer opened a
@@ -68,6 +73,8 @@ pub struct Deal {
     pub release_after: u64,
     /// Hold mode: what the holder claimed from the deposit (the rest goes back to the payer).
     pub claimed: i128,
+    /// Meet mode: sha256 of the buyer's half of the key, for paying without signal.
+    pub key: Option<BytesN<32>>,
 }
 
 #[contracttype]
@@ -97,6 +104,7 @@ pub enum Error {
     TooLate = 15,
     BadSplit = 16,
     NotHoldMode = 17,
+    WrongHalf = 18,
 }
 
 #[contractevent]
@@ -246,7 +254,7 @@ fn pay_seller(env: &Env, deal_id: u64, deal: &mut Deal) {
 }
 
 #[allow(clippy::too_many_arguments)]
-fn open_deal(env: &Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, mode: Mode, resolver: Option<Address>) {
+fn open_deal(env: &Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, mode: Mode, resolver: Option<Address>, key: Option<BytesN<32>>) {
     buyer.require_auth();
     if memo.len() > MAX_MEMO {
         panic_with_error!(env, Error::MemoTooLong);
@@ -264,9 +272,22 @@ fn open_deal(env: &Env, buyer: Address, token: Address, amount: i128, deal_id: u
         panic_with_error!(env, Error::NotAllowed);
     }
     token::Client::new(env, &token).transfer(&buyer, &env.current_contract_address(), &amount);
-    let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked, memo, mode, resolver, tracking: String::from_str(env, ""), release_after: 0, claimed: 0 };
+    let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked, memo, mode, resolver, tracking: String::from_str(env, ""), release_after: 0, claimed: 0, key };
     save(env, deal_id, &deal);
     Locked { deal_id, buyer, token, amount, expiry }.publish(env);
+}
+
+/// The seller's QR secret must match, and the deal must be waiting for the shake.
+fn check_secret(env: &Env, deal: &Deal, secret: &Bytes) {
+    let in_box = deal.mode == Mode::Ship && matches!(deal.status, Status::Shipped | Status::Delivered);
+    if deal.status != Status::Accepted && !in_box {
+        panic_with_error!(env, if deal.status == Status::Locked { Error::NotAccepted } else { Error::NotOpen });
+    }
+    let expected = deal.hash.clone().unwrap_or_else(|| panic_with_error!(env, Error::NotAccepted));
+    let got: BytesN<32> = env.crypto().sha256(secret).into();
+    if got != expected {
+        panic_with_error!(env, Error::WrongSecret);
+    }
 }
 
 fn is_open(deal: &Deal) -> bool {
@@ -276,20 +297,22 @@ fn is_open(deal: &Deal) -> bool {
 #[contractimpl]
 impl ShakeDeal {
     /// Buyer locks `amount` of `token` until `expiry` (unix seconds) for the item in `memo`.
-    pub fn lock(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String) {
-        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Meet, None);
+    /// `key`: sha256 of the buyer's half, so the shake can also happen with no signal (see `settle`).
+    #[allow(clippy::too_many_arguments)]
+    pub fn lock(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, key: Option<BytesN<32>>) {
+        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Meet, None, key);
     }
 
     /// Ship mode lock: same as `lock`, plus the resolver for problems. Refundable until the seller ships.
     #[allow(clippy::too_many_arguments)]
     pub fn lock_ship(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, resolver: Address) {
-        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Ship, Some(resolver));
+        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Ship, Some(resolver), None);
     }
 
     /// Hold mode lock: a deposit that goes back to the payer at `expiry` unless the holder claims part of it first.
     #[allow(clippy::too_many_arguments)]
     pub fn lock_hold(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, resolver: Address) {
-        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Hold, Some(resolver));
+        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Hold, Some(resolver), None);
     }
 
     /// The payer pays the seller in full without a QR: the job is done, or the shipped item is fine.
@@ -369,14 +392,20 @@ impl ShakeDeal {
     pub fn release(env: Env, deal_id: u64, secret: Bytes) {
         let mut deal = load(&env, deal_id);
         deal.buyer.require_auth();
-        let in_box = deal.mode == Mode::Ship && matches!(deal.status, Status::Shipped | Status::Delivered);
-        if deal.status != Status::Accepted && !in_box {
-            panic_with_error!(&env, if deal.status == Status::Locked { Error::NotAccepted } else { Error::NotOpen });
-        }
-        let expected = deal.hash.clone().unwrap_or_else(|| panic_with_error!(&env, Error::NotAccepted));
-        let got: BytesN<32> = env.crypto().sha256(&secret).into();
-        if got != expected {
-            panic_with_error!(&env, Error::WrongSecret);
+        check_secret(&env, &deal, &secret);
+        pay_seller(&env, deal_id, &mut deal);
+    }
+
+    /// The shake with no signal: the seller's QR secret plus the buyer's half, which the buyer's
+    /// phone shows only after scanning the seller's QR. Both halves together are the proof, so no
+    /// signature is needed and either phone can submit it later. It can only ever pay the bound seller.
+    pub fn settle(env: Env, deal_id: u64, secret: Bytes, half: Bytes) {
+        let mut deal = load(&env, deal_id);
+        let key = deal.key.clone().unwrap_or_else(|| panic_with_error!(&env, Error::NotAllowed));
+        check_secret(&env, &deal, &secret);
+        let got: BytesN<32> = env.crypto().sha256(&half).into();
+        if got != key {
+            panic_with_error!(&env, Error::WrongHalf);
         }
         pay_seller(&env, deal_id, &mut deal);
     }

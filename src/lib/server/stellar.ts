@@ -196,7 +196,7 @@ export async function submitAnchorPayment(signedXdr: string, userPk: string) {
 
 /* ---------------- contract calls ---------------- */
 
-export const DEAL_FNS = ["lock", "lock_ship", "lock_hold", "accept", "release", "refund", "mark_shipped", "mark_delivered", "dispute", "claim", "approve", "claim_damage", "agree"] as const;
+export const DEAL_FNS = ["lock", "lock_ship", "lock_hold", "accept", "release", "settle", "refund", "mark_shipped", "mark_delivered", "dispute", "claim", "approve", "claim_damage", "agree"] as const;
 export type DealFn = (typeof DEAL_FNS)[number];
 
 export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
@@ -206,6 +206,10 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
     if (!/^[0-9a-f]+$/i.test(v) || v.length % 2) throw new UserError("Bad hex");
     return nativeToScVal(Buffer.from(v, "hex"), { type: "bytes" });
   };
+  const hash32 = (v: string) => {
+    if (v?.length !== 64) throw new UserError("Bad hash");
+    return hex(v);
+  };
   switch (fn) {
     case "lock":
     case "lock_ship":
@@ -214,8 +218,10 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
       const memo = (a.memo ?? "").trim();
       if (Buffer.byteLength(memo) > 64) throw new UserError("Keep the item name under 64 characters");
       const base = [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
+      // meet mode: sha256 of the buyer's half of the key (Option, so callers without one still lock)
+      if (fn === "lock") return [...base, a.key ? hash32(a.key) : xdr.ScVal.scvVoid()];
       // ship and hold modes: SHAKE's resolver can only split a disputed deal between the two
-      return fn === "lock" ? base : [...base, addr(TEAM_ADDRESS)];
+      return [...base, addr(TEAM_ADDRESS)];
     }
     case "mark_shipped": {
       const tracking = (a.tracking ?? "").trim();
@@ -232,10 +238,11 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
     case "agree":
       return [u64(a.dealId)];
     case "accept":
-      if (a.hash?.length !== 64) throw new UserError("Bad hash");
-      return [u64(a.dealId), addr(a.seller), hex(a.hash)];
+      return [u64(a.dealId), addr(a.seller), hash32(a.hash)];
     case "release":
       return [u64(a.dealId), hex(a.secret)];
+    case "settle":
+      return [u64(a.dealId), hex(a.secret), hex(a.half)];
     case "refund":
       return [u64(a.dealId)];
   }
@@ -282,7 +289,7 @@ export async function signTeamEntries(auth: string[], latestLedger: number) {
  */
 let channelsDownUntil = 0;
 
-/** Only spend sponsored fees on: our deal contract's four functions, or deploying a passkey smart account. */
+/** Only spend sponsored fees on: our deal contract's functions, or deploying a passkey smart account. */
 function allowed(hf: xdr.HostFunction) {
   const kind = hf.switch().name;
   if (kind === "hostFunctionTypeInvokeContract") {
@@ -355,7 +362,8 @@ const CONTRACT_ERRORS: Record<number, string> = {
   14: "The 3 days after delivery aren't over yet.",
   15: "The 3 days to open a problem are over.",
   16: "That split doesn't add up.",
-  17: "That only works for deposits."
+  17: "That only works for deposits.",
+  18: "That payment QR doesn't match this deal."
 };
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
@@ -396,6 +404,8 @@ export type DealView = {
   tracking: string;
   releaseAfter: number;
   claimed: string;
+  /** sha256 of the buyer's half of the key: the deal can be paid with no signal. */
+  key: string | null;
 };
 
 export async function readDeal(dealId: string): Promise<DealView | null> {
@@ -423,6 +433,7 @@ export async function readDeal(dealId: string): Promise<DealView | null> {
     tracking: String(d.tracking ?? ""),
     releaseAfter: Number(d.release_after ?? 0),
     claimed: String(d.claimed ?? 0),
+    key: d.key ? Buffer.from(d.key).toString("hex") : null,
   };
 }
 

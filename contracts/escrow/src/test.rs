@@ -49,7 +49,7 @@ fn hash_of(env: &Env, s: &Bytes) -> BytesN<32> {
 }
 
 fn lock_and_accept(s: &Setup) {
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     s.client.accept(&DEAL, &s.seller, &hash_of(&s.env, &secret(&s.env)));
 }
 
@@ -67,7 +67,7 @@ fn last_signer(env: &Env) -> Address {
 #[test]
 fn lock_moves_money_into_the_contract() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     assert_eq!(last_signer(&s.env), s.buyer);
     assert_eq!(s.token.balance(&s.buyer), 0);
     assert_eq!(s.token.balance(&s.contract), AMOUNT);
@@ -111,7 +111,7 @@ fn rotated_qr_invalidates_the_old_secret() {
 #[test]
 fn cannot_release_twice_or_before_seller_joins() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     assert_eq!(s.client.try_release(&DEAL, &secret(&s.env)), Err(Ok(err(Error::NotAccepted))));
     s.client.accept(&DEAL, &s.seller, &hash_of(&s.env, &secret(&s.env)));
     s.client.release(&DEAL, &secret(&s.env));
@@ -122,7 +122,7 @@ fn cannot_release_twice_or_before_seller_joins() {
 #[test]
 fn buyer_can_withdraw_before_a_seller_joins() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     s.client.refund(&DEAL);
     assert_eq!(last_signer(&s.env), s.buyer);
     assert_eq!(s.token.balance(&s.buyer), AMOUNT);
@@ -152,7 +152,7 @@ fn anyone_can_refund_after_expiry() {
 #[test]
 fn seller_cannot_join_after_expiry() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     s.env.ledger().set_timestamp(s.expiry + 1);
     let h = hash_of(&s.env, &secret(&s.env));
     assert_eq!(s.client.try_accept(&DEAL, &s.seller, &h), Err(Ok(err(Error::Expired))));
@@ -161,7 +161,7 @@ fn seller_cannot_join_after_expiry() {
 #[test]
 fn seller_is_bound_once_and_cannot_be_the_buyer() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     let h = hash_of(&s.env, &secret(&s.env));
     assert_eq!(s.client.try_accept(&DEAL, &s.buyer, &h), Err(Ok(err(Error::SellerIsBuyer))));
     s.client.accept(&DEAL, &s.seller, &h);
@@ -172,20 +172,20 @@ fn seller_is_bound_once_and_cannot_be_the_buyer() {
 #[test]
 fn bad_inputs_are_rejected() {
     let s = setup();
-    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &0, &DEAL, &s.expiry, &memo(&s.env)), Err(Ok(err(Error::InvalidAmount))));
-    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &500, &memo(&s.env)), Err(Ok(err(Error::InvalidExpiry))));
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
-    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env)), Err(Ok(err(Error::DealExists))));
+    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &0, &DEAL, &s.expiry, &memo(&s.env), &None), Err(Ok(err(Error::InvalidAmount))));
+    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &500, &memo(&s.env), &None), Err(Ok(err(Error::InvalidExpiry))));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
+    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None), Err(Ok(err(Error::DealExists))));
     assert_eq!(s.client.try_get(&7), Err(Ok(err(Error::DealNotFound))));
 }
 
 #[test]
 fn item_memo_is_stored_and_bounded() {
     let s = setup();
-    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env));
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &None);
     assert_eq!(s.client.get(&DEAL).memo, memo(&s.env));
     let long = soroban_sdk::String::from_str(&s.env, &"x".repeat(65));
-    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &(DEAL + 1), &s.expiry, &long), Err(Ok(err(Error::MemoTooLong))));
+    assert_eq!(s.client.try_lock(&s.buyer, &s.token.address, &AMOUNT, &(DEAL + 1), &s.expiry, &long, &None), Err(Ok(err(Error::MemoTooLong))));
 }
 
 /* ---------------- ship mode: the shake travels in the box ---------------- */
@@ -378,4 +378,45 @@ fn approve_pays_without_qr_except_in_meet_mode() {
     t.client.approve(&DEAL);
     assert_eq!(last_signer(&t.env), t.buyer);
     assert_eq!(t.token.balance(&t.seller), AMOUNT);
+}
+
+fn half(env: &Env) -> Bytes {
+    Bytes::from_slice(env, b"buyers-half-of-the-key")
+}
+
+fn lock_with_key_and_accept(s: &Setup) {
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &Some(hash_of(&s.env, &half(&s.env))));
+    s.client.accept(&DEAL, &s.seller, &hash_of(&s.env, &secret(&s.env)));
+}
+
+#[test]
+fn offline_settle_pays_the_seller_with_both_halves_and_no_signature() {
+    let s = setup();
+    lock_with_key_and_accept(&s);
+    s.client.settle(&DEAL, &secret(&s.env), &half(&s.env));
+    assert!(s.env.auths().is_empty(), "settle must not need anyone's signature");
+    assert_eq!(s.token.balance(&s.seller), AMOUNT);
+    assert_eq!(s.token.balance(&s.contract), 0);
+    assert_eq!(s.client.get(&DEAL).status, Status::Released);
+    assert_eq!(s.client.try_settle(&DEAL, &secret(&s.env), &half(&s.env)), Err(Ok(err(Error::NotOpen))));
+}
+
+#[test]
+fn offline_settle_needs_both_right_halves() {
+    let s = setup();
+    lock_with_key_and_accept(&s);
+    let wrong = Bytes::from_slice(&s.env, b"guessed");
+    assert_eq!(s.client.try_settle(&DEAL, &secret(&s.env), &wrong), Err(Ok(err(Error::WrongHalf))));
+    assert_eq!(s.client.try_settle(&DEAL, &wrong, &half(&s.env)), Err(Ok(err(Error::WrongSecret))));
+    assert_eq!(s.token.balance(&s.contract), AMOUNT);
+}
+
+#[test]
+fn offline_settle_needs_a_key_and_a_joined_seller() {
+    let s = setup();
+    s.client.lock(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &Some(hash_of(&s.env, &half(&s.env))));
+    assert_eq!(s.client.try_settle(&DEAL, &secret(&s.env), &half(&s.env)), Err(Ok(err(Error::NotAccepted))));
+    let t = setup();
+    lock_and_accept(&t);
+    assert_eq!(t.client.try_settle(&DEAL, &secret(&t.env), &half(&t.env)), Err(Ok(err(Error::NotAllowed))));
 }

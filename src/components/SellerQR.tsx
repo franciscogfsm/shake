@@ -9,7 +9,7 @@ import { useNow } from "./ui";
  * The seller's live QR: huge, white on a glass frame with a rotating light border and a ticking clock,
  * so a static screenshot never looks like the live screen.
  */
-export function SellerQR({ payload, code }: { payload: string; code: string }) {
+export function SellerQR({ payload, code, label = "Your one-time QR code" }: { payload: string; code?: string; label?: string }) {
   const [svg, setSvg] = useState("");
   const reduce = useReducedMotion();
   const now = useNow();
@@ -27,11 +27,11 @@ export function SellerQR({ payload, code }: { payload: string; code: string }) {
           transition={{ duration: 3.2, repeat: Infinity, ease: "linear" }}
         />
         <div className="glass relative rounded-[30px] p-4">
-          <div className="size-[min(72vw,300px)] rounded-[18px] bg-white p-4" role="img" aria-label="Your one-time QR code" dangerouslySetInnerHTML={{ __html: svg }} />
+          <div className="size-[min(72vw,300px)] rounded-[18px] bg-white p-4" role="img" aria-label={label} dangerouslySetInnerHTML={{ __html: svg }} />
         </div>
       </div>
       <div className="text-center">
-        <div className="font-mono text-xl tracking-[0.18em] text-ink">{prettyCode(code)}</div>
+        {code && <div className="font-mono text-xl tracking-[0.18em] text-ink">{prettyCode(code)}</div>}
         <div className="mt-1 flex items-center justify-center gap-2 font-mono text-xs text-mute">
           <span className="pulse-dot" /> live · {new Date(now * 1000).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
         </div>

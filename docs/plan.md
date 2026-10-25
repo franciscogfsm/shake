@@ -5,7 +5,7 @@ The living tracker. **Update the checkboxes and the "Now" line as work lands**, 
 **Now:** everything below is live: meet, ship, hold (deposits), jobs, made-to-order, payment request links for businesses, a clean hero: a 4-beat film (Lock / Verify / Meet / Shake) with story-style progress bars, and a live line that alternates the counter with real released/refunded deals (each links its tx), and the "Who can move this money?" safety promise on every deal. Next: visual QA of the new hero and sheets at 393×852 / 1440×900, re-run `scripts/e2e.mjs` against production when testnet is calm, README update.
 
 **Testnet deployment (25 Oct 2026, `scripts/deploy.sh`):**
-- Deal contract: `CC7QNWLSP6W6N5F6A6FB53FLGYTO74HGERKOSBOIPDS6KA5GLYDA4BMX`
+- Deal contract: `CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW` (offline `settle`; previous: `CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY`, whose events still count on the live counter)
 - tEUR SAC: `CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`
 - tEUR issuer: `GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ`
 - Team (pitch seller): `GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX`
@@ -38,6 +38,7 @@ Status = Locked | Accepted | Released | Refunded
 lock(buyer, token, amount, deal_id: u64, expiry: u64)       buyer.require_auth; token.transfer(buyer → contract)
 accept(deal_id, seller, hash: BytesN<32>)                     seller.require_auth; binds seller + commits sha256(secret). Re-callable before release (rotates the QR)
 release(deal_id, secret: Bytes)                               buyer.require_auth; sha256(secret)==hash; transfer → seller; status Released
+settle(deal_id, secret: Bytes, half: Bytes)                   no auth; lock's key==sha256(half) and sha256(secret)==hash; transfer → bound seller (the shake with no signal)
 refund(deal_id)                                               after expiry: anyone; before expiry: seller.require_auth (cancel), or buyer.require_auth while not yet Accepted
 get(deal_id) -> Deal
 events: ("locked"|"accepted"|"released"|"refunded", deal_id) with amount / addresses

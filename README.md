@@ -48,6 +48,12 @@ Extraction uses Product JSON-LD, Open Graph metadata, and visible listing fields
 
 For meetup deals, before a seller joins, the buyer can cancel. After acceptance, the seller can cancel and refund the buyer. Once the expiry passes, anyone can submit a refund returning the funds to the buyer. Expiry makes a refund available; a transaction must still be submitted. Shipping has a separate lifecycle: once marked shipped, funds can only be released or settled through the dispute process described below.
 
+### No signal? The shake still works
+
+Meetups happen in garages, basements, car parks and metro stations. So **each phone holds half of the key**: the seller's QR secret, and a buyer secret whose SHA-256 hash `lock` commits on-chain. If the buyer's phone has no signal when they hold to pay, it shows its half as a QR instead of submitting. The seller taps **No signal? Scan the buyer's phone**; their phone checks both halves against the deal it loaded earlier, without any network, and shows **Paid**. `settle(deal_id, secret, half)` needs no signature, so whichever phone gets signal first submits it through OpenZeppelin Channels. The final screen shows when the deal was shaken and when it landed on Stellar.
+
+Why the seller can hand over the item: once a seller has joined, only that seller can cancel before expiry, and `settle` can only pay the bound seller. Limits: both phones must open the deal online once beforehand (there is no service worker), the seller must get signal before the deal expires, and the buyer's half is derived from the browser key on the phone that locked the deal.
+
 ## Try SHAKE
 
 ### One device: the pitch is the product
@@ -108,6 +114,7 @@ SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HT
 - **Seller verification:** deal screens read the contract's amount, participants, expiry, and status rather than trusting an uploaded image.
 - **QR handshake:** seller acceptance commits a SHA-256 hash; release requires buyer authorization and the matching secret.
 - **QR rotation:** the bound seller can replace the committed hash before settlement, invalidating the previous code.
+- **No-signal shake:** meetup deals commit the hash of a buyer-held half at lock. With no signal, the buyer's phone shows that half as a QR, the seller's phone verifies both halves locally, and `settle` (no signature required) is submitted when either phone reconnects. See [No signal? The shake still works](#no-signal-the-shake-still-works).
 - **Refund controls:** buyer cancellation before acceptance, seller cancellation after acceptance, and permissionless refund submission after expiry.
 - **Ship mode:** QR in the package, optional tracking text, shipment and delivery states, a three-day review window, permissionless claims after that window, and buyer disputes with resolver-controlled splits. See the [shipping walkthrough](#shipped-deal-the-shake-travels-in-the-box).
 - **Public receipts:** transaction hashes, timestamps, and Stellar Expert links expose the deal's on-chain history.
@@ -146,7 +153,7 @@ Public track records describe recent address activity, not a verified person's i
 
 Meetup payments, shipping/disputes, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository.
 
-Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The app manifest does not provide an offline payment mode. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
+Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The offline shake needs the deal page opened online once; the app has no service worker for loading pages without signal. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
 ### Deal kinds and deposits
 
@@ -264,9 +271,10 @@ The escrow implementation is in [`contracts/escrow/src/lib.rs`](contracts/escrow
 
 | Method | Contract behavior |
 | --- | --- |
-| `lock(buyer, token, amount, deal_id, expiry, memo)` | Requires buyer authorization, positive amount, future expiry, unused ID, and a memo of at most 64 bytes. Transfers tokens into the contract. |
+| `lock(buyer, token, amount, deal_id, expiry, memo, key)` | Requires buyer authorization, positive amount, future expiry, unused ID, and a memo of at most 64 bytes. Transfers tokens into the contract. `key` is optional: the SHA-256 of the buyer's half, which enables `settle`. |
 | `accept(deal_id, seller, hash)` | Requires seller authorization, an open unexpired deal, and a seller distinct from the buyer. Binds the seller; only that seller can rotate the hash. |
 | `release(deal_id, secret)` | Requires buyer authorization and a matching SHA-256 preimage while accepted, or while shipped/delivered in Ship mode. Transfers funds to the bound seller. |
+| `settle(deal_id, secret, half)` | No signature. Needs a `key` from lock, the deal accepted, the seller's matching secret, and the buyer's half matching `key`. Pays the bound seller only; anyone may submit it. |
 | `refund(deal_id)` | Only while locked or accepted. Before expiry, requires the buyer if unaccepted or the seller if accepted; after expiry, anyone may submit it. Returns funds to the buyer. |
 | `lock_ship(…, resolver)` | Same as `lock`, in Ship mode, naming the resolver. Rejects the buyer as resolver; acceptance rejects a seller who is the resolver. The app supplies `NEXT_PUBLIC_TEAM_ADDRESS`. |
 | `mark_shipped(deal_id, tracking)` / `mark_delivered(deal_id)` | Bound seller only, Ship mode. After shipping the buyer can no longer refund. Delivery sets `release_after = now + 3 days`. |
@@ -279,7 +287,7 @@ State-changing operations emit events. Deal records use persistent storage with 
 
 ### What the handshake guarantees
 
-The contract verifies **buyer authorization plus knowledge of the seller's committed secret**. This supports a face-to-face handover flow, but a QR or code can be shared remotely; it is not an independent proof of physical proximity. Phone motion is a confirmation gesture, not an on-chain security input.
+The contract verifies **buyer authorization plus knowledge of the seller's committed secret**, or, for `settle`, **both committed secrets** (the seller's QR secret and the buyer's half), which the buyer's app reveals only after the seller's code checks out and the buyer holds to pay. This supports a face-to-face handover flow, but a QR or code can be shared remotely; it is not an independent proof of physical proximity. Phone motion is a confirmation gesture, not an on-chain security input.
 
 The contract does not inspect the item, confirm delivery with a carrier, decide disputes itself (the resolver splits them), or reverse a completed release. Currently, `release` does not check expiry: an accepted deal can still be released after expiry, competing with an eligible refund until one settles. Shipping refunds are unavailable after shipment. Seller-declared delivery starts the three-day claim window; a buyer must dispute before it ends. There is no background refund or claim scheduler in this repository.
 
@@ -291,7 +299,7 @@ Public deployment identifiers from the repository's local configuration at the t
 
 | Component | Stellar Testnet identifier |
 | --- | --- |
-| Deal contract | [`CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY`](https://stellar.expert/explorer/testnet/contract/CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY) |
+| Deal contract | [`CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW`](https://stellar.expert/explorer/testnet/contract/CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW) |
 | tEUR contract | [`CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`](https://stellar.expert/explorer/testnet/contract/CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR) |
 | tUSD contract | [`CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K`](https://stellar.expert/explorer/testnet/contract/CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K) |
 | tGBP contract | [`CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M`](https://stellar.expert/explorer/testnet/contract/CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M) |
@@ -299,7 +307,9 @@ Public deployment identifiers from the repository's local configuration at the t
 | Test asset issuer | [`GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ`](https://stellar.expert/explorer/testnet/account/GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ) |
 | Pitch seller | [`GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX`](https://stellar.expert/explorer/testnet/account/GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX) |
 
-The [build log](docs/plan.md) records an earlier deployment's smoke-test sequence: [lock](https://stellar.expert/explorer/testnet/tx/f0e4a08c9bec79c6273bea16458bccd0fcfa0c0d7839c931d1dfd0ec309f8abc), [seller acceptance](https://stellar.expert/explorer/testnet/tx/b95ffd9a34ac3c248dc3c140c9b9084ae45f3eff3a362f00cffadc1eac5cf3d5), and [release](https://stellar.expert/explorer/testnet/tx/a1e47d96dea9ec1a87d1e0a5cb695cf39645079afd25f2756f0cf61f6db48956). These are historical evidence, not a fresh verification against the current contract. For a new run, follow the transaction links in its live receipt. Testnet resets and redeployments can invalidate older identifiers.
+The [build log](docs/plan.md) records an earlier deployment's smoke-test sequence: [lock](https://stellar.expert/explorer/testnet/tx/f0e4a08c9bec79c6273bea16458bccd0fcfa0c0d7839c931d1dfd0ec309f8abc), [seller acceptance](https://stellar.expert/explorer/testnet/tx/b95ffd9a34ac3c248dc3c140c9b9084ae45f3eff3a362f00cffadc1eac5cf3d5), and [release](https://stellar.expert/explorer/testnet/tx/a1e47d96dea9ec1a87d1e0a5cb695cf39645079afd25f2756f0cf61f6db48956). These are historical evidence, not a fresh verification against the current contract.
+
+No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.mjs`): [lock with the buyer's half committed](https://stellar.expert/explorer/testnet/tx/9278ddfda63cc42060a28212abd180ade1a62da1f16c3083ed4e871688fde68e) → [seller joins](https://stellar.expert/explorer/testnet/tx/97b16753c71b7d254904b48c066b2c7cb4cb11549c71f18b94021d4bdecb4aca) → [`settle` through OpenZeppelin Channels with zero signatures](https://stellar.expert/explorer/testnet/tx/8f4ac9af17ca2f98e243d50556c057aafd46fd903ebe43a335df39375899bde1). A CLI run also showed a stranger's account submitting a [settle](https://stellar.expert/explorer/testnet/tx/8e338ded03a63eb9a5b064370eed4c6fdae8913d62c1073778d7a5aa97dba5f7) that could only pay the seller, and a wrong half rejected with contract error #18. For a new run, follow the transaction links in its live receipt. Testnet resets and redeployments can invalidate older identifiers.
 
 ## Run locally
 
@@ -389,12 +399,13 @@ For Vercel, configure the same public IDs and server-only variables before build
 | `node --test scripts/localization.test.cjs` | Amount parsing, precision, regions, currency handling, and separate asset totals. |
 | `node --test scripts/pitch-session.test.cjs` | Saved payment recovery, settlement retries/reconciliation, and currency persistence. |
 | `npm run e2e -- http://localhost:3100` | Testnet onboarding, buyer/seller settlement, wrong-secret rejection, and pitch release. |
+| `node scripts/offline-e2e.mjs` | No-signal shake on the live contract: lock with the buyer's half, seller joins, `settle` through OpenZeppelin Channels with no signatures. Needs `.env.local`, no running app. |
 | `node scripts/anchor-e2e.mjs http://localhost:3100` | Anchor discovery, authentication, IBAN validation, payment, and withdrawal completion. |
 | `node scripts/ui-flow.cjs http://localhost:3100 <existing-output-directory>` | Playwright two-browser walkthrough with a virtual passkey authenticator and screenshots. Requires Playwright Chromium. |
 | `node scripts/load.mjs http://localhost:3100 10` | Concurrent test-wallet onboarding; submits testnet transactions. |
 | `npm run commits` | Refresh the commit-history data used to document development progress. |
 
-The contract suite covers custody, authorized release, wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Shipping tests cover QR release, blocked refunds after shipment, timed claims, frozen disputes, resolver split limits, the dispute deadline, stage/mode restrictions, and cancellation before acceptance. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
+The contract suite covers custody, authorized release, the no-signal `settle` (no signature, both halves required, wrong halves rejected, no key no settle), wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Shipping tests cover QR release, blocked refunds after shipment, timed claims, frozen disputes, resolver split limits, the dispute deadline, stage/mode restrictions, and cancellation before acceptance. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
 
 ## Project map
 

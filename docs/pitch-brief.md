@@ -89,6 +89,15 @@ SHAKE plugs into Claude, ChatGPT and Cursor as an MCP server: one URL, no login.
 On a listing on Vinted, OLX, eBay, Wallapop, Depop, Etsy, Facebook Marketplace and 9 more, a **Pay safely with SHAKE** button appears. One click reads the title, price and currency, and you check them. One more click and you're in a pre-filled SHAKE payment, linked back to the listing.
 **Why it lands:** zero integration. We sit *on top of* every marketplace without asking any of them.
 
+### WOW 6: "Airplane mode. Still paid." (the shake with no signal)
+Meetups happen in garages, basements and metro stations. SHAKE still works there: **each phone holds half of the key.** The seller's half is the code inside their QR; the buyer's half was committed (as a fingerprint) when they locked the money.
+- Both phones in **airplane mode**. The buyer scans the seller's QR and holds: their phone shows its own QR, its half of the key.
+- The seller taps **No signal? Scan the buyer's phone**. Their phone checks both halves offline and slams shut: **"Paid to you · no signal."**
+- Airplane mode off: the payment lands on Stellar by itself, and the final screen says *"Shaken with no signal at 14:02 · on Stellar at 14:09"*.
+
+**Why it's insane:** it looks impossible for a web app, yet it's just cryptography. `settle` needs nobody's signature, because the two halves are the proof, and it can only pay the seller. Until the deadline, only the seller can cancel, so the seller is safe to hand over the item.
+**On stage:** put both phones in airplane mode *in front of the judges* before the scan. Turn it off after. Watch the tx appear on Stellar Expert.
+
 ### WOW 5: "Who can move this money?"
 Every deal has a tap-to-open safety promise that answers that question for each person. The punchline: **"Nobody can just keep it."** The contract has no owner key and can't be changed after the fact. In disputes, a neutral resolver can only *split* the money between the two people; it can never keep any of it.
 
@@ -99,7 +108,7 @@ Every deal has a tap-to-open safety promise that answers that question for each 
 ### Core (the heart of the pitch)
 | Feature | What it does | How it works |
 |---|---|---|
-| **Hash-locked deals** | Money releases only with the secret from the seller's live QR. | Our own Soroban contract (Rust): the seller commits sha256(code); `release` needs buyer auth + the matching code. 15 contract functions, 24 unit tests. |
+| **Hash-locked deals** | Money releases only with the secret from the seller's live QR. | Our own Soroban contract (Rust): the seller commits sha256(code); `release` needs buyer auth + the matching code; `settle` needs both halves and no signature (the no-signal shake). 16 contract functions, 27 unit tests. |
 | **"Locked for you ✓"** | The seller verifies real money before leaving home. | The deal page reads the contract state live. Shared links even show the locked amount in the chat preview, read from the chain. |
 | **The pitch is the product** | One tap on the homepage runs a real deal. | Invisible wallet + sponsored funding + lock + team joins, all real testnet transactions, about 20–30s in the background while the judge reads. |
 | **Face ID wallet** | No seed words, no app, no sign-up. | OpenZeppelin smart account with a passkey (`smart-account-kit`). Fallback: "Lock without Face ID" uses a hidden browser key. |
@@ -188,8 +197,8 @@ Why Stellar specifically: settlement in seconds, fees of fractions of a cent (wh
 **Judging criteria, one line each:**
 - **Stellar integration (20%):** 7 composed pieces, all live, every transaction linkable.
 - **Problem and user value (20%):** 4,467 MB WAY complaints in one year; everyone has a story.
-- **Technical execution (15%):** real contract with 24 tests, real transactions, two-phone flow, extension, MCP.
-- **Innovation (15%):** proof of physical presence, plus an AI that can't pay.
+- **Technical execution (15%):** real contract with 27 tests, real transactions, two-phone flow that works in airplane mode, extension, MCP.
+- **Innovation (15%):** proof of physical presence, a shake that still works in airplane mode (each phone holds half the key), plus an AI that can't pay.
 - **Progress (10%):** everything built during the event; the commit history is public (`git log`).
 - **Market (10%):** €121bn European second-hand market; distribution through links, 16 marketplaces and AI assistants with zero partnerships.
 - **Design and UX (10%):** Apple-grade, one idea per screen, no jargon.
@@ -211,6 +220,7 @@ Why Stellar specifically: settlement in seconds, fees of fractions of a cent (wh
 - **"What if someone doesn't show up?"** Before the seller joins, the buyer cancels. After the deadline, anyone can trigger the refund to the buyer.
 - **"What about a fake SHAKE site?"** The seller never pays and never types bank details. They can also type the deal code into the official app instead of clicking a link.
 - **"Why blockchain?"** The seller has to verify money is real *without trusting the buyer or us*. A public ledger is the only way to show a stranger proof that can't be faked.
+- **"How can it pay with no internet?"** Each phone holds half of a key. The buyer's half was locked in as a fingerprint when they paid in; the seller's half is in their QR. Together they're the proof, so the transaction needs no signature and either phone can send it later. It can only ever pay the seller, and until the deadline only the seller can cancel, so the seller is safe to hand over the item.
 - **"Can the AI steal or move money?"** No. The AI server holds no keys and signs nothing. Release needs the buyer's Face ID and the seller's code, in person.
 - **"Regulation?"** Today it's the test network only. A real launch would run through a licensed EU payments partner.
 - **"Shipped items: what stops a seller lying about delivery?"** The buyer can open a problem during the 3-day window, which freezes the money; a neutral resolver can only split it between the two of them.
@@ -251,6 +261,7 @@ Why Stellar specifically: settlement in seconds, fees of fractions of a cent (wh
 - **Track record:** last 3 days of on-chain activity. It's a signal, not identity verification.
 - **"First":** say "releases only when you meet". If asked, say "we searched Stellar's hackathon archive and found nobody releasing on an in-person handshake", rather than "first in the world".
 - **Business model:** the fee is the plan, not implemented.
+- **No-signal shake:** both phones must have opened the deal online once, and the seller must get signal before the deal's deadline. It's for in-person deals (not shipped or deposits). The payment is guaranteed the moment the seller's phone checks the halves, but it's *final on Stellar* only once a phone reconnects: say "paid with no signal, lands on Stellar when you're back online", not "settled offline"
 
 ---
 
@@ -283,6 +294,6 @@ Suggested 3-minute pitch structure (adjust to the real slot):
 - **Extension:** https://shake-lake.vercel.app/extension
 - **AI setup:** https://shake-lake.vercel.app/ai. MCP URL: `https://shake-lake.vercel.app/api/mcp`
 - **Use cases:** https://shake-lake.vercel.app/use-cases
-- **Deal contract (testnet):** [`CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY`](https://stellar.expert/explorer/testnet/contract/CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY)
+- **Deal contract (testnet):** [`CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW`](https://stellar.expert/explorer/testnet/contract/CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW)
 - **tEUR:** [`CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`](https://stellar.expert/explorer/testnet/contract/CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR)
 - **Team:** Francisco and Pedro. All code written during the event.

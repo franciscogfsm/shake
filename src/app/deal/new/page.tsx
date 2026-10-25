@@ -13,6 +13,7 @@ import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
+import { buyerKey } from "@/lib/client/offline";
 import { ensurePasskeyWallet, fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
 import { KIND_ORDER, KINDS, type Kind } from "@/lib/kinds";
 import { haptic, sfx } from "@/lib/client/sfx";
@@ -139,7 +140,10 @@ function NewDeal() {
       const expiry = String(hold ? endsAt : Math.floor(Date.now() / 1000) + k.days * DAY);
       // the memo is public on-chain: it is what the link preview and receipt show
       const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
-      await callDeal(kp, k.fn, { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
+      // meet deals also commit the buyer's half of the key, so the shake works with no signal
+      const args: Record<string, string> = { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo };
+      if (k.fn === "lock") args.key = await buyerKey(kp, dealId);
+      await callDeal(kp, k.fn, args, setStep);
       dealMeta.set(dealId, { item: item.trim(), seller: seller.trim(), kind, ...(source ? { listingUrl: source.url } : {}) });
       const link = new URLSearchParams({ i: item.trim(), k: kind, ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${link}&new=1`);

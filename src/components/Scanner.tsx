@@ -3,11 +3,14 @@ import { motion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 
-type Props = { onCode: (text: string) => void; paused?: boolean };
+type Props = { onCode: (text: string) => void; paused?: boolean; hint?: string };
 type CamState = "ask" | "starting" | "live" | "denied" | "unavailable";
 
 /** Full-bleed camera viewfinder with custom corners and a scanning shimmer. Explains why before the browser prompt. */
-export function Scanner({ onCode, paused, className = "" }: Props & { className?: string }) {
+/** Fetch the decoder while there's signal, so scanning still works with none. */
+export const preloadScanner = () => import("@zxing/browser").catch(() => {});
+
+export function Scanner({ onCode, paused, hint = "Point at the seller's QR", className = "" }: Props & { className?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [cam, setCam] = useState<CamState>("ask");
   const stopRef = useRef<() => void>(() => {});
@@ -51,14 +54,14 @@ export function Scanner({ onCode, paused, className = "" }: Props & { className?
               transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
             />
           </div>
-          <div className="absolute inset-x-0 bottom-4 text-center text-sm text-ink-2">Point at the seller&apos;s QR</div>
+          <div className="absolute inset-x-0 bottom-4 text-center text-sm text-ink-2">{hint}</div>
         </>
       )}
       {cam !== "live" && (
         <div className="absolute inset-0 flex flex-col items-center justify-center gap-5 p-8 text-center">
           {cam === "ask" || cam === "starting" ? (
             <>
-              <p className="max-w-[26ch] text-ink-2">We use the camera only to read the seller&apos;s code. Nothing is recorded.</p>
+              <p className="max-w-[26ch] text-ink-2">We use the camera only to read the SHAKE code. Nothing is recorded.</p>
               <Button onClick={start} loading={cam === "starting"}>
                 Turn on camera
               </Button>
