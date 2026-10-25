@@ -354,3 +354,38 @@ button {
 .pb-safe {
   padding-bottom: max(env(safe-area-inset-bottom), 16px);
 }
+
+/* ---------- desktop cinematic touches ---------- */
+@utility glacier-text {
+  background: linear-gradient(100deg, var(--ink) 0%, var(--safe) 45%, #b9a3ff 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 0 28px rgba(var(--safe-rgb), 0.25));
+}
+.halo {
+  position: absolute;
+  inset: -12% -10%;
+  z-index: -1;
+  border-radius: 50%;
+  background:
+    radial-gradient(50% 45% at 60% 40%, rgba(var(--safe-rgb), 0.35), transparent 70%),
+    radial-gradient(40% 40% at 30% 70%, rgba(var(--g3), 0.28), transparent 70%);
+  filter: blur(40px);
+  animation: drift 14s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+.tile-lit {
+  transition: transform 0.35s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.35s;
+}
+.tile-lit:hover {
+  transform: translateY(-4px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.5),
+    0 0 0 1px rgba(var(--safe-rgb), 0.35),
+    0 30px 60px -24px rgba(var(--safe-rgb), 0.45);
+}
+@media (prefers-reduced-motion: reduce) {
+  .halo { animation: none; }
+  .tile-lit:hover { transform: none; }
+}

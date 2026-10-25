@@ -21,8 +21,19 @@ export default function Home() {
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
 
   return (
-    <Screen wide right={<Link href="/try" className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>}>
-      <div className="flex flex-1 flex-col lg:grid lg:grid-cols-[minmax(0,1fr)_420px] lg:items-center lg:gap-20">
+    <Screen
+      wide
+      right={
+        <div className="flex items-center gap-2">
+          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
+            <span className="pulse-dot" />
+            Live on Stellar testnet
+          </a>
+          <Link href="/try" className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>
+        </div>
+      }
+    >
+      <div className="flex flex-1 flex-col lg:grid lg:min-h-[calc(100dvh-14rem)] lg:grid-cols-[minmax(0,1fr)_440px] lg:items-center lg:gap-20">
       <div className={`flex flex-1 flex-col ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[440px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }} transition={{ duration: 0.25 }}>
@@ -72,7 +83,7 @@ function Hero({ onStart }: { onStart: () => void }) {
       </Item>
       <Item>
         <div className="eyebrow">For deals on OLX, Vinted, WhatsApp</div>
-        <h1 className="display mt-3 text-[40px] leading-[1.02] lg:text-[76px] lg:leading-[0.98]">Pay a stranger.<br />Only when you meet.</h1>
+        <h1 className="display mt-3 text-[40px] leading-[1.02] lg:text-[88px] lg:leading-[0.95]">Pay a stranger.<br /><span className="lg:glacier-text">Only when you meet.</span></h1>
         <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">The money waits, locked, where the seller can see it. It moves only when your two phones are face to face.</p>
       </Item>
       <Item className="flex flex-col gap-3 lg:max-w-[400px]">
@@ -160,15 +171,29 @@ function LivePanel({ session }: { session: PitchSession }) {
   const released = session.outcome === "released";
   const refunded = session.outcome === "refunded";
   return (
-    <aside className="glass hidden p-8 lg:block">
+    <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ type: "spring", stiffness: 200, damping: 28, delay: 0.25 }}>
+    <div className="halo" aria-hidden />
+    <aside className="glass p-8">
       <div className="flex items-center gap-4">
         <Mark size={56} state={released ? "shut" : session.locked ? "rest" : "open"} />
         <div>
-          <div className="eyebrow">Live on Stellar</div>
+          <div className="eyebrow">Under the hood · live</div>
           <div className="font-display text-xl font-medium">{session.status === "idle" ? "Press Try it now. Watch it happen." : released ? "Paid. Proof below." : refunded ? "Back to you. Proof below." : "Happening right now"}</div>
         </div>
       </div>
-      <div className="mt-8">
+      <div className="mt-6 grid grid-cols-3 gap-px overflow-hidden rounded-2xl bg-white/10 text-center">
+        {[
+          ["Settles in", "~5s"],
+          ["Your fees", "€0"],
+          ["Sign-up", "None"],
+        ].map(([k, v]) => (
+          <div key={k} className="bg-black/30 px-2 py-3">
+            <div className="font-display text-lg font-medium text-safe">{v}</div>
+            <div className="font-mono text-[10px] uppercase tracking-[0.12em] text-mute">{k}</div>
+          </div>
+        ))}
+      </div>
+      <div className="mt-7">
         <LiveReceipt
           stagger={0.08}
           items={[
@@ -179,8 +204,14 @@ function LivePanel({ session }: { session: PitchSession }) {
           ]}
         />
       </div>
-      <p className="mt-8 text-sm text-mute">Each step is a real transaction. Click one to check it yourself.</p>
+      <div className="mt-7 flex items-center justify-between gap-3 border-t border-white/10 pt-5">
+        <p className="text-sm text-mute">Every step is a real transaction.<br />Click one to check it yourself.</p>
+        <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="shrink-0 rounded-full bg-white/5 px-3 py-1.5 font-mono text-[11px] text-ink-2 hover:text-safe">
+          {DEAL_CONTRACT_ID.slice(0, 4)}…{DEAL_CONTRACT_ID.slice(-4)} ↗
+        </a>
+      </div>
     </aside>
+    </motion.div>
   );
 }
 
@@ -196,17 +227,23 @@ const PARTS: { tag: string; title: string; body: string; href?: string }[] = [
 /** What SHAKE is composed of, each piece one click from its proof. */
 function Composed() {
   return (
-    <section className="pb-8 pt-10 lg:pb-12 lg:pt-16">
-      <div className="mb-5 flex items-baseline justify-between gap-4">
-        <h2 className="eyebrow">Composed on Stellar</h2>
+    <section className="pb-8 pt-10 lg:pb-14 lg:pt-12">
+      <div className="mb-5 flex items-baseline justify-between gap-4 lg:mb-7 lg:items-end">
+        <div>
+          <h2 className="eyebrow">Composed on Stellar</h2>
+          <p className="display mt-2 hidden text-[34px] lg:block">Six Stellar pieces. <span className="text-mute">One handshake.</span></p>
+        </div>
         <TestnetNote />
       </div>
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6">
-        {PARTS.map((p) => (
-          <a key={p.title} href={p.href} target={p.href?.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="glass group flex flex-col gap-1.5 p-4 transition-transform hover:-translate-y-0.5">
-            <span className="font-mono text-[10px] uppercase tracking-[0.12em] text-safe">{p.tag}</span>
-            <span className="font-display text-[15px] font-medium">{p.title}</span>
-            <span className="text-[12px] leading-snug text-ink-2">{p.body}</span>
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-6 lg:gap-4">
+        {PARTS.map((p, i) => (
+          <a key={p.title} href={p.href} target={p.href?.startsWith("http") ? "_blank" : undefined} rel="noreferrer" className="glass tile-lit group flex flex-col gap-1.5 p-4 lg:min-h-[170px] lg:p-5">
+            <span className="flex items-center justify-between font-mono text-[10px] uppercase tracking-[0.12em] text-safe">
+              {p.tag}
+              <span className="hidden text-mute transition-colors group-hover:text-safe lg:inline">{String(i + 1).padStart(2, "0")} ↗</span>
+            </span>
+            <span className="font-display text-[15px] font-medium lg:mt-auto lg:text-lg">{p.title}</span>
+            <span className="text-[12px] leading-snug text-ink-2 lg:text-[13px]">{p.body}</span>
           </a>
         ))}
       </div>
