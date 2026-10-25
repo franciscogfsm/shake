@@ -299,3 +299,83 @@ fn ship_buyer_can_still_withdraw_before_the_seller_ships() {
     s.client.refund(&DEAL);
     assert_eq!(s.token.balance(&s.buyer), AMOUNT);
 }
+
+fn hold_and_accept(s: &Setup) -> Address {
+    let resolver = Address::generate(&s.env);
+    s.client.lock_hold(&s.buyer, &s.token.address, &AMOUNT, &DEAL, &s.expiry, &memo(&s.env), &resolver);
+    s.client.accept(&DEAL, &s.seller, &hash_of(&s.env, &secret(&s.env)));
+    resolver
+}
+
+#[test]
+fn hold_deposit_comes_back_by_itself_on_the_end_date() {
+    let s = setup();
+    hold_and_accept(&s);
+    s.env.ledger().set_timestamp(s.expiry);
+    s.client.refund(&DEAL);
+    assert!(s.env.auths().is_empty(), "anyone can trigger the return");
+    assert_eq!(s.token.balance(&s.buyer), AMOUNT);
+    assert_eq!(s.client.get(&DEAL).status, Status::Refunded);
+}
+
+#[test]
+fn hold_claim_then_payer_agrees_splits_exactly() {
+    let s = setup();
+    hold_and_accept(&s);
+    assert_eq!(s.client.try_claim_damage(&DEAL, &(AMOUNT + 1)), Err(Ok(err(Error::BadSplit))));
+    s.client.claim_damage(&DEAL, &(AMOUNT / 4));
+    assert_eq!(last_signer(&s.env), s.seller);
+    s.env.ledger().set_timestamp(s.expiry + 1);
+    assert_eq!(s.client.try_claim_damage(&DEAL, &1), Err(Ok(err(Error::WrongStage))));
+    s.client.agree(&DEAL);
+    assert_eq!(last_signer(&s.env), s.buyer);
+    assert_eq!(s.token.balance(&s.seller), AMOUNT / 4);
+    assert_eq!(s.token.balance(&s.buyer), AMOUNT - AMOUNT / 4);
+    assert_eq!(s.client.get(&DEAL).status, Status::Resolved);
+}
+
+#[test]
+fn hold_holder_can_drop_the_claim_and_the_resolver_can_split() {
+    let s = setup();
+    hold_and_accept(&s);
+    s.client.claim_damage(&DEAL, &AMOUNT);
+    s.client.refund(&DEAL);
+    assert_eq!(last_signer(&s.env), s.seller, "only the holder can drop their own claim");
+    assert_eq!(s.token.balance(&s.buyer), AMOUNT);
+
+    let t = setup();
+    let resolver = hold_and_accept(&t);
+    t.client.claim_damage(&DEAL, &AMOUNT);
+    t.client.resolve(&DEAL, &(AMOUNT / 2));
+    assert_eq!(last_signer(&t.env), resolver);
+    assert_eq!(t.token.balance(&t.seller), AMOUNT / 2);
+    assert_eq!(t.token.balance(&t.buyer), AMOUNT / 2);
+}
+
+#[test]
+fn hold_claims_only_in_hold_mode_and_before_the_end_date() {
+    let s = setup();
+    lock_and_accept(&s);
+    assert_eq!(s.client.try_claim_damage(&DEAL, &1), Err(Ok(err(Error::NotHoldMode))));
+    assert_eq!(s.client.try_agree(&DEAL), Err(Ok(err(Error::NotHoldMode))));
+    let t = setup();
+    hold_and_accept(&t);
+    t.env.ledger().set_timestamp(t.expiry);
+    assert_eq!(t.client.try_claim_damage(&DEAL, &1), Err(Ok(err(Error::TooLate))));
+    assert_eq!(t.client.try_agree(&DEAL), Err(Ok(err(Error::WrongStage))));
+}
+
+#[test]
+fn approve_pays_without_qr_except_in_meet_mode() {
+    let s = setup();
+    lock_and_accept(&s);
+    assert_eq!(s.client.try_approve(&DEAL), Err(Ok(err(Error::NotAllowed))));
+    let t = setup();
+    let resolver = Address::generate(&t.env);
+    t.client.lock_ship(&t.buyer, &t.token.address, &AMOUNT, &DEAL, &t.expiry, &memo(&t.env), &resolver);
+    assert_eq!(t.client.try_approve(&DEAL), Err(Ok(err(Error::WrongStage))));
+    t.client.accept(&DEAL, &t.seller, &hash_of(&t.env, &secret(&t.env)));
+    t.client.approve(&DEAL);
+    assert_eq!(last_signer(&t.env), t.buyer);
+    assert_eq!(t.token.balance(&t.seller), AMOUNT);
+}

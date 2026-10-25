@@ -15,7 +15,7 @@ import { usePitchSession, type PitchSession } from "@/lib/client/pitchSession";
 import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer, formatMoney } from "@/lib/config";
 
 /**
- * Home: the product explains itself by being used. One tap locks a real €5 on Stellar,
+ * Home: the product explains itself by being used. One tap locks 5 test currency units on Stellar,
  * the judge shakes (or says "not yet"), then sees every step's on-chain proof.
  */
 export default function Home() {

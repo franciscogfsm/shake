@@ -6,7 +6,7 @@ import type { Deal, DealEvent } from "./useDeal";
 
 /**
  * The hidden product inside the pitch: pressing Start silently creates a wallet,
- * funds it with €5 of test money and locks it in a deal where the SHAKE team is the seller.
+ * funds it with 5 units of the selected test currency and locks it with the SHAKE team as seller.
  * Everything is recorded (time + tx hash) for the reveal, and persisted so a refresh keeps it.
  */
 export type Step = { at: string; hash?: string | null };

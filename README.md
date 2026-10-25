@@ -8,7 +8,7 @@ Built for HackMeridian 2026 · Genesis · Stellar Composed
 
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
-[Live demo](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
+[Live demo](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Features](#features) · [Anti-scam tools](#anti-scam-tools) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
 
@@ -20,7 +20,7 @@ You find a second-hand phone, agree on a price, and arrange to meet. Then comes 
 
 **SHAKE gives both people something they can verify.** The buyer locks test funds in a Stellar smart contract. The seller checks the actual contract state. At the meetup, the buyer inspects the item, scans the seller's one-time QR, and confirms payment. If the deal falls through, the contract provides a refund path.
 
-SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketplace, WhatsApp, or any other channel. A shareable link connects the conversation to the payment; no marketplace integration is required.
+SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketplace, WhatsApp, or any other channel. A shareable link connects the conversation to the payment; no marketplace integration is required. Buyers can meet in person or choose shipping, with a QR inside the package and a dispute window after delivery. Before committing, either person can check suspicious messages, inspect public deal activity, and find nearby public meetup places.
 
 > **Testnet MVP.** All balances and transactions use Stellar Testnet assets with no monetary value. The cash-out flow makes a real testnet transfer; its bank payout is explicitly simulated.
 
@@ -34,7 +34,7 @@ SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketp
 | **Shake** | Hold to confirm, or use the supported phone-bump gesture after code verification. | Wait for your own screen to confirm release before handing over the item. |
 | **Keep the proof** | Open a public receipt with transaction links. | See the same settlement and optionally try testnet cash-out. |
 
-Before a seller joins, the buyer can cancel. After acceptance, the seller can cancel and refund the buyer. Once the expiry passes, anyone can submit a refund returning the funds to the buyer. Expiry makes a refund available; a transaction must still be submitted.
+For meetup deals, before a seller joins, the buyer can cancel. After acceptance, the seller can cancel and refund the buyer. Once the expiry passes, anyone can submit a refund returning the funds to the buyer. Expiry makes a refund available; a transaction must still be submitted. Shipping has a separate lifecycle: once marked shipped, funds can only be released or settled through the dispute process described below.
 
 ## Try SHAKE
 
@@ -42,7 +42,7 @@ Before a seller joins, the buyer can cancel. After acceptance, the seller can ca
 
 Open the [live SHAKE demo](https://shake-lake.vercel.app/).
 
-1. Choose **Try it now · lock €5**. SHAKE creates a browser wallet, funds it with test euros, locks the funds, and joins using the team's seller account.
+1. Choose your payment currency in the region picker, then select **Try it now** to lock 5 units. SHAKE creates a browser wallet, funds it with that test asset, locks the funds, and joins using the team's seller account. Saved demos retain their original currency.
 2. Watch the real setup steps complete. No wallet extension or manual XLM funding is needed.
 3. **Hold to shake** to release the test funds, or choose **Not yet, give it back** for a seller-authorized refund.
 4. Inspect the reveal: wallet creation, lock, acceptance, and settlement appear with transaction evidence.
@@ -51,14 +51,29 @@ The introduction is a working transaction flow. The judge participates in the pr
 
 ### Two devices: complete a second-hand deal
 
-1. **Buyer:** open [the two-device demo](https://shake-lake.vercel.app/try), create a deal such as “Nintendo Switch” for 12 test euros, and share its link.
-2. **Seller:** open the link on another phone or in a separate browser profile. Check the funds, then choose **I'm meeting them**.
+1. **Buyer:** open [the two-device demo](https://shake-lake.vercel.app/try), create a deal such as “Nintendo Switch” for 12 test euros, select **We'll meet**, and share its link. New deals accept 1–2,000 units with up to two decimal places. Compatible browsers offer passkey authorization; **Lock without Face ID** uses the browser keypair.
+2. **Seller:** open the link on another phone or in a separate browser profile. Check the funds, then choose **I'm meeting them, show my QR**. The seller can also enter the short deal code under **I'm selling** on `/try`.
 3. **Seller:** show the generated QR and its readable handshake code.
 4. **Buyer:** open the scanner from the deal, scan the QR, and confirm release. If camera access is unavailable, type the code.
 5. **Both:** watch the deal settle and inspect `/r/<deal-id>` for the receipt.
 6. **Seller, optional:** try **Shake to Bank** with test bank details to follow the withdrawal flow.
 
 Use separate browser profiles because wallets are stored on each device. For phone testing, serve the app over HTTPS for camera and passkey access. Localhost also works for desktop testing. Confirmation time depends on testnet and relayer conditions; the project's build notes record roughly 6–10 seconds per transaction step.
+
+### Shipped deal: the shake travels in the box
+
+1. **Buyer:** create a deal at `/deal/new` and select **It's shipped**. The app sets a 14-day pre-shipment expiry and assigns the SHAKE team address as resolver.
+2. **Seller:** open the shared link, join, and print the QR or write its readable code on a note inside the package. Enter optional tracking text and choose **I've shipped it**.
+3. **Seller:** mark the package delivered when it arrives. This starts the three-day buyer review window. Shipment and delivery are seller declarations; there is no carrier tracking integration.
+4. **Buyer:** inspect the package, then scan the enclosed QR and confirm release. If there is a problem, choose **Open a problem** while shipped or before the delivery review window ends. Disputing freezes settlement.
+5. **Seller:** if no dispute is opened, choose **Release my money** when the three-day window ends. The contract permits anyone to submit this claim; no background service submits it automatically.
+6. **Resolver:** settle a disputed deal with `node scripts/resolve.mjs <deal-id> <amount-to-buyer>`. The amount is in the deal's own test currency, not a currency conversion. The script signs with `TEAM_SECRET`; the contract sends the chosen amount to the buyer and the remainder to the seller.
+
+Before shipment, the usual cancellation permissions apply: the buyer can cancel before acceptance, the bound seller can cancel after acceptance, and anyone can refund after expiry. After shipment, expiry does not unlock a refund. A shipped deal needs buyer release, delivery followed by a claim, or a dispute resolved by the assigned resolver.
+
+### Try the anti-scam check
+
+Open [Scam check](https://shake-lake.vercel.app/check) without creating a wallet. Paste `Envio-te um pedido de dinheiro no MB WAY, é só aceitar` to see the request-money warning, or `I already paid, here is the screenshot. Urgent please` to see screenshot and urgency warnings. Paste a SHAKE deal link or short code to open its public receipt. The **Screenshot** button uses optional server-side vision; message checking works without an API key.
 
 ## Features
 
@@ -70,29 +85,65 @@ Use separate browser profiles because wallets are stored on each device. For pho
 - **QR handshake:** seller acceptance commits a SHA-256 hash; release requires buyer authorization and the matching secret.
 - **QR rotation:** the bound seller can replace the committed hash before settlement, invalidating the previous code.
 - **Refund controls:** buyer cancellation before acceptance, seller cancellation after acceptance, and permissionless refund submission after expiry.
-- **Ship mode (the shake travels in the box):** the seller puts the QR inside the package and the buyer scans it on opening. The seller marks it shipped (with tracking) and delivered; if the buyer stays silent, anyone can release to the seller 3 days after delivery. Before then the buyer can open a problem, which freezes the money until a resolver chosen at lock splits it between buyer and seller. The resolver can never keep it.
-- **Scam check (`/check`):** paste a chat message to catch the MB WAY “request money” trick, “click to receive” links, courier fees, SMS-code requests, urgency and look-alike domains (runs on the phone). Screenshots are read with Claude vision when `ANTHROPIC_API_KEY` is set. A SHAKE link or deal code jumps to the on-chain receipt.
-- **Track record (`/u/[address]`):** deals shaken and walked away from, counted from contract events.
-- **Listing autofill:** paste an OLX or Vinted link as the item; the title and price are filled from the listing (falling back to the link slug).
-- **Safe meetup spots:** nearby police stations, shopping centres, stations and libraries from OpenStreetMap.
-- **Not built yet (roadmap):** Reflector price oracle, path payments, confidential tokens, Circle USDC/EURC, PWA push, PT/EN switch.
+- **Ship mode:** QR in the package, optional tracking text, shipment and delivery states, a three-day review window, permissionless claims after that window, and buyer disputes with resolver-controlled splits. See the [shipping walkthrough](#shipped-deal-the-shake-travels-in-the-box).
 - **Public receipts:** transaction hashes, timestamps, and Stellar Expert links expose the deal's on-chain history.
+
+### Anti-scam and deal preparation
+
+- **Scam check (`/check`):** Portuguese and English message patterns, danger/warning results, plain-language explanations, and checks for suspicious brand domains. Text is checked locally without an API key.
+- **Optional screenshot analysis:** upload a payment or chat screenshot for Claude vision to flag suspicious details. If reading is unavailable, the page explains that a screenshot cannot prove payment and offers the text checker.
+- **Verify a deal from a message:** recognized SHAKE links and short codes lead to the public receipt so the recipient can check the actual deal.
+- **Public track record (`/u/[address]`):** deals locked, released, and attributed cancellations counted from recent contract events, for classic and smart-account addresses. The window is three days.
+- **Listing title autofill:** paste an HTTPS OLX or Vinted listing into the item field. The listing API also accepts Wallapop and Depop hosts, extracts available title/price metadata, and falls back to the URL slug for the title. The form fills a price only when the response identifies the selected currency; the current API does not return a currency, so enter the price manually.
+- **Nearby meetup suggestions:** on request, geolocation finds police stations, shopping centres, railway stations, libraries, and town halls within 2 km using OpenStreetMap's Overpass API. Up to five suggestions are shown, prioritizing police stations, with distances and Google Maps links. Location-denied, empty, and network-error states offer manual guidance.
 
 ### Accounts, currencies, and cash-out
 
 - **Instant browser wallets:** a local keypair supports the no-sign-up demo, with account reserves and trustlines sponsored by the application.
 - **Optional passkey accounts:** compatible browsers can create an OpenZeppelin smart account through `smart-account-kit` and authorize with a passkey, including Face ID or Touch ID where supported.
 - **Sponsored fees:** OpenZeppelin Channels handles Soroban submissions, with an application-funded channel pool as a fallback. Users do not need to obtain XLM.
-- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, with country selection and locale-aware formatting. These are independently issued test assets; no foreign-exchange conversion is implemented.
-- **Shake to Bank:** built-in SEP-1 discovery, SEP-10 authentication, and SEP-24 interactive withdrawals, including IBAN checksum validation, a signed testnet payment, and a simulated bank payout. The current cash-out client uses the seller's browser keypair.
+- **Worldwide region preferences:** 249 countries and territories, browser locale detection, and separate region, number-format, and payment-currency controls. Preferences are remembered across pages and tabs.
+- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through demo funding, escrow, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset. These are independently issued test assets; no foreign-exchange conversion is implemented.
+- **Shake to Bank:** built-in SEP-1 discovery, SEP-10 authentication, and SEP-24 interactive withdrawals, including IBAN checksum validation, a signed testnet payment, and a simulated bank payout. The current cash-out client uses the seller's browser keypair. Worldwide region selection does not imply local fiat or bank payout coverage; real payouts need an anchor supporting the destination and currency.
 
 ### Product experience
 
 - **Graphite Glacier design:** graphite surfaces, glacier-blue payment states, Satoshi typography, frosted glass, and a split-coin identity that closes at settlement.
 - **Deliberate confirmation:** hold-to-shake and optional motion-triggered confirmation after code verification, with haptics where available.
-- **Live updates and recovery:** polling aligns both devices with contract state; manual code entry provides a camera fallback.
+- **Live updates and recovery:** polling aligns both devices with contract state; manual code entry provides a camera fallback. Seller QR codes survive refresh on the same browser. The saved one-device demo reconciles with the chain before settlement, including after a lost response, and retains its original currency.
+- **Sharing and proof:** native sharing with clipboard fallback, readable deal codes, item-aware social cards for deal/receipt links, and proof links that briefly wait for explorer indexing.
 - **Mobile presentation:** safe-area layouts, reduced-motion support in signature animations, an app manifest, and generated app icons.
 - **Public activity APIs:** recent contract events power payment statistics and address activity summaries over a bounded three-day lookback. These are activity signals, not identity verification or permanent reputation records.
+
+## Anti-scam tools
+
+SHAKE combines checks before a deal with verification during payment. The message checker highlights known patterns; the deal screen and receipt read actual contract state.
+
+| Message signal | What the checker flags |
+| --- | --- |
+| MB WAY request-money language | Requests or codes presented as a step to receive a payment. |
+| SMS codes, PINs, or OTPs | Someone asking for a code from the recipient's phone. |
+| “Click to receive” links | A link presented as necessary to collect money. |
+| Courier payment requests | Courier names alongside payment, fee, or confirmation language. |
+| Payment screenshots or “already paid” claims | A picture or message offered as proof instead of independently checked funds. |
+| Urgency | Pressure to act immediately or miss the deal. |
+| Moving off-platform | Certain requests to continue via messaging or email. |
+| Overpayment | Paying extra and asking for the difference back. |
+| Look-alike domains | OLX, Vinted, MB WAY, CTT, or SHAKE names in a host outside the checker's configured official domains. |
+
+The checker returns **danger**, **warn**, or **clear**, with an explanation for each matched signal. It uses Portuguese and English regular expressions and a configured domain list. A clear result means no configured pattern matched; it does not authenticate a sender, certify a website, or prove that money arrived. The UI currently accepts up to 2,000 message characters.
+
+**Data handling:** pasted message text stays in the browser. Choosing **Screenshot** sends the selected image to `/api/check`, which forwards it to Anthropic when `ANTHROPIC_API_KEY` is configured. The screenshot picker accepts PNG, JPEG, and WebP; the server also accepts GIF and rejects base64 payloads above 7,000,000 characters. No screenshot storage is implemented in the route. AI output is advisory, and failed or disabled analysis falls back to guidance and local text checking. Nearby-place lookup separately sends coordinates to Overpass only after requesting the user's location.
+
+**Payment protection:** the seller checks the contract's amount and status; the buyer must authorize release with the seller's matching secret. Codes for another deal and old or incorrect codes are rejected by the scanner or contract. Once accepted, another seller cannot replace the bound seller; that seller can rotate the QR before shipment or settlement. Shipping disputes stop both normal release and the timed claim until the resolver settles them. The contract restricts a resolution to the original buyer and seller, so the resolver cannot redirect the funds to itself.
+
+Public track records describe recent address activity, not a verified person's identity. Cancellation attribution follows the implementation: the accepted seller, or the buyer if nobody accepted, is counted as having walked away even when a refund was submitted after expiry. Meetup suggestions come from map categories; the app does not verify opening hours, cameras, or the safety of a particular location.
+
+## Current scope and roadmap
+
+Meetup payments, shipping/disputes, local message checks, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository. Screenshot analysis additionally requires an Anthropic key and successful access to the model configured in `src/app/api/check/route.ts`; its presence in source does not confirm that a hosted deployment has enabled it.
+
+Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The app manifest does not provide an offline payment mode. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
 ## Why this approach
 
@@ -120,8 +171,14 @@ flowchart TD
     Channels --> Contract[Soroban deal contract]
     Pool --> Contract
     Contract --> Assets[Stellar Asset Contracts]
+    Buyer -->|Open shipping dispute| App
+    Resolver[Assigned resolver] -->|Authorize buyer/seller split| Contract
     App -->|Read state and events| RPC[Stellar Testnet RPC]
     RPC --> Contract
+    App -->|Local message patterns| Check[Browser scam checker]
+    App -->|Optional screenshot analysis| Vision[Server route to Anthropic]
+    App -->|Listing metadata| Listings[Marketplace pages]
+    App -->|Location permission and nearby query| Maps[OpenStreetMap Overpass]
     Seller -->|Cash-out| Anchor[SHAKE test anchor: SEP-1, SEP-10, SEP-24]
     Anchor --> Payment[Signed classic testnet payment]
     Payment --> Bank[Simulated bank payout]
@@ -129,16 +186,42 @@ flowchart TD
 
 | Layer | Implementation | Responsibility |
 | --- | --- | --- |
-| Web application | Next.js 15, React 19, TypeScript | Deal creation, verification, scanner, settlement, receipts, and interactive introduction. |
+| Web application | Next.js 15, React 19, TypeScript | Meetup/shipping deals, scanner, settlement, disputes, receipts, scam check, public profiles, and interactive introduction. |
 | Interface | Tailwind CSS 4, Motion, custom components | Responsive layouts, glass surfaces, transitions, and confirmation interactions. |
 | Authorization | Stellar SDK 16.3.x; `smart-account-kit` 0.8.x | Sign with a browser keypair or optional passkey smart account. |
 | Server orchestration | Next.js route handlers; Stellar SDK | Sponsor onboarding, simulate calls, relay authorizations, and read state and events. |
-| Settlement | Rust; `soroban-sdk` 29.0.1 | Hold tokens, bind the seller, verify the secret, and enforce terminal settlement states. |
+| Settlement | Rust; `soroban-sdk` 29.0.1 | Hold tokens, bind the seller, verify the secret, enforce shipping/dispute windows, and settle release/refund/resolution. |
 | Assets | Classic test assets wrapped as Stellar Asset Contracts | Transfer test currency through the contract's token interface. |
 | Sponsorship | OpenZeppelin Channels; 24 derived channel accounts | Submit transactions and pay fees without user-held XLM. |
 | Test anchor | Application-owned SEP endpoints | Discover services, authenticate a classic account, and demonstrate withdrawals. |
+| Anti-scam checks | Local TypeScript patterns; optional Anthropic vision route | Explain suspicious messages/domains and optionally analyze screenshots. |
+| Deal preparation | Listing metadata fetch; OpenStreetMap Overpass | Import item titles and suggest nearby public meeting places. |
+| Activity | RPC contract-event index with a short-lived memory cache | Per-asset totals, recent activity, and three-day address track records. |
 
 The MVP uses on-chain deal storage, browser-local wallet/session data, signed withdrawal tokens, and an in-memory event cache. It requires no external application database. Stellar Testnet RPC serves contract reads and submissions; Horizon supports the anchor's transaction lookup.
+
+### Screens and API entry points
+
+| Route | Purpose |
+| --- | --- |
+| `/` | One-device payment demo, product explanation, reveal, and development history. |
+| `/try` | Two-device entry point: buy or open a seller deal code. |
+| `/deal/new` | Item, amount, region/currency preferences, passkey choice, and meetup/shipping selection. |
+| `/deal/[id]` | Buyer/seller views, verified funds, sharing, QR rotation, refunds, shipping, claims, and disputes. |
+| `/scan/[id]` | QR/manual-code verification and deliberate buyer release. |
+| `/r/[id]` | Public status, amount, participants, and core payment transaction timeline without signing in. |
+| `/check` | Local message/domain checks, deal recognition, and optional screenshot analysis. |
+| `/u/[address]` | Public three-day activity summary for an address. |
+| `/anchor/withdraw` | Interactive test-anchor bank-details flow. |
+| `GET /api/deal/[id]` | Contract state and available deal events. |
+| `POST /api/call` | Prepare a contract call or submit its signed authorizations. |
+| `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team-side demo operations. |
+| `GET /api/listing?url=…` | Supported marketplace title and available price extraction. |
+| `POST /api/check` | Optional screenshot analysis; returns 501 when no API key is configured. |
+| `GET /api/stats`, `/api/reputation/[address]` | Recent contract activity, per-currency totals, and address counts. |
+| `/.well-known/stellar.toml`, `/api/anchor/*`, `/api/wallet/pay` | Anchor discovery, authentication, withdrawal details/status, and signed payment preparation/submission. |
+
+The public receipt displays all current status labels, including shipping and disputes, but its visual timeline currently focuses on lock, acceptance, release, and refund. Shipment, delivery, dispute, and resolution events are available from the contract/API; a complete shipping timeline is not yet rendered there.
 
 ### Contract lifecycle
 
@@ -168,22 +251,22 @@ The escrow implementation is in [`contracts/escrow/src/lib.rs`](contracts/escrow
 | --- | --- |
 | `lock(buyer, token, amount, deal_id, expiry, memo)` | Requires buyer authorization, positive amount, future expiry, unused ID, and a memo of at most 64 bytes. Transfers tokens into the contract. |
 | `accept(deal_id, seller, hash)` | Requires seller authorization, an open unexpired deal, and a seller distinct from the buyer. Binds the seller; only that seller can rotate the hash. |
-| `release(deal_id, secret)` | Requires buyer authorization, accepted status, and a matching SHA-256 preimage. Transfers funds to the bound seller. |
-| `refund(deal_id)` | Returns funds to the buyer. Before expiry, requires the buyer if unaccepted or the seller if accepted; after expiry, anyone may submit it. |
-| `lock_ship(…, resolver)` | Same as `lock`, in Ship mode, naming the resolver (never the buyer or the seller). |
+| `release(deal_id, secret)` | Requires buyer authorization and a matching SHA-256 preimage while accepted, or while shipped/delivered in Ship mode. Transfers funds to the bound seller. |
+| `refund(deal_id)` | Only while locked or accepted. Before expiry, requires the buyer if unaccepted or the seller if accepted; after expiry, anyone may submit it. Returns funds to the buyer. |
+| `lock_ship(…, resolver)` | Same as `lock`, in Ship mode, naming the resolver. Rejects the buyer as resolver; acceptance rejects a seller who is the resolver. The app supplies `NEXT_PUBLIC_TEAM_ADDRESS`. |
 | `mark_shipped(deal_id, tracking)` / `mark_delivered(deal_id)` | Bound seller only, Ship mode. After shipping the buyer can no longer refund. Delivery sets `release_after = now + 3 days`. |
 | `claim(deal_id)` | Anyone, once a delivered deal passes `release_after`. Pays the seller. |
 | `dispute(deal_id)` | Buyer only, while shipped or within 3 days of delivery. Freezes the deal. |
-| `resolve(deal_id, to_buyer)` | Resolver only, on a disputed deal. Sends `to_buyer` back and the rest to the seller; the run is `node scripts/resolve.mjs <id> <euros>`. |
-| `get(deal_id)` | Returns participants, token, amount, expiry, memo, hash, and status. |
+| `resolve(deal_id, to_buyer)` | Resolver only, on a disputed deal, with `0 <= to_buyer <= amount`. Sends `to_buyer` back and the rest to the seller. Use `node scripts/resolve.mjs <id> <amount-to-buyer>` in the deal's currency. |
+| `get(deal_id)` | Returns participants, token, amount, expiry, memo, hash, status, mode, resolver, tracking, and release deadline. |
 
-State-changing operations emit events. Deal records use persistent storage with TTL extension on writes. Released and refunded deals cannot settle again.
+State-changing operations emit events. Deal records use persistent storage with TTL extension on writes. Released, refunded, and resolved deals cannot settle again.
 
 ### What the handshake guarantees
 
 The contract verifies **buyer authorization plus knowledge of the seller's committed secret**. This supports a face-to-face handover flow, but a QR or code can be shared remotely; it is not an independent proof of physical proximity. Phone motion is a confirmation gesture, not an on-chain security input.
 
-The contract does not inspect the item, decide disputes itself (the resolver splits them), or reverse a completed release. Currently, `release` does not check expiry: after expiry, release and refund remain possible until one transaction settles the deal. There is no background refund scheduler in this repository.
+The contract does not inspect the item, confirm delivery with a carrier, decide disputes itself (the resolver splits them), or reverse a completed release. Currently, `release` does not check expiry: an accepted deal can still be released after expiry, competing with an eligible refund until one settles. Shipping refunds are unavailable after shipment. Seller-declared delivery starts the three-day claim window; a buyer must dispute before it ends. There is no background refund or claim scheduler in this repository.
 
 The browser-keypair path stores its signing key in local storage. Passkeys provide a separate smart-account authorization path. Server-held issuer, sponsor, and team keys support test funding, sponsorship, and the single-device demo. This is a hackathon implementation, not an audited production payment service.
 
@@ -260,14 +343,17 @@ Public variables are embedded in the client bundle by Next.js. Set them before b
 | `NEXT_PUBLIC_TOKEN_GBP` | tGBP contract. | `currencies.sh` |
 | `NEXT_PUBLIC_TOKEN_BRL` | tBRL contract. | `currencies.sh` |
 | `NEXT_PUBLIC_TOKEN_ISSUER` | Public issuer of test assets. | `deploy.sh` |
-| `NEXT_PUBLIC_TEAM_ADDRESS` | Public seller for the introduction. | `deploy.sh` |
+| `NEXT_PUBLIC_TEAM_ADDRESS` | Public seller for the introduction and resolver assigned to new shipping deals. | `deploy.sh` |
 | `ISSUER_SECRET` | Server-only key for issuing test funds. | `deploy.sh` |
 | `SPONSOR_SECRET` | Server-only reserve sponsor; derives channels and anchor signing material. | `deploy.sh` |
-| `TEAM_SECRET` | Server-only seller key for pitch acceptance and cancellation. | `deploy.sh` |
+| `TEAM_SECRET` | Server-only seller key for pitch acceptance/cancellation; resolver signing key for `scripts/resolve.mjs`. | `deploy.sh` |
 | `CHANNELS_API_KEY` | Optional OpenZeppelin Channels sponsorship key. | Developer configuration |
+| `ANTHROPIC_API_KEY` | Optional server-only key for screenshot checks through `/api/check`; local message checking works without it. | Developer configuration |
 | `NEXT_PUBLIC_SITE_URL` | Optional canonical origin for metadata and social previews. | Developer configuration |
 
 Keep `.env.local` private. The passkey account WASM hash and WebAuthn verifier address are public constants in [`src/lib/config.ts`](src/lib/config.ts). Changing `NEXT_PUBLIC_NETWORK` alone does not switch networks.
+
+The nearby-place finder requires browser geolocation permission and access to Overpass, with no map API key. Listing import fetches supported marketplace pages from the server and may fall back to a title derived from the URL when fetching fails. For screenshot checks, add `ANTHROPIC_API_KEY` to `.env.local` or the hosting environment and restart/redeploy; the configured model must also be accessible to that account. These optional services are independent of the core testnet payment flow.
 
 ### Production build
 
@@ -285,22 +371,30 @@ For Vercel, configure the same public IDs and server-only variables before build
 | `npm run lint` | ESLint checks. |
 | `npm run build` | Next.js production compilation and build checks. |
 | `cargo test --manifest-path contracts/escrow/Cargo.toml` | Contract unit tests. |
+| `node scripts/scam-check.test.mjs` | Local scam rules: MB WAY, payment links, SMS codes, screenshot claims, urgency, look-alike/official domains, and a benign message. |
+| `node --test scripts/localization.test.cjs` | Amount parsing, precision, regions, currency handling, and separate asset totals. |
+| `node --test scripts/pitch-session.test.cjs` | Saved demo recovery, settlement retries/reconciliation, and currency persistence. |
 | `npm run e2e -- http://localhost:3100` | Testnet onboarding, buyer/seller settlement, wrong-secret rejection, and pitch release. |
 | `node scripts/anchor-e2e.mjs http://localhost:3100` | Anchor discovery, authentication, IBAN validation, payment, and withdrawal completion. |
 | `node scripts/ui-flow.cjs http://localhost:3100 <existing-output-directory>` | Playwright two-browser walkthrough with a virtual passkey authenticator and screenshots. Requires Playwright Chromium. |
+| `node scripts/load.mjs http://localhost:3100 10` | Concurrent test-wallet onboarding; submits testnet transactions. |
 | `npm run commits` | Refresh the commit-history data used to document development progress. |
 
-The contract suite covers custody, authorized release, wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
+The contract suite covers custody, authorized release, wrong secrets, QR rotation, repeated settlement, cancellation permissions, post-expiry refunds, expired acceptance, seller binding, self-dealing, invalid inputs, and memo bounds. Shipping tests cover QR release, blocked refunds after shipment, timed claims, frozen disputes, resolver split limits, the dispute deadline, stage/mode restrictions, and cancellation before acceptance. The scam-check suite runs locally without an Anthropic key; it does not exercise screenshot vision. Testnet and UI scripts require a running, fully configured application and submit actual testnet transactions. These are available checks, not a claim that every check was rerun for this documentation update.
 
 ## Project map
 
 ```text
 contracts/escrow/       Rust deal contract and unit tests
-src/app/               App Router screens, metadata, and server API routes
+src/app/               Meetup/shipping screens, scam check, profiles, metadata, APIs
 src/app/api/anchor/     Authentication and withdrawal endpoints
 src/components/        Payment controls, QR scanner, receipts, and visual system
 src/lib/client/        Wallets, passkeys, handshake codes, polling, and pitch session
 src/lib/server/        Stellar orchestration, event index, and test anchor
+src/lib/scamCheck.ts   Local Portuguese/English scam patterns and domain checks
+src/lib/amount.ts      Locale-aware amount parsing and cent-precision validation
+src/lib/regions.ts     Worldwide regions, locale detection, and currency preferences
+src/lib/totals.ts      Activity totals kept separate for each test asset
 src/lib/config.ts      Network constants, assets, currencies, and explorer links
 scripts/               Deployment, channels, currencies, and end-to-end checks
 docs/                  Build context, design system, research, and integration notes

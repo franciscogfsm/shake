@@ -6,7 +6,7 @@ import { currencyTotals } from "@/lib/totals";
 
 /**
  * A tiny in-memory index of the contract's public events (no database):
- * powers the live "€ protected" counter and on-chain reputation.
+ * powers the live per-asset protected totals and on-chain reputation.
  * RPC returns a bounded ledger range per call, so we walk the window in chunks and cache briefly.
  */
 export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; dealId: string; who: string; amount: bigint; token?: string; at: string; ledger: number; txHash: string };

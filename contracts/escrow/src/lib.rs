@@ -9,6 +9,11 @@
 //! package; the buyer scans it on opening. If the buyer goes silent the money
 //! releases to the seller 3 days after delivery, unless the buyer opened a
 //! problem. A resolver chosen at lock can then only split it between the two.
+//!
+//! Hold mode: a deposit (rent, booking, rental gear). The money goes back to the
+//! payer on the end date, automatically. Before that the holder can return it,
+//! or claim part of it: the payer agrees with one tap, or the resolver splits.
+//! Nobody can just keep it.
 #![no_std]
 
 use soroban_sdk::{
@@ -17,7 +22,6 @@ use soroban_sdk::{
 };
 
 const DAY_IN_LEDGERS: u32 = 17_280;
-const BUMP_THRESHOLD: u32 = 7 * DAY_IN_LEDGERS;
 const BUMP_TO: u32 = 30 * DAY_IN_LEDGERS;
 const MAX_MEMO: u32 = 64;
 /// Ship mode: how long the buyer has after delivery to scan or open a problem.
@@ -41,6 +45,7 @@ pub enum Status {
 pub enum Mode {
     Meet,
     Ship,
+    Hold,
 }
 
 #[contracttype]
@@ -61,6 +66,8 @@ pub struct Deal {
     pub tracking: String,
     /// Ship mode: after this time anyone can release to the seller (0 until delivered).
     pub release_after: u64,
+    /// Hold mode: what the holder claimed from the deposit (the rest goes back to the payer).
+    pub claimed: i128,
 }
 
 #[contracttype]
@@ -89,6 +96,7 @@ pub enum Error {
     TooEarly = 14,
     TooLate = 15,
     BadSplit = 16,
+    NotHoldMode = 17,
 }
 
 #[contractevent]
@@ -164,6 +172,15 @@ pub struct Resolved {
     pub to_seller: i128,
 }
 
+#[contractevent]
+pub struct Claimed {
+    #[topic]
+    pub deal_id: u64,
+    #[topic]
+    pub seller: Address,
+    pub amount: i128,
+}
+
 #[contract]
 pub struct ShakeDeal;
 
@@ -177,7 +194,10 @@ fn load(env: &Env, deal_id: u64) -> Deal {
 fn save(env: &Env, deal_id: u64, deal: &Deal) {
     let key = DataKey::Deal(deal_id);
     env.storage().persistent().set(&key, deal);
-    env.storage().persistent().extend_ttl(&key, BUMP_THRESHOLD, BUMP_TO);
+    // long deposits must stay readable until (and a month after) their end date
+    let left = (deal.expiry.saturating_sub(env.ledger().timestamp()) / 5) as u32;
+    let to = BUMP_TO.saturating_add(left).min(env.storage().max_ttl());
+    env.storage().persistent().extend_ttl(&key, to, to);
 }
 
 fn ship_seller(env: &Env, deal: &Deal) -> Address {
@@ -185,6 +205,36 @@ fn ship_seller(env: &Env, deal: &Deal) -> Address {
         panic_with_error!(env, Error::NotShipMode);
     }
     deal.seller.clone().unwrap_or_else(|| panic_with_error!(env, Error::NotAccepted))
+}
+
+fn bound_seller(env: &Env, deal: &Deal) -> Address {
+    deal.seller.clone().unwrap_or_else(|| panic_with_error!(env, Error::NotAccepted))
+}
+
+fn hold_seller(env: &Env, deal: &Deal) -> Address {
+    if deal.mode != Mode::Hold {
+        panic_with_error!(env, Error::NotHoldMode);
+    }
+    bound_seller(env, deal)
+}
+
+/// Every cent goes to one of the two: `to_buyer` back, the rest to the seller.
+fn split(env: &Env, deal_id: u64, deal: &mut Deal, to_buyer: i128, by: Address) {
+    let seller = bound_seller(env, deal);
+    if to_buyer < 0 || to_buyer > deal.amount {
+        panic_with_error!(env, Error::BadSplit);
+    }
+    let to_seller = deal.amount - to_buyer;
+    deal.status = Status::Resolved;
+    save(env, deal_id, deal);
+    let t = token::Client::new(env, &deal.token);
+    if to_buyer > 0 {
+        t.transfer(&env.current_contract_address(), &deal.buyer, &to_buyer);
+    }
+    if to_seller > 0 {
+        t.transfer(&env.current_contract_address(), &seller, &to_seller);
+    }
+    Resolved { deal_id, resolver: by, to_buyer, to_seller }.publish(env);
 }
 
 fn pay_seller(env: &Env, deal_id: u64, deal: &mut Deal) {
@@ -214,7 +264,7 @@ fn open_deal(env: &Env, buyer: Address, token: Address, amount: i128, deal_id: u
         panic_with_error!(env, Error::NotAllowed);
     }
     token::Client::new(env, &token).transfer(&buyer, &env.current_contract_address(), &amount);
-    let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked, memo, mode, resolver, tracking: String::from_str(env, ""), release_after: 0 };
+    let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked, memo, mode, resolver, tracking: String::from_str(env, ""), release_after: 0, claimed: 0 };
     save(env, deal_id, &deal);
     Locked { deal_id, buyer, token, amount, expiry }.publish(env);
 }
@@ -234,6 +284,59 @@ impl ShakeDeal {
     #[allow(clippy::too_many_arguments)]
     pub fn lock_ship(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, resolver: Address) {
         open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Ship, Some(resolver));
+    }
+
+    /// Hold mode lock: a deposit that goes back to the payer at `expiry` unless the holder claims part of it first.
+    #[allow(clippy::too_many_arguments)]
+    pub fn lock_hold(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String, resolver: Address) {
+        open_deal(&env, buyer, token, amount, deal_id, expiry, memo, Mode::Hold, Some(resolver));
+    }
+
+    /// The payer pays the seller in full without a QR: the job is done, or the shipped item is fine.
+    /// Meet mode never allows it: there, money only moves when both phones are together.
+    pub fn approve(env: Env, deal_id: u64) {
+        let mut deal = load(&env, deal_id);
+        deal.buyer.require_auth();
+        if deal.mode == Mode::Meet {
+            panic_with_error!(&env, Error::NotAllowed);
+        }
+        if !matches!(deal.status, Status::Accepted | Status::Shipped | Status::Delivered | Status::Disputed) {
+            panic_with_error!(&env, Error::WrongStage);
+        }
+        pay_seller(&env, deal_id, &mut deal);
+    }
+
+    /// Hold mode: before the end date the holder claims `amount` (e.g. damage). The money freezes.
+    pub fn claim_damage(env: Env, deal_id: u64, amount: i128) {
+        let mut deal = load(&env, deal_id);
+        let seller = hold_seller(&env, &deal);
+        seller.require_auth();
+        if deal.status != Status::Accepted {
+            panic_with_error!(&env, Error::WrongStage);
+        }
+        if env.ledger().timestamp() >= deal.expiry {
+            panic_with_error!(&env, Error::TooLate);
+        }
+        if amount <= 0 || amount > deal.amount {
+            panic_with_error!(&env, Error::BadSplit);
+        }
+        deal.status = Status::Disputed;
+        deal.claimed = amount;
+        save(&env, deal_id, &deal);
+        Claimed { deal_id, seller, amount }.publish(&env);
+    }
+
+    /// Hold mode: the payer accepts the holder's claim; the rest comes back to them.
+    pub fn agree(env: Env, deal_id: u64) {
+        let mut deal = load(&env, deal_id);
+        hold_seller(&env, &deal);
+        deal.buyer.require_auth();
+        if deal.status != Status::Disputed {
+            panic_with_error!(&env, Error::WrongStage);
+        }
+        let to_buyer = deal.amount - deal.claimed;
+        let by = deal.buyer.clone();
+        split(&env, deal_id, &mut deal, to_buyer, by);
     }
 
     /// Seller joins the deal and commits sha256 of the secret shown in their QR.
@@ -341,36 +444,27 @@ impl ShakeDeal {
     /// The resolver splits a disputed deal: `to_buyer` back to the buyer, the rest to the seller. Nothing else is possible.
     pub fn resolve(env: Env, deal_id: u64, to_buyer: i128) {
         let mut deal = load(&env, deal_id);
-        let seller = ship_seller(&env, &deal);
         let resolver = deal.resolver.clone().unwrap_or_else(|| panic_with_error!(&env, Error::NotAllowed));
         resolver.require_auth();
         if deal.status != Status::Disputed {
             panic_with_error!(&env, Error::WrongStage);
         }
-        if to_buyer < 0 || to_buyer > deal.amount {
-            panic_with_error!(&env, Error::BadSplit);
-        }
-        let to_seller = deal.amount - to_buyer;
-        deal.status = Status::Resolved;
-        save(&env, deal_id, &deal);
-        let t = token::Client::new(&env, &deal.token);
-        if to_buyer > 0 {
-            t.transfer(&env.current_contract_address(), &deal.buyer, &to_buyer);
-        }
-        if to_seller > 0 {
-            t.transfer(&env.current_contract_address(), &seller, &to_seller);
-        }
-        Resolved { deal_id, resolver, to_buyer, to_seller }.publish(&env);
+        split(&env, deal_id, &mut deal, to_buyer, resolver);
     }
 
     /// Refund to the buyer: anyone after expiry; before expiry the seller can
     /// cancel, or the buyer can withdraw while no seller has joined yet.
+    /// Hold mode: this is the deposit coming back on its end date.
     pub fn refund(env: Env, deal_id: u64) {
         let mut deal = load(&env, deal_id);
-        if !is_open(&deal) {
+        // a holder can drop their claim and give the whole deposit back
+        let dropped_claim = deal.mode == Mode::Hold && deal.status == Status::Disputed;
+        if !is_open(&deal) && !dropped_claim {
             panic_with_error!(&env, Error::NotOpen);
         }
-        if env.ledger().timestamp() < deal.expiry {
+        if dropped_claim {
+            bound_seller(&env, &deal).require_auth();
+        } else if env.ledger().timestamp() < deal.expiry {
             match &deal.seller {
                 Some(seller) => seller.require_auth(),
                 None => deal.buyer.require_auth(),
