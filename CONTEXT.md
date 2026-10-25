@@ -58,6 +58,15 @@ The core insight: **in these deals, proof of payment is an image, and images lie
 
 **The name** "SHAKE" is a working name. Alternatives considered: HELD ("Your money, held."), LEGIT, SEALD, TRUCE, KEPT. CLASP is taken by an existing fintech. Not final yet.
 
+## 3b. Originality: how we avoid looking like "another escrow"
+Escrow already exists on Stellar: Trustless Work (escrow infrastructure for platforms) and many hackathon "freelance marketplace + escrow" clones. Honest assessment: the escrow itself is not original. What is original, and what we sell:
+1. **Proof of physical presence:** money only releases when the buyer scans the seller's live one-time QR (a hash-lock secret). It's a cryptographic handshake.
+2. **Proof of payment that can't be faked:** on-chain, not a screenshot.
+3. **Consumer-first, on top of OLX/Vinted/WhatsApp,** with no integration. Not B2B infrastructure.
+4. **The pitch is the product.**
+
+The rule: **never say "escrow"** in the UI or the pitch. The line is "the first payment between strangers that only releases when you meet face to face". Innovation (15%) is our weakest criterion, and UI/UX is the whole bet: an average UX means we look like another escrow and lose.
+
 ## 4. The pitch IS the product (the hidden twist)
 The judges evaluate a web pitch deck, and **they use SHAKE without realising it**:
 - **Slide 0, "Start":** tapping it silently creates an invisible wallet and locks €5 of **test money** in the escrow. The judge is the buyer and the team is the seller. The money never goes to the judges (no bribe perception). An honest footer reads "test network · no real money".
