@@ -17,7 +17,7 @@ import { currencyOfToken, explorer, formatMoney, fromUnits } from "@/lib/config"
 import { Money, useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/client/handshake";
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
-import { ApiError, callDeal, ensureAccount, getKeypair, sha256Hex } from "@/lib/client/wallet";
+import { ApiError, callDeal, ensureAccount, getKeypair, isMine, sha256Hex } from "@/lib/client/wallet";
 
 export default function DealPage() {
   return (
@@ -41,7 +41,7 @@ function DealScreen() {
   if (state === "offline" && !deal) return <Screen><Empty title="You're offline." body="We'll show the deal as soon as you're back." /></Screen>;
   if (!deal) return null;
 
-  const role = deal.buyer === me ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
+  const role = isMine(deal.buyer) ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
   const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
   return (

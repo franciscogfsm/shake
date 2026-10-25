@@ -1,7 +1,7 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Mark } from "@/components/Mark";
 import { Item, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
@@ -9,12 +9,13 @@ import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits } from "@/lib/c
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
+import { ensurePasskeyWallet, fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
 
 const MAX = 2000;
 const DAY = 24 * 60 * 60;
 type Phase = "form" | "locking" | "failed";
-const STEPS = [
-  { key: "account", label: "Setting up your money" },
+const steps = (faceId: boolean) => [
+  { key: "account", label: faceId ? "Creating your Face ID wallet" : "Setting up your money" },
   { key: "preparing", label: "Preparing the lock" },
   { key: "signing", label: "Signing on this phone" },
   { key: "confirming", label: "Confirming on the network" },
@@ -29,6 +30,9 @@ export default function NewDeal() {
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState("");
   const busy = useRef(false);
+  const [faceIdOk, setFaceIdOk] = useState(false);
+  const [faceId, setFaceId] = useState(false);
+  useEffect(() => setFaceIdOk(passkeySupported()), []);
   const [country, setCountry] = useCountry();
   const currency = country.currency;
   const sym = moneyParts(1, currency, country.locale);
@@ -37,20 +41,26 @@ export default function NewDeal() {
   const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX;
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
-  const lock = async () => {
+  const lock = async (withFaceId = faceId) => {
     if (!valid || busy.current) return;
+    setFaceId(withFaceId);
     busy.current = true;
     setPhase("locking");
     setError("");
     try {
       const kp = getKeypair();
       setStep("account");
-      await ensureAccount(kp, amount, currency);
+      // Face ID: an OpenZeppelin smart account (C… address) is the buyer; otherwise the invisible key
+      let buyer = kp.publicKey();
+      if (withFaceId) {
+        buyer = await ensurePasskeyWallet();
+        await fundPasskeyWallet(buyer, amount, currency);
+      } else await ensureAccount(kp, amount, currency);
       const dealId = newDealId();
       const expiry = String(Math.floor(Date.now() / 1000) + DAY);
       // the memo is public on-chain: it is what the link preview and receipt show
       const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
-      await callDeal(kp, "lock", { buyer: kp.publicKey(), token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
+      await callDeal(kp, "lock", { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
       dealMeta.set(dealId, { item: item.trim(), seller: seller.trim() });
       const q = new URLSearchParams({ i: item.trim(), ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${q}&new=1`);
@@ -71,7 +81,7 @@ export default function NewDeal() {
             exit={{ opacity: 0, scale: 0.98 }}
             onSubmit={(e) => {
               e.preventDefault();
-              lock();
+              lock(faceIdOk);
             }}
             className="flex flex-1 flex-col"
           >
@@ -125,8 +135,14 @@ export default function NewDeal() {
               <Item className="flex flex-col gap-3">
                 <p className="text-center text-[15px] text-ink-2">Held safely until you shake. Refunded if you don&apos;t.</p>
                 <Button type="submit" full disabled={!valid}>
-                  {valid ? `Lock ${money(amount)}` : "Lock"}
+                  {faceIdOk && <FaceIdIcon />}
+                  {valid ? `Lock ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : "Lock"}
                 </Button>
+                {faceIdOk && valid && (
+                  <button type="button" onClick={() => lock(false)} className="text-sm text-mute underline-offset-4 hover:underline">
+                    Lock without Face ID
+                  </button>
+                )}
                 <TestnetNote />
               </Item>
             </Stagger>
@@ -142,12 +158,12 @@ export default function NewDeal() {
             </div>
             {phase === "locking" ? (
               <div className="glass w-full p-6">
-                <Steps steps={STEPS} current={step} />
+                <Steps steps={steps(faceId)} current={step} />
               </div>
             ) : (
               <div className="flex w-full flex-col items-center gap-4 text-center">
                 <p className="max-w-[30ch] text-ink-2" role="alert">{error}</p>
-                <Button full onClick={lock}>Try again</Button>
+                <Button full onClick={() => lock()}>Try again</Button>
                 <Button variant="ghost" onClick={() => setPhase("form")}>Edit deal</Button>
               </div>
             )}
@@ -155,5 +171,13 @@ export default function NewDeal() {
         )}
       </AnimatePresence>
     </Screen>
+  );
+}
+
+function FaceIdIcon() {
+  return (
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" aria-hidden>
+      <path d="M4 8V6a2 2 0 0 1 2-2h2M16 4h2a2 2 0 0 1 2 2v2M20 16v2a2 2 0 0 1-2 2h-2M8 20H6a2 2 0 0 1-2-2v-2M9 9v1.5M15 9v1.5M12 9v4h-1M9.5 16a4 4 0 0 0 5 0" />
+    </svg>
   );
 }

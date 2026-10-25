@@ -1,6 +1,7 @@
 "use client";
 import { Address, Keypair, TransactionBuilder, authorizeEntry, xdr } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, type CurrencyCode } from "@/lib/config";
+import { passkeyAddress, signWithPasskey } from "./passkey";
 
 const KEY = "shake.key.v1";
 
@@ -25,6 +26,9 @@ export const hasWallet = () => {
     return false;
   }
 };
+
+/** Is this address one of this phone's wallets (the invisible key or the Face ID smart account)? */
+export const isMine = (address: string | null | undefined) => !!address && (address === getKeypair().publicKey() || address === passkeyAddress());
 
 export class ApiError extends Error {}
 
@@ -52,7 +56,7 @@ export async function ensureAccount(kp: Keypair, amount: number, currency: Curre
 
 export type CallStep = "preparing" | "signing" | "confirming";
 
-/** Prepare → sign only our own authorization → OpenZeppelin Channels submits and pays the fee. */
+/** Prepare → sign only our own authorizations (key or Face ID) → OpenZeppelin Channels submits and pays the fee. */
 export async function callDeal(
   kp: Keypair,
   fn: "lock" | "accept" | "release" | "refund",
@@ -63,12 +67,15 @@ export async function callDeal(
   const prep = await post<{ func: string; auth: string[]; latestLedger: number }>("/api/call", { action: "prepare", fn, args });
   onStep?.("signing");
   const me = kp.publicKey();
+  const pk = passkeyAddress();
   const auth = await Promise.all(
     prep.auth.map(async (b64) => {
       const entry = xdr.SorobanAuthorizationEntry.fromXDR(b64, "base64");
       const cred = entry.credentials();
       if (cred.switch().name !== "sorobanCredentialsAddress") return b64;
-      if (Address.fromScAddress(cred.address().address()).toString() !== me) return b64;
+      const who = Address.fromScAddress(cred.address().address()).toString();
+      if (who === pk) return (await signWithPasskey(entry, prep.latestLedger + 100)).toXDR("base64");
+      if (who !== me) return b64;
       const signed = await authorizeEntry(entry, kp, prep.latestLedger + 100, NETWORK_PASSPHRASE);
       return signed.toXDR("base64");
     }),

@@ -12,7 +12,7 @@ import { currencyOfToken, formatMoney, fromUnits } from "@/lib/config";
 import { useCountry } from "@/components/Money";
 import { codeToHex, dealMeta, parseScan } from "@/lib/client/handshake";
 import { useDeal } from "@/lib/client/useDeal";
-import { ApiError, callDeal, getKeypair, sha256Hex } from "@/lib/client/wallet";
+import { ApiError, callDeal, getKeypair, isMine, sha256Hex } from "@/lib/client/wallet";
 
 export default function ScanPage() {
   const { id } = useParams<{ id: string }>();
@@ -57,7 +57,7 @@ export default function ScanPage() {
     }
   };
 
-  if (state === "ready" && deal && me && deal.buyer !== me)
+  if (state === "ready" && deal && me && !isMine(deal.buyer))
     return <Screen back={`/deal/${id}`}><Notice title="Only the buyer scans." body="Open this deal on the phone that locked the money." /></Screen>;
   // while the confirm sheet is open (code accepted) we stay here, even if polling sees the release first
   if (deal && deal.status !== "Accepted" && !code)

@@ -6,6 +6,10 @@ const t0 = Date.now(); const lap = (m) => console.log(((Date.now() - t0) / 1000)
   const br = await chromium.launch();
   const mk = async () => { const c = await br.newContext({ viewport: { width: 393, height: 852 }, deviceScaleFactor: 2, hasTouch: false }); const p = await c.newPage(); p.on('pageerror', e => console.log('PAGEERROR', e.message)); return p; };
   const buyer = await mk(), seller = await mk();
+  // buyer has Face ID: a virtual platform authenticator (passkey smart account path)
+  const cdp = await buyer.context().newCDPSession(buyer);
+  await cdp.send('WebAuthn.enable');
+  await cdp.send('WebAuthn.addVirtualAuthenticator', { options: { protocol: 'ctap2', transport: 'internal', hasResidentKey: true, hasUserVerification: true, isUserVerified: true, automaticPresenceSimulation: true } });
   await buyer.goto(B + '/deal/new', { timeout: 180000 });
   await buyer.fill('#item', 'Nintendo Switch');
   await buyer.fill('#price', '12');
