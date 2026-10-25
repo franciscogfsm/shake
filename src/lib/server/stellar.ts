@@ -204,19 +204,53 @@ export async function signTeamEntries(auth: string[], latestLedger: number) {
   );
 }
 
-/** OpenZeppelin Channels builds the transaction around func+auth and pays the fee. */
+/**
+ * Fee sponsorship. Primary: OpenZeppelin Channels builds the transaction around func+auth and pays the fee.
+ * The free testnet key has a daily fee budget, so when it runs out we fall back to our own channel
+ * accounts, which pay the real (sub-cent) fee. Users never hold XLM either way.
+ */
+let channelsDownUntil = 0;
 export async function submitCall(func: string, auth: string[]) {
   // validate that func targets our contract before spending sponsored fees
   const hf = xdr.HostFunction.fromXDR(func, "base64");
   const target = Address.fromScAddress(hf.invokeContract().contractAddress()).toString();
   const name = hf.invokeContract().functionName().toString();
   if (target !== DEAL_CONTRACT_ID || !["lock", "accept", "release", "refund"].includes(name)) throw new UserError("Not a SHAKE call");
-  try {
-    const res = await channels().submitSorobanTransaction({ func, auth });
-    if (!res.hash) throw new Error(`Relayer returned ${res.status}`);
-    return { hash: res.hash, status: res.status };
-  } catch (e) {
-    throw new UserError(explainContractError(e instanceof Error ? e.message : String(e)), 502);
+
+  if (process.env.CHANNELS_API_KEY && Date.now() > channelsDownUntil) {
+    try {
+      const res = await channels().submitSorobanTransaction({ func, auth });
+      if (res.hash) return { hash: res.hash, status: res.status, via: "openzeppelin" as const };
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      const contractError = /Error\(Contract, #\d+\)/.test(msg);
+      if (contractError) throw new UserError(explainContractError(msg), 409);
+      // budget exhausted or relayer unavailable: use our own pool for a while
+      channelsDownUntil = Date.now() + (/budget|FEE_LIMIT|limit/i.test(msg) ? 30 * 60_000 : 60_000);
+      console.warn("channels unavailable, falling back:", msg.slice(0, 160));
+    }
+  }
+  return submitOwn(hf, auth);
+}
+
+async function submitOwn(func: xdr.HostFunction, auth: string[]) {
+  const entries = auth.map((a) => xdr.SorobanAuthorizationEntry.fromXDR(a, "base64"));
+  for (let attempt = 0; ; attempt++) {
+    const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
+    const account = await server.getAccount(ch.publicKey());
+    const raw = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
+      .addOperation(Operation.invokeHostFunction({ func, auth: entries }))
+      .setTimeout(60)
+      .build();
+    const sim = await server.simulateTransaction(raw);
+    if (rpc.Api.isSimulationError(sim)) throw new UserError(explainContractError(sim.error), 409);
+    const tx = rpc.assembleTransaction(raw, sim).build();
+    tx.sign(ch);
+    try {
+      return { hash: await sendClassic(tx), status: "confirmed", via: "shake-pool" as const };
+    } catch (e) {
+      if (!(e instanceof BadSeq) || attempt >= 3) throw e;
+    }
   }
 }
 
