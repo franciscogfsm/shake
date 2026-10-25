@@ -314,6 +314,23 @@ No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.
 
 ## Run locally
 
+### Quick start (about 2 minutes, Node only)
+
+```bash
+git clone https://github.com/franciscogfsm/shake.git
+cd shake
+npm install
+npm run dev
+```
+
+Open [localhost:3000](http://localhost:3000). Use `localhost`, not `127.0.0.1`: browsers refuse passkeys on an IP address.
+
+The first `npm run dev` runs [`scripts/setup.mjs`](scripts/setup.mjs), which makes your own private testnet setup and writes it to `.env.local` (git-ignored): three Friendbot-funded accounts, tEUR/tUSD/tGBP/tBRL issued by you, and 24 channel accounts that pay fees. It uses the public SHAKE deal contract, which has no admin. No Rust, no Stellar CLI, no API keys. Later runs start immediately.
+
+To pay with Face ID, SHAKE uses a [Nido](https://test.nido.fyi) passkey smart account: tap **Lock with Face ID**, create or pick your Nido, let SHAKE make its own passkey, and approve SHAKE's limits once in Nido's window (lock and release SHAKE payments, and move test money only into the SHAKE contract, for 24 hours). Allow pop-ups for the site.
+
+The steps below deploy everything yourself, including the contract.
+
 ### Prerequisites
 
 - Node.js 20.9 or later and npm.
@@ -327,7 +344,7 @@ No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.
 git clone https://github.com/franciscogfsm/shake.git
 cd shake
 npm ci
-cp .env.example .env.local
+cp .env.example .env.local   # optional: npm run dev fills it for you
 rustup target add wasm32v1-none
 ```
 
@@ -375,6 +392,7 @@ Public variables are embedded in the client bundle by Next.js. Set them before b
 | `TEAM_SECRET` | Server-only seller key for pitch acceptance/cancellation; resolver signing key for `scripts/resolve.mjs`. | `deploy.sh` |
 | `CHANNELS_API_KEY` | Optional OpenZeppelin Channels sponsorship key. | Developer configuration |
 | `NEXT_PUBLIC_SITE_URL` | Optional canonical origin for metadata and social previews. | Developer configuration |
+| `NEXT_PUBLIC_NIDO_BASE` | Optional Nido wallet origin for Face ID payments; defaults to `https://test.nido.fyi`. | Developer configuration |
 
 Keep `.env.local` private. The passkey account WASM hash and WebAuthn verifier address are public constants in [`src/lib/config.ts`](src/lib/config.ts). Changing `NEXT_PUBLIC_NETWORK` alone does not switch networks.
 

@@ -9,7 +9,7 @@ const APPS = {
   ChatGPT: ["Settings", "Apps", "Developer mode", "Paste"],
   Cursor: ["Settings", "MCP", "Add server", "Paste"],
 } as const;
-const ASKS = ["Is this message a scam? (paste it)", "Protect my €60 jacket from Ana on Vinted", "Where's safe to meet near Cais do Sodré?"];
+const ASKS = ["Is this message a scam? (paste it)", "Protect my 60€ jacket from Ana on Vinted", "Where's safe to meet near Cais do Sodré?"];
 const CAN = ["Checks messages", "Makes the link", "Verifies payment", "Finds safe spots"];
 type App = keyof typeof APPS;
 

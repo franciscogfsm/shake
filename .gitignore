@@ -20,3 +20,4 @@ contracts/**/test_snapshots/
 
 .vercel
 .env*
+!.env.example

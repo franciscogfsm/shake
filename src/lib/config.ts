@@ -54,8 +54,13 @@ export const toUnits = (amount: number) => {
 };
 export const fromUnits = (units: bigint | string | number) => Number(BigInt(units)) / 10 ** DECIMALS;
 
-/** Locale-correct money: "400€" in Portugal, "€400" in Ireland, "R$ 400" in Brazil. Cents only when needed. */
+/** Money as people read it: "400€" (the euro always after the number), "$400", "R$ 400" in Brazil. Cents only when needed. */
 export function formatMoney(amount: number, currency: CurrencyCode = "EUR", locale = CURRENCIES[currency].homeLocale) {
+  // the euro always follows the number ("5€"), whatever the viewer's locale
+  if (currency === "EUR") {
+    const p = moneyParts(amount, currency, locale);
+    return `${p.number}${p.symbol}`;
+  }
   const formatted = new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).format(amount);
   // pt, fr, de and others insert a space before a trailing symbol ("5 €"). Keep it tight: "5€".
   return formatted.replace(/\s+(?=\p{Sc})/u, "");
@@ -65,7 +70,7 @@ export function moneyParts(amount: number, currency: CurrencyCode = "EUR", local
   const parts = new Intl.NumberFormat(locale, { style: "currency", currency, minimumFractionDigits: amount % 1 ? 2 : 0, maximumFractionDigits: 2 }).formatToParts(amount);
   const i = parts.findIndex((p) => p.type === "currency");
   const firstNum = parts.findIndex((p) => p.type === "integer");
-  return { symbol: parts[i]?.value ?? currency, before: i < firstNum, number: parts.filter((p) => p.type !== "currency").map((p) => p.value).join("").trim() };
+  return { symbol: parts[i]?.value ?? currency, before: currency !== "EUR" && i < firstNum, number: parts.filter((p) => p.type !== "currency").map((p) => p.value).join("").trim() };
 }
 /** A deal's amount in its own currency, formatted for the viewer (or the currency's home locale). */
 export const dealMoney = (units: bigint | string | number, token: string, locale?: string) => {

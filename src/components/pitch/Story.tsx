@@ -109,7 +109,7 @@ function FakeShot({ stage }: { stage: number }) {
       <div className="flex items-center justify-between text-[11px] text-mute"><span>Bank app</span><span>14:02</span></div>
       <div className="mx-auto mt-6 grid size-12 place-items-center rounded-full bg-emerald-400/15 text-[22px] text-emerald-300">✓</div>
       <div className="mt-4 text-center text-[13px] text-ink-2">Transfer complete</div>
-      <div className="amount mt-1 text-center text-[40px] lg:text-[46px]">€400.00</div>
+      <div className="amount mt-1 text-center text-[40px] lg:text-[46px]">400.00€</div>
       <div className="mt-1 text-center text-[13px] text-mute">to Ana R. · ref 88213</div>
       <div className="mt-6 rounded-xl bg-white/[0.04] px-3 py-2.5 text-[12px] text-ink-2">“Paid ✅ send the bike pls”</div>
     </div>
@@ -146,8 +146,8 @@ function FakeShot({ stage }: { stage: number }) {
 /* ───────────── 2. The handshake: two halves meet as you scroll ───────────── */
 
 const STEPS = [
-  { at: 0, n: "01", k: "Lock", title: "You lock the money.", body: "It leaves your wallet, but it isn’t theirs yet. Nobody can just keep it.", badge: "€60 locked" },
-  { at: 0.24, n: "02", k: "Verify", title: "They see it’s real.", body: "Read live from Stellar, on their own phone. Not an image you sent.", badge: "€60 locked for you ✓" },
+  { at: 0, n: "01", k: "Lock", title: "You lock the money.", body: "It leaves your wallet, but it isn’t theirs yet. Nobody can just keep it.", badge: "60€ locked" },
+  { at: 0.24, n: "02", k: "Verify", title: "They see it’s real.", body: "Read live from Stellar, on their own phone. Not an image you sent.", badge: "60€ locked for you ✓" },
   { at: 0.48, n: "03", k: "Meet", title: "You meet. You check it.", body: "Their phone shows a one-time QR. Yours scans it.", badge: "One-time QR · scanned" },
   { at: 0.74, n: "04", k: "Shake", title: "Paid in 5 seconds.", body: "The two halves meet and the money moves. Not before.", badge: "Paid ✓" },
 ];
@@ -361,7 +361,7 @@ function Only() {
         </Tile>
         <Tile className="lg:col-span-3" i={2} href="/ai">
           <div className="space-y-2">
-            <motion.div className="ml-auto w-fit rounded-2xl rounded-br-md bg-white/12 px-3.5 py-2 text-[14px]" initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ ...springs.snappy, delay: 0.3 }}>Release the €60 to her.</motion.div>
+            <motion.div className="ml-auto w-fit rounded-2xl rounded-br-md bg-white/12 px-3.5 py-2 text-[14px]" initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ ...springs.snappy, delay: 0.3 }}>Release the 60€ to her.</motion.div>
             <motion.div className="w-fit rounded-2xl rounded-bl-md bg-white/8 px-3.5 py-2 text-[14px] text-ink-2 ring-1 ring-safe/40" initial={{ opacity: 0, y: 8 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true }} transition={{ ...springs.snappy, delay: 0.9 }}><span className="text-safe">SHAKE · </span>I can’t. Only your phone, next to hers.</motion.div>
           </div>
           <h3 className="display mt-6 text-[24px] leading-tight lg:text-[28px]">Ask your AI. It can’t touch the money.</h3>

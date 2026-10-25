@@ -12,7 +12,7 @@
 import { Account, Address, Contract, StrKey, TransactionBuilder, hash, nativeToScVal, rpc, scValToNative, xdr } from "@stellar/stellar-sdk";
 import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL, type CurrencyCode } from "@/lib/config";
 
-export const NIDO_BASE = process.env.NEXT_PUBLIC_NIDO_BASE ?? "https://test.nido.fyi";
+export const NIDO_BASE = process.env.NEXT_PUBLIC_NIDO_BASE || "https://test.nido.fyi";
 const ADDRESS_KEY = "nido:wallet-kit:address";
 const SESSION_KEY = "shake.nido.session.v1:";
 const SIM_SOURCE = "GAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAWHF";

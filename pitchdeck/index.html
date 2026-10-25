@@ -1032,6 +1032,12 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 @keyframes passkeyBreathe{50%{opacity:.45}}@keyframes passkeyDone{0%{transform:scale(.94)}55%{transform:scale(1.09)}100%{transform:scale(1)}}
 @media(prefers-reduced-motion:reduce){.scanning .face-corners,.passkey-popup.confirmed .passkey-face{animation:none}.passkey-popup{transition:none}}
 
+.passkey-nido>.nido-context{border:0;padding:0;font:400 calc(var(--u)*1.1) var(--sans);color:var(--mute);letter-spacing:-.02em}.passkey-preview .passkey-wallet-name{font-size:calc(var(--u)*1.2);letter-spacing:.12em}
+
+.passkey-results{display:flex;flex-direction:column;align-items:center;gap:calc(var(--u)*.45);margin-top:calc(var(--u)*1);font-size:calc(var(--u)*.8);line-height:1.2}.passkey-results>span{display:flex;align-items:center;gap:8px;opacity:0;transform:translateY(7px);transition:opacity .4s,transform .4s}.passkey-results>span.x{opacity:1;transform:none}.passkey-results i{font-style:normal;color:var(--ice);font-size:calc(var(--u)*.8)}
+[data-n="Passkeys"] .passkey-popup{padding:calc(var(--u)*1.5) calc(var(--u)*1)}[data-n="Passkeys"] .passkey-face{width:calc(var(--u)*5.5);height:calc(var(--u)*5.5);margin-bottom:calc(var(--u)*1)}
+@media(prefers-reduced-motion:reduce){.passkey-results>span{transition:none}}
+[data-n="Passkeys"] .passkey-popup{padding:calc(var(--u)*1.05) calc(var(--u)*1)}[data-n="Passkeys"] .passkey-face{width:calc(var(--u)*4.8);height:calc(var(--u)*4.8);margin-bottom:calc(var(--u)*.7)}[data-n="Passkeys"] .passkey-purchase{padding:calc(var(--u)*.8);margin-bottom:calc(var(--u)*1)}.passkey-results{margin-top:calc(var(--u)*.7);gap:calc(var(--u)*.35)}
 </style>
 </head>
 <body>
@@ -1210,20 +1216,20 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 <section class="slide" data-n="Passkeys">
  <div class="passkey-layout">
   <div class="passkey-copy">
-   <p class="passkey-nido r">Nido<span>Passkey wallet · Stellar</span></p>
+   <p class="passkey-nido r"><span class="nido-context">We use</span> Nido<span>for passkey accounts</span></p>
    <h2 class="r" style="--d:1">Unlock.<br>Confirm.<br><span>Done.</span></h2>
    <p class="passkey-intro r" style="--d:2">As easy as unlocking your phone.</p>
    <div class="passkey-benefits r" style="--d:3"><span>No wallet to install</span><span>No recovery phrase</span></div>
    <p class="passkey-agent r" style="--d:4">Face ID · Fingerprint · Device PIN</p>
   </div>
   <div class="passkey-preview r" style="--d:2">
-   <div class="passkey-preview-top"><span class="passkey-wallet-name">Nido</span><span class="passkey-secure">Your passkey wallet</span></div>
+   <div class="passkey-preview-top"><span class="passkey-wallet-name">SHAKE</span><span class="passkey-secure">Your passkey wallet</span></div>
    <div class="passkey-purchase"><p>SHAKE<span>Leather jacket</span></p><b>60€</b></div>
    <div class="passkey-popup glass" id="passkey-popup">
     <div class="passkey-face" aria-hidden="true"><svg viewBox="0 0 80 80"><path class="face-corners" d="M25 10H17a7 7 0 0 0-7 7v8m45-15h8a7 7 0 0 1 7 7v8M10 55v8a7 7 0 0 0 7 7h8m30 0h8a7 7 0 0 0 7-7v-8"/><g class="face-features"><path d="M27 29v8m26-8v8M41 30v16h-5m-9 7q13 12 26 0"/></g><path class="face-check" d="m24 41 11 11 22-25"/></svg><i class="face-scan"></i></div>
     <h3 id="passkey-label">Confirm with Face ID</h3>
     <p id="passkey-detail">Your passkey. Your approval.</p>
-    <span class="passkey-domain">shake-lake.vercel.app</span>
+    <div class="passkey-results" aria-label="Setup and approval steps"><span><i>✓</i>Wallet created</span><span><i>✓</i>Payment signed</span><span><i>✓</i>Ready to lock funds</span></div>
    </div>
    <div class="passkey-steps"><span class="pk-step x" data-pk-step="0"><i>01</i> Open</span><span class="pk-step" data-pk-step="1"><i>02</i> Confirm</span><span class="pk-step" data-pk-step="2"><i>03</i> Ready</span></div>
   </div>
@@ -1364,7 +1370,7 @@ const CFG={
  EXPLORER:"https://stellar.expert/explorer/testnet",
  AMOUNT:10,
  TRY_URL:"https://shake-lake.vercel.app/try",  // the real two-phone demo
- DEMO_VIDEO:"/videos/shake-v5.mp4",            // Final product walkthrough, served with the deployed site
+ DEMO_VIDEO:"/videos/shake-v6.mp4",            // Final product walkthrough, served with the deployed site
  CONTRACT:"CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW",  // deal contract on testnet
  COMMITS:null,                               // e.g. 143, read from git on demo day
  TIMELINE:[                                  // what was built during the event (from pitch-brief.md)
@@ -1399,7 +1405,7 @@ const CAPTIONS={
  Ship:"For shipped deals, the seller packs a one-time QR in the box. Tap the three outcomes: whatever happens, nobody keeps both the item and the money.",
  Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE payment link and send it to the buyer.",
  Trust:"The buyer locks the money in a public contract on Stellar. The seller can verify it. After inspecting the item, the buyer approves payment; if the deal falls through, the buyer can recover funds under the contract’s rules.",
- Passkeys:"Nido makes your Stellar account feel familiar. Open SHAKE, confirm with your passkey, and you’re ready.",
+ Passkeys:"Open SHAKE, confirm with your passkey, and you’re ready.",
  Workflow:"The deal starts on Vinted, OLX or WhatsApp. The buyer locks the money in a public contract. It pays only when the seller’s one-time code is scanned, phone to phone. Otherwise it comes back. A screenshot cannot do that.",
  First:"Who we start with, and why the two strangers would use it. Five pairs outside the team still have to try it, so this is a hypothesis, not product-market fit. The extension and a shared link are how we reach them.",
  Built:"We are Pedro and Francisco: two 21-year-old students from Portugal, at Instituto Superior Técnico. We buy and sell second-hand ourselves. Pedro owns product, design and pitch; Francisco owns engineering. In 24 hours, we turned that shared problem into a working payment on Stellar Testnet.",
@@ -1559,7 +1565,7 @@ const P={
  Trust:async(s,S)=>{$("#tcores").textContent=deal.status==="locked"?"yours, locked right now":"locked on Stellar";
   const side=k=>[[$("#toutl"),$(".tarr.l",s)],[$("#toutr"),$(".tarr.rr",s)]][k];await S(1300);
   for(let k=0;;k^=1){const[c,a]=side(k);add(a);await S(450);add(c);ripple(c,"140,207,255");await S(2400);c.classList.remove("x");a.classList.remove("x");await S(400)}},
- Passkeys:async(s,S)=>{const popup=$("#passkey-popup"),label=$("#passkey-label"),detail=$("#passkey-detail"),steps=$$("[data-pk-step]",s);const step=n=>steps.forEach((el,i)=>el.classList.toggle("x",i<=n));popup.classList.remove("scanning","confirmed");step(0);label.textContent="Confirm with Face ID";detail.textContent="Your passkey. Your approval.";await S(1100);step(1);popup.classList.add("scanning");await S(2600);popup.classList.remove("scanning");popup.classList.add("confirmed");step(2);label.textContent="You’re ready.";detail.textContent="Approved in SHAKE.";},
+ Passkeys:async(s,S)=>{const popup=$("#passkey-popup"),label=$("#passkey-label"),detail=$("#passkey-detail"),steps=$$("[data-pk-step]",s),results=$$(".passkey-results>span",s);const step=n=>steps.forEach((el,i)=>el.classList.toggle("x",i<=n));popup.classList.remove("scanning","confirmed");results.forEach(el=>el.classList.remove("x"));step(0);label.textContent="Confirm with Face ID";detail.textContent="Your passkey. Your approval.";await S(1100);step(1);popup.classList.add("scanning");await S(2600);popup.classList.remove("scanning");popup.classList.add("confirmed");label.textContent="You’re ready.";detail.textContent="Approved in SHAKE.";await S(650);for(const result of results){result.classList.add("x");await S(650)}step(2);},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
  Built:async()=>{},
  Decide:async(s,S)=>{const locked=deal.status==="locked",settled=deal.status==="released"||deal.status==="refunded";hold.disabled=$("#notyet").disabled=!locked;

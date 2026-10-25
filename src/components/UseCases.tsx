@@ -15,28 +15,28 @@ const CASES: Case[] = [
     title: "He drives out knowing the money is real.",
     sub: "No envelope of cash. No transfer screenshot. The car is paid the moment the keys are in your hand.",
     beats: ["You lock the money", "He sees it’s real, so he drives", "Keys for a scan · paid"],
-    steps: ["You lock €8,500 before he leaves home.", "His phone shows it: real, locked for him.", "Keys in hand, you scan his QR. Paid in 5 seconds."],
+    steps: ["You lock 8,500€ before he leaves home.", "His phone shows it: real, locked for him.", "Keys in hand, you scan his QR. Paid in 5 seconds."],
   },
   {
     id: "flat", tag: "Works today", where: "Renting a flat",
     title: "No keys, no deposit.",
     sub: "Fake landlords collect deposits for flats they don't own. Yours waits until you're standing inside.",
     beats: ["You lock the deposit", "Screenshots don’t count. This does.", "Keys in hand · paid"],
-    steps: ["You lock the €1,200 deposit.", "The landlord sees it's real, not a screenshot.", "At the flat, keys in hand, you scan. No flat? It comes back."],
+    steps: ["You lock the 1,200€ deposit.", "The landlord sees it's real, not a screenshot.", "At the flat, keys in hand, you scan. No flat? It comes back."],
   },
   {
     id: "parcel", tag: "Works today", where: "Selling on Vinted, shipped",
     title: "The QR travels in the box.",
     sub: "You ship knowing the money is locked. They pay only once the parcel is in their hands.",
     beats: ["Buyer locks the money", "The QR goes in the box", "Box opened, QR scanned · paid"],
-    steps: ["The buyer locks €45 before you ship.", "You put the one-time QR inside the box.", "They open it and scan. You're paid."],
+    steps: ["The buyer locks 45€ before you ship.", "You put the one-time QR inside the box.", "They open it and scan. You're paid."],
   },
   {
     id: "night", tag: "Coming next", where: "Paying the crew for one night",
     title: "Everyone who shows up gets paid.",
     sub: "Lock the night's pay up front. Each person checks in at the door with their QR. At close, everyone who came is paid at once.",
     beats: ["You lock everyone’s pay", "They check in at the door", "Close: paid, no-show refunded"],
-    steps: ["You lock €120 for each of six people.", "Each one checks in at the door with their QR.", "At close, everyone who came is paid. No-shows come back to you."],
+    steps: ["You lock 120€ for each of six people.", "Each one checks in at the door with their QR.", "At close, everyone who came is paid. No-shows come back to you."],
   },
 ];
 const N = CASES.length;
@@ -197,7 +197,7 @@ function LockIn({ lp, amount }: { lp: MV; amount: number }) {
   const faceS = useTransform(lp, [0.01, 0.06], [1.3, 1]);
   const faceO = useTransform(lp, [0.07, 0.1], [1, 0]);
   const n = useTransform(lp, [0.1, 0.2], [0, amount]);
-  const label = useTransform(n, (v) => `€${Math.round(v).toLocaleString("en")}`);
+  const label = useTransform(n, (v) => `${Math.round(v).toLocaleString("en")}€`);
   const ticker = useTransform(lp, [0.09, 0.11, 0.8, 0.82], [0, 1, 1, 0]);
   return (
     <>
@@ -355,7 +355,7 @@ function Car({ lp }: { lp: MV }) {
         <Fade lp={lp} at={[0.86, 0.9]}><Txt x={35} y={100} size={12} weight={600}>Keys</Txt><Check lp={lp} at={[0.88, 0.93]} x={35} y={112} /></Fade>
       </Phone>
       <Phone x={300} y={56} label="Seller" glow={glow}>
-        <LockedForYou lp={lp} at={0.24} amount="€8,500" />
+        <LockedForYou lp={lp} at={0.24} amount="8,500€" />
         <Fade lp={lp} at={[0.66, 0.69, 0.8, 0.83]}><Qr lp={lp} at={[0.7, 0.8]} x={20} y={42} /></Fade>
       </Phone>
       <Key lp={lp} from={[200, 222]} to={[65, 150]} at={[0.7, 0.79]} />
@@ -401,7 +401,7 @@ function Flat({ lp }: { lp: MV }) {
         <Fade lp={lp} at={[0.86, 0.9]}><Txt x={35} y={100} size={12} weight={600}>Keys</Txt><Check lp={lp} at={[0.88, 0.93]} x={35} y={112} /></Fade>
       </Phone>
       <Phone x={306} y={56} label="Landlord" glow={glow}>
-        <LockedForYou lp={lp} at={0.54} amount="€1,200" />
+        <LockedForYou lp={lp} at={0.54} amount="1,200€" />
         <Fade lp={lp} at={[0.68, 0.7, 0.8, 0.83]}><Qr lp={lp} at={[0.7, 0.8]} x={20} y={42} /></Fade>
       </Phone>
 
@@ -467,7 +467,7 @@ function Parcel({ lp }: { lp: MV }) {
         <Fade lp={lp} at={[0.86, 0.9]}><Txt x={35} y={100} size={11} weight={600}>Opened</Txt><Check lp={lp} at={[0.88, 0.93]} x={35} y={112} /></Fade>
       </Phone>
       <Phone x={306} y={56} label="You" glow={glow}>
-        <LockedForYou lp={lp} at={0.2} amount="€45" />
+        <LockedForYou lp={lp} at={0.2} amount="45€" />
       </Phone>
       <Coin lp={lp} from={[59, 114]} to={[341, 114]} fly={[0.8, 0.88]} />
     </>
@@ -481,7 +481,7 @@ const NO_SHOW = 4;
 
 function Night({ lp }: { lp: MV }) {
   const pool = useTransform(lp, [0.04, 0.16, 0.78, 0.9], [0, 720, 720, 0]);
-  const poolTxt = useTransform(pool, (v) => `€${Math.round(v)}`);
+  const poolTxt = useTransform(pool, (v) => `${Math.round(v)}€`);
   const clock = useTransform(lp, [0.28, 0.76], [22 * 60, 27 * 60]);
   const clockTxt = useTransform(clock, (m) => `${String(Math.floor(m / 60) % 24).padStart(2, "0")}:${String(Math.floor(m % 60 / 15) * 15).padStart(2, "0")}`);
   const party = useTransform(lp, [0.3, 0.36, 0.7, 0.76], [0, 1, 1, 0]);
@@ -501,7 +501,7 @@ function Night({ lp }: { lp: MV }) {
       <Txt x={200} y={20} size={7} mono fill="var(--mute)">YOU · TONIGHT&apos;S PAY</Txt>
       <motion.g style={{ opacity: party }}><motion.text x={372} y={24} fontSize={11} fill="var(--ink-2)" textAnchor="end" className="font-mono">{clockTxt}</motion.text></motion.g>
       <Fade lp={lp} at={[0.76, 0.8]}><Txt x={372} y={24} size={10} mono fill="var(--ink-2)" anchor="end">CLOSE</Txt></Fade>
-      <Fade lp={lp} at={[0.92, 0.96]}><Txt x={200} y={112} size={8} mono fill="var(--safe)">€120 BACK TO YOU</Txt></Fade>
+      <Fade lp={lp} at={[0.92, 0.96]}><Txt x={200} y={112} size={8} mono fill="var(--safe)">120€ BACK TO YOU</Txt></Fade>
       {CREW.map((who, i) => <Member key={i} lp={lp} i={i} who={who} />)}
       <motion.circle cx={200} cy={52} r={30} stroke="var(--safe)" strokeWidth={1.4} style={{ opacity: back, scale: back }} />
     </>
@@ -532,7 +532,7 @@ function Member({ lp, i, who }: { lp: MV; i: number; who: string }) {
       {show ? (
         <>
           <Fade lp={lp} at={[inAt + 0.01, inAt + 0.03, payAt, payAt + 0.02]} rise={0}><Check lp={lp} at={[inAt + 0.01, inAt + 0.04]} x={x0} y={262} s={0.9} /></Fade>
-          <Fade lp={lp} at={[payAt + 0.04, payAt + 0.07]}><Txt x={x0} y={266} size={9} mono fill="var(--safe)">€120 ✓</Txt></Fade>
+          <Fade lp={lp} at={[payAt + 0.04, payAt + 0.07]}><Txt x={x0} y={266} size={9} mono fill="var(--safe)">120€ ✓</Txt></Fade>
         </>
       ) : <Fade lp={lp} at={[0.64, 0.68]}><Txt x={x0} y={266} size={8} mono fill="var(--mute)">NO-SHOW</Txt></Fade>}
       <motion.g style={{ x: cx, y: cy, opacity: co }}>

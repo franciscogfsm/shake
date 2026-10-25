@@ -14,14 +14,14 @@ const missing = [];
 for (let i = 0; i < 24; i++) { try { await server.getAccount(ch(i).publicKey()); } catch { missing.push(ch(i).publicKey()); } }
 if (missing.length) {
   const b = new TransactionBuilder(await server.getAccount(sponsor.publicKey()), { fee: String(Number(BASE_FEE) * 100), networkPassphrase: PASS });
-  for (const pk of missing) b.addOperation(Operation.createAccount({ destination: pk, startingBalance: "100" }));
+  for (const pk of missing) b.addOperation(Operation.createAccount({ destination: pk, startingBalance: process.env.CHANNEL_START ?? "100" }));
   const tx = b.setTimeout(120).build(); tx.sign(sponsor);
   console.log(`created ${missing.length} channels: ${await send(tx)}`);
 }
 
 // Testnet rent can push one deal past 100 XLM in fees (the Soroban state is over its target size),
 // so top up low channels: friendbot funds a throwaway account, which merges all of it into the channel.
-const LOW = 2_000;
+const LOW = Number(process.env.CHANNEL_LOW ?? 2_000);
 for (let i = 0; i < 24; i++) {
   const pk = ch(i).publicKey();
   const xlm = Number((await (await fetch(`https://horizon-testnet.stellar.org/accounts/${pk}`)).json()).balances.find((b) => b.asset_type === "native").balance);

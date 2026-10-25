@@ -11,11 +11,11 @@ type Beat =
 
 // The same tools the real /api/mcp server exposes.
 const BEATS: Beat[] = [
-  { k: "you", text: "Vinted seller wants a €4 courier fee by link first. Safe?" },
+  { k: "you", text: "Vinted seller wants a 4€ courier fee by link first. Safe?" },
   { k: "tool", name: "check_seller_message" },
   { k: "typing" },
   { k: "shake", text: "No. Fake courier fee is a known trick. Pay through this instead:", link: true },
-  { k: "you", text: "Locked it. Now release the €60 to her." },
+  { k: "you", text: "Locked it. Now release the 60€ to her." },
   { k: "tool", name: "release_payment", refused: true },
   { k: "typing" },
   { k: "shake", text: "I can’t. Nobody can. Only your phone, scanning her QR, when you meet.", refused: true },
@@ -82,10 +82,10 @@ export function AiDemo() {
                     <div className="mt-2 flex items-center gap-3 rounded-xl border border-line bg-black/25 p-2.5">
                       <Mark size={28} state="open" />
                       <div className="min-w-0 flex-1">
-                        <div className="text-[13px] text-ink">Denim jacket · €60</div>
+                        <div className="text-[13px] text-ink">Denim jacket · 60€</div>
                         <div className="truncate font-mono text-[11px] text-mute">shake · deal K3X9A2</div>
                       </div>
-                      <span className="rounded-full bg-safe px-2.5 py-1 text-[11px] font-medium text-on-safe">Lock €60</span>
+                      <span className="rounded-full bg-safe px-2.5 py-1 text-[11px] font-medium text-on-safe">Lock 60€</span>
                     </div>
                   )}
                 </div>
@@ -104,7 +104,7 @@ export function AiDemo() {
         <div className="min-w-0 flex-1 text-[13px] lg:text-[14px]">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div key={refused ? "r" : locked ? "l" : "w"} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy} className={locked ? "text-safe" : "text-mute"}>
-              {refused ? "Still locked. The AI never had the money." : locked ? "€60 locked on Stellar" : "Nothing locked yet"}
+              {refused ? "Still locked. The AI never had the money." : locked ? "60€ locked on Stellar" : "Nothing locked yet"}
             </motion.div>
           </AnimatePresence>
         </div>

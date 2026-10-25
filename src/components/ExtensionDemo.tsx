@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 import { Mark, springs } from "./Mark";
 
 const LISTINGS = [
-  { market: "Vinted", item: "Wool jacket", price: "€60" },
-  { market: "OLX", item: "City bike", price: "€180" },
-  { market: "eBay", item: "Camera", price: "€240" },
+  { market: "Vinted", item: "Wool jacket", price: "60€" },
+  { market: "OLX", item: "City bike", price: "180€" },
+  { market: "eBay", item: "Camera", price: "240€" },
 ] as const;
 
 /** A listing, the SHAKE button, then the money locked. The chips follow the same item. */
