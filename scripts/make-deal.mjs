@@ -9,7 +9,7 @@ const p = await post("/api/wallet", { action: "prepare", publicKey: kp.publicKey
 const tx = TransactionBuilder.fromXDR(p.xdr, PASS); tx.sign(kp);
 await post("/api/wallet", { action: "submit", publicKey: kp.publicKey(), xdr: tx.toXDR() });
 const id = String(Math.floor(Math.random() * 2 ** 40) + 1);
-const c = await post("/api/call", { action: "prepare", fn: "lock", args: { buyer: kp.publicKey(), token: env.NEXT_PUBLIC_TOKEN_CONTRACT_ID, amount: "4000000000", dealId: id, expiry: String(Math.floor(Date.now() / 1000) + 86400) } });
+const c = await post("/api/call", { action: "prepare", fn: "lock", args: { buyer: kp.publicKey(), token: env.NEXT_PUBLIC_TOKEN_CONTRACT_ID, amount: "4000000000", dealId: id, expiry: String(Math.floor(Date.now() / 1000) + 86400), memo: "iPhone 13, 128GB" } });
 const auth = await Promise.all(c.auth.map(async (b) => { const e = xdr.SorobanAuthorizationEntry.fromXDR(b, "base64"); return Address.fromScAddress(e.credentials().address().address()).toString() === kp.publicKey() ? (await authorizeEntry(e, kp, c.latestLedger + 100, PASS)).toXDR("base64") : b; }));
 await post("/api/call", { action: "submit", func: c.func, auth });
 console.log(JSON.stringify({ id, buyerSecret: kp.secret() }));

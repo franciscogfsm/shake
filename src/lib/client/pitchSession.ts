@@ -65,7 +65,7 @@ export function usePitchSession() {
           update({ dealId });
           const at = now();
           const expiry = String(Math.floor(Date.now() / 1000) + 24 * 60 * 60);
-          const res = await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(EUROS).toString(), dealId, expiry }).catch((e) => {
+          const res = await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(EUROS).toString(), dealId, expiry, memo: "SHAKE pitch" }).catch((e) => {
             // a retry after a timeout may find the deal already locked
             if (e instanceof ApiError && /already exists/.test(e.message)) return { hash: null };
             throw e;

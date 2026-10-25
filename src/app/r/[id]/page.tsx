@@ -41,7 +41,7 @@ export default function Receipt() {
           <div className="flex items-start justify-between">
             <div>
               <div className="eyebrow">Receipt · {dealCode(id)}</div>
-              <div className="mt-1 text-ink-2">{item ?? "Second-hand deal"}</div>
+              <div className="mt-1 text-ink-2">{deal.memo || item || "Second-hand deal"}</div>
             </div>
             <Mark size={36} state={deal.status === "Released" ? "shut" : "rest"} />
           </div>

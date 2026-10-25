@@ -1,5 +1,6 @@
 import "server-only";
 import {
+  Account,
   Address,
   Asset,
   BASE_FEE,
@@ -48,9 +49,28 @@ export const isPublicKey = (s: unknown): s is string => {
   }
 };
 
+/**
+ * Channel accounts: many judges onboarding at once would collide on one source account's
+ * sequence number, so classic transactions use one of N accounts derived from the sponsor key.
+ * Created once with `node scripts/channels.mjs`.
+ */
+export const CHANNEL_COUNT = 24;
+export const channel = (i: number) =>
+  Keypair.fromRawEd25519Seed(createHash("sha256").update(`${need("SPONSOR_SECRET")}:channel:${i}`).digest());
+const isChannel = (pk: string) => Array.from({ length: CHANNEL_COUNT }, (_, i) => channel(i).publicKey()).includes(pk);
+
+/** Simulation ignores sequence numbers, so reads never need a network round-trip for the source. */
+const simSource = () => new Account(sponsor().publicKey(), "0");
+
+class BadSeq extends Error {}
+
 async function sendClassic(tx: Transaction) {
   const sent = await server.sendTransaction(tx);
-  if (sent.status === "ERROR") throw new Error(`Network rejected the transaction: ${sent.errorResult?.result().switch().name}`);
+  if (sent.status === "ERROR") {
+    const code = sent.errorResult?.result().switch().name ?? "unknown";
+    if (code === "txBadSeq") throw new BadSeq(code);
+    throw new Error(`Network rejected the transaction: ${code}`);
+  }
   const done = await server.pollTransaction(sent.hash, { attempts: 30 });
   if (done.status !== "SUCCESS") throw new Error(`Transaction ${sent.hash} ended as ${done.status}`);
   return sent.hash;
@@ -74,10 +94,11 @@ export async function accountExists(pk: string) {
  */
 export async function buildOnboardTx(userPk: string, euros: number) {
   const s = sponsor();
-  const account = await server.getAccount(s.publicKey());
+  const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
+  const account = await server.getAccount(ch.publicKey());
   const b = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
-    .addOperation(Operation.beginSponsoringFutureReserves({ sponsoredId: userPk }))
-    .addOperation(Operation.createAccount({ destination: userPk, startingBalance: "0" }))
+    .addOperation(Operation.beginSponsoringFutureReserves({ sponsoredId: userPk, source: s.publicKey() }))
+    .addOperation(Operation.createAccount({ destination: userPk, startingBalance: "0", source: s.publicKey() }))
     .addOperation(Operation.changeTrust({ asset: tEUR(), source: userPk }))
     .addOperation(Operation.endSponsoringFutureReserves({ source: userPk }));
   if (euros > 0) b.addOperation(Operation.payment({ destination: userPk, asset: tEUR(), amount: euros.toFixed(2), source: issuer().publicKey() }));
@@ -87,26 +108,40 @@ export async function buildOnboardTx(userPk: string, euros: number) {
 export async function submitOnboardTx(signedXdr: string, userPk: string) {
   const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
   // only accept the exact shape we built: our sponsor as source, user ops for this user only
-  if (tx.source !== sponsor().publicKey()) throw new UserError("Unexpected transaction source");
+  if (!isChannel(tx.source)) throw new UserError("Unexpected transaction source");
+  if (tx.operations[0].source !== sponsor().publicKey()) throw new UserError("Unexpected sponsor");
   const types = tx.operations.map((o) => o.type).join(",");
   if (!/^beginSponsoringFutureReserves,createAccount,changeTrust,endSponsoringFutureReserves(,payment)?$/.test(types))
     throw new UserError("Unexpected transaction shape");
   if ((tx.operations[1] as Operation.CreateAccount).destination !== userPk) throw new UserError("Wrong account");
-  tx.sign(sponsor());
+  const ch = Array.from({ length: CHANNEL_COUNT }, (_, i) => channel(i)).find((k) => k.publicKey() === tx.source)!;
+  tx.sign(ch, sponsor());
   if (tx.operations.length === 5) tx.sign(issuer());
-  return sendClassic(tx);
+  try {
+    return await sendClassic(tx);
+  } catch (e) {
+    if (e instanceof BadSeq) throw new UserError("Busy moment, please try again.", 409);
+    throw e;
+  }
 }
 
 /** Top up an existing account with test euros (used for deals above the starter amount). */
 export async function fund(userPk: string, euros: number) {
   const i = issuer();
-  const account = await server.getAccount(sponsor().publicKey());
-  const tx = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
-    .addOperation(Operation.payment({ destination: userPk, asset: tEUR(), amount: euros.toFixed(2), source: i.publicKey() }))
-    .setTimeout(120)
-    .build();
-  tx.sign(sponsor(), i);
-  return sendClassic(tx);
+  for (let attempt = 0; ; attempt++) {
+    const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
+    const account = await server.getAccount(ch.publicKey());
+    const tx = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
+      .addOperation(Operation.payment({ destination: userPk, asset: tEUR(), amount: euros.toFixed(2), source: i.publicKey() }))
+      .setTimeout(120)
+      .build();
+    tx.sign(ch, i);
+    try {
+      return await sendClassic(tx);
+    } catch (e) {
+      if (!(e instanceof BadSeq) || attempt >= 3) throw e;
+    }
+  }
 }
 
 /* ---------------- contract calls ---------------- */
@@ -122,7 +157,9 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
   };
   switch (fn) {
     case "lock":
-      return [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry)];
+      const memo = (a.memo ?? "").trim();
+      if (Buffer.byteLength(memo) > 64) throw new UserError("Keep the item name under 64 characters");
+      return [addr(a.buyer), addr(a.token), nativeToScVal(BigInt(a.amount), { type: "i128" }), u64(a.dealId), u64(a.expiry), nativeToScVal(memo, { type: "string" })];
     case "accept":
       if (a.hash?.length !== 64) throw new UserError("Bad hash");
       return [u64(a.dealId), addr(a.seller), hex(a.hash)];
@@ -135,9 +172,8 @@ export function dealArgs(fn: DealFn, a: Record<string, string>): xdr.ScVal[] {
 
 /** Simulate a deal call so the client gets the exact auth entries it must sign. */
 export async function prepareCall(fn: DealFn, args: xdr.ScVal[]) {
-  const account = await server.getAccount(sponsor().publicKey());
   const contract = new Contract(DEAL_CONTRACT_ID);
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
+  const tx = new TransactionBuilder(simSource(), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(contract.call(fn, ...args))
     .setTimeout(60)
     .build();
@@ -195,6 +231,7 @@ const CONTRACT_ERRORS: Record<number, string> = {
   8: "This deal has expired.",
   9: "This deal belongs to another seller.",
   10: "You can't sell to yourself.",
+  11: "Keep the item name under 64 characters."
 };
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
@@ -211,11 +248,11 @@ export type DealView = {
   expiry: number;
   status: "Locked" | "Accepted" | "Released" | "Refunded";
   hash: string | null;
+  memo: string;
 };
 
 export async function readDeal(dealId: string): Promise<DealView | null> {
-  const account = await server.getAccount(sponsor().publicKey());
-  const tx = new TransactionBuilder(account, { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
+  const tx = new TransactionBuilder(simSource(), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE })
     .addOperation(new Contract(DEAL_CONTRACT_ID).call("get", nativeToScVal(BigInt(dealId), { type: "u64" })))
     .setTimeout(30)
     .build();
@@ -233,6 +270,7 @@ export async function readDeal(dealId: string): Promise<DealView | null> {
     expiry: Number(d.expiry),
     status: Array.isArray(d.status) ? d.status[0] : d.status,
     hash: d.hash ? Buffer.from(d.hash).toString("hex") : null,
+    memo: String(d.memo ?? ""),
   };
 }
 

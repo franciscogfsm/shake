@@ -46,7 +46,7 @@ const buyer = Keypair.random(), seller = Keypair.random();
 lap(`onboard buyer  ${await onboard(buyer, 25)}`);
 lap(`onboard seller ${await onboard(seller, 0)}`);
 const d1 = id(), secret = randomBytes(32).toString("hex"), hash = createHash("sha256").update(Buffer.from(secret, "hex")).digest("hex");
-lap(`lock    ${await call(buyer, "lock", { buyer: buyer.publicKey(), token: TOKEN, amount: "250000000", dealId: d1, expiry: expiry() })}`);
+lap(`lock    ${await call(buyer, "lock", { buyer: buyer.publicKey(), token: TOKEN, amount: "250000000", dealId: d1, expiry: expiry(), memo: "e2e two-phone" })}`);
 lap(`accept  ${await call(seller, "accept", { dealId: d1, seller: seller.publicKey(), hash })}`);
 try { await call(buyer, "release", { dealId: d1, secret: "00".repeat(32) }); throw new Error("wrong secret was accepted!"); }
 catch (e) { if (String(e.message).includes("accepted!")) throw e; lap(`wrong secret rejected: ${e.message}`); }
@@ -58,7 +58,7 @@ if (r1.deal.status !== "Released") throw new Error("two-phone deal not released"
 // 2. pitch
 const judge = Keypair.random(), d2 = id();
 lap(`onboard judge  ${await onboard(judge, 5)}`);
-lap(`lock    ${await call(judge, "lock", { buyer: judge.publicKey(), token: TOKEN, amount: "50000000", dealId: d2, expiry: expiry() })}`);
+lap(`lock    ${await call(judge, "lock", { buyer: judge.publicKey(), token: TOKEN, amount: "50000000", dealId: d2, expiry: expiry(), memo: "e2e pitch" })}`);
 lap(`team accepts ${(await post("/api/pitch", { action: "accept", dealId: d2 })).hash}`);
 const { secret: s2 } = await post("/api/pitch", { action: "secret", dealId: d2 });
 lap(`shake   ${await call(judge, "release", { dealId: d2, secret: s2 })}`);

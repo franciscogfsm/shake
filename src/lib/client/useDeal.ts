@@ -9,6 +9,7 @@ export type Deal = {
   expiry: number;
   status: "Locked" | "Accepted" | "Released" | "Refunded";
   hash: string | null;
+  memo: string;
 };
 export type DealEvent = { type: "locked" | "accepted" | "released" | "refunded"; txHash: string; at: string; ledger: number };
 

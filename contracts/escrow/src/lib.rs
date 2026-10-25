@@ -8,12 +8,13 @@
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, panic_with_error, token,
-    Address, Bytes, BytesN, Env,
+    Address, Bytes, BytesN, Env, String,
 };
 
 const DAY_IN_LEDGERS: u32 = 17_280;
 const BUMP_THRESHOLD: u32 = 7 * DAY_IN_LEDGERS;
 const BUMP_TO: u32 = 30 * DAY_IN_LEDGERS;
+const MAX_MEMO: u32 = 64;
 
 #[contracttype]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -34,6 +35,8 @@ pub struct Deal {
     pub hash: Option<BytesN<32>>,
     pub expiry: u64,
     pub status: Status,
+    /// What is being bought, shown on the seller's phone and the public receipt.
+    pub memo: String,
 }
 
 #[contracttype]
@@ -56,6 +59,7 @@ pub enum Error {
     Expired = 8,
     NotAllowed = 9,
     SellerIsBuyer = 10,
+    MemoTooLong = 11,
 }
 
 #[contractevent]
@@ -117,9 +121,12 @@ fn is_open(deal: &Deal) -> bool {
 
 #[contractimpl]
 impl ShakeDeal {
-    /// Buyer locks `amount` of `token` until `expiry` (unix seconds).
-    pub fn lock(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64) {
+    /// Buyer locks `amount` of `token` until `expiry` (unix seconds) for the item in `memo`.
+    pub fn lock(env: Env, buyer: Address, token: Address, amount: i128, deal_id: u64, expiry: u64, memo: String) {
         buyer.require_auth();
+        if memo.len() > MAX_MEMO {
+            panic_with_error!(&env, Error::MemoTooLong);
+        }
         if amount <= 0 {
             panic_with_error!(&env, Error::InvalidAmount);
         }
@@ -130,7 +137,7 @@ impl ShakeDeal {
             panic_with_error!(&env, Error::DealExists);
         }
         token::Client::new(&env, &token).transfer(&buyer, &env.current_contract_address(), &amount);
-        let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked };
+        let deal = Deal { buyer: buyer.clone(), seller: None, token: token.clone(), amount, hash: None, expiry, status: Status::Locked, memo };
         save(&env, deal_id, &deal);
         Locked { deal_id, buyer, token, amount, expiry }.publish(&env);
     }

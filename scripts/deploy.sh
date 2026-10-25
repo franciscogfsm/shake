@@ -10,6 +10,15 @@ cd "$(dirname "$0")/.."
 STELLAR="${STELLAR:-stellar}"
 command -v "$STELLAR" >/dev/null 2>&1 || STELLAR="/c/Program Files (x86)/Stellar CLI/stellar.exe"
 NET=(--network testnet)
+# CONTRACT_ONLY=1 redeploys just the deal contract, keeping tEUR and the accounts in .env.local
+if [ "${CONTRACT_ONLY:-}" = "1" ]; then
+  SPONSOR_SECRET=$(grep '^SPONSOR_SECRET=' .env.local | cut -d= -f2)
+  ( cd contracts/escrow && "$STELLAR" contract build >/dev/null )
+  DEAL_ID=$("$STELLAR" contract deploy --wasm contracts/escrow/target/wasm32v1-none/release/shake_deal.wasm --source "$SPONSOR_SECRET" "${NET[@]}")
+  sed -i "s/^NEXT_PUBLIC_DEAL_CONTRACT_ID=.*/NEXT_PUBLIC_DEAL_CONTRACT_ID=$DEAL_ID/" .env.local
+  echo "deal contract $DEAL_ID"
+  exit 0
+fi
 SUFFIX="${SUFFIX:-$(date +%s)}"   # fresh identities per deploy, so a re-run never collides
 ISSUER="shake-issuer-$SUFFIX"; SPONSOR="shake-sponsor-$SUFFIX"; TEAM="shake-team-$SUFFIX"
 

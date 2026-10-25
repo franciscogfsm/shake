@@ -30,7 +30,7 @@ function DealScreen() {
   const { deal, events, state, refresh } = useDeal(id);
   const [me, setMe] = useState<string | null>(null);
   useEffect(() => setMe(getKeypair().publicKey()), []);
-  const meta = useMemo(() => ({ ...dealMeta.get(id), ...(q.get("i") ? { item: q.get("i")! } : {}), ...(q.get("s") ? { seller: q.get("s")! } : {}) }), [id, q]);
+  const local = useMemo(() => ({ ...dealMeta.get(id), ...(q.get("s") ? { seller: q.get("s")! } : {}) }), [id, q]);
 
   if (state === "loading" || !me) return <Screen><Loading /></Screen>;
   if (state === "missing") return <Screen back="/try"><Empty title="We couldn't find this deal." body="Check the link with the person who sent it." /></Screen>;
@@ -38,6 +38,7 @@ function DealScreen() {
   if (!deal) return null;
 
   const role = deal.buyer === me ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
+  const meta = { ...local, item: deal.memo || local.item };
   const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1" };
   return (
     <Screen right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>

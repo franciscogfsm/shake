@@ -43,7 +43,7 @@ export default function NewDeal() {
       await ensureAccount(kp, euros);
       const dealId = newDealId();
       const expiry = String(Math.floor(Date.now() / 1000) + DAY);
-      await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(euros).toString(), dealId, expiry }, setStep);
+      await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(euros).toString(), dealId, expiry, memo: item.trim() }, setStep);
       dealMeta.set(dealId, { item: item.trim(), seller: seller.trim() });
       const q = new URLSearchParams({ i: item.trim(), ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${q}&new=1`);
@@ -78,7 +78,7 @@ export default function NewDeal() {
                 <input
                   id="item"
                   value={item}
-                  onChange={(e) => setItem(e.target.value.slice(0, 48))}
+                  onChange={(e) => setItem(e.target.value.slice(0, 40))}
                   placeholder="iPhone 13, 128GB"
                   autoComplete="off"
                   className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none placeholder:text-white/25 focus:border-safe"
