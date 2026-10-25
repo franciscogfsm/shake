@@ -6,6 +6,12 @@ export const TOKEN_CONTRACT_ID = process.env.NEXT_PUBLIC_TOKEN_EUR ?? process.en
 export const TOKEN_ISSUER = process.env.NEXT_PUBLIC_TOKEN_ISSUER!;
 export const TEAM_ADDRESS = process.env.NEXT_PUBLIC_TEAM_ADDRESS!;
 export const TOKEN_CODE = "tEUR";
+
+/** OpenZeppelin smart accounts (passkeys) live on testnet; verified 25 Oct 2026 (docs/research.md). */
+export const PASSKEY = {
+  accountWasmHash: "1b5f4534a76322da2ad7c745f6900857a6802b0ca79850c35a03561df997785a",
+  webauthnVerifier: "CC7EKIHQP3TN4CARQDND6CEOY2UXLWWC2X5GHTD5NLAT7BG5GPZIOM3F",
+};
 export const DECIMALS = 7;
 
 export const explorer = {

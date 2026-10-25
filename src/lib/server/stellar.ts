@@ -18,7 +18,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { ChannelsClient } from "@openzeppelin/relayer-plugin-channels";
 import { createHash, createHmac } from "node:crypto";
-import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, type CurrencyCode } from "@/lib/config";
+import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, PASSKEY, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, type CurrencyCode } from "@/lib/config";
 
 const need = (k: string) => {
   const v = process.env[k];
@@ -260,12 +260,25 @@ export async function signTeamEntries(auth: string[], latestLedger: number) {
  * accounts, which pay the real (sub-cent) fee. Users never hold XLM either way.
  */
 let channelsDownUntil = 0;
+
+/** Only spend sponsored fees on: our deal contract's four functions, or deploying a passkey smart account. */
+function allowed(hf: xdr.HostFunction) {
+  const kind = hf.switch().name;
+  if (kind === "hostFunctionTypeInvokeContract") {
+    const target = Address.fromScAddress(hf.invokeContract().contractAddress()).toString();
+    const name = hf.invokeContract().functionName().toString();
+    return target === DEAL_CONTRACT_ID && ["lock", "accept", "release", "refund"].includes(name);
+  }
+  if (kind === "hostFunctionTypeCreateContractV2") {
+    const exec = hf.createContractV2().executable();
+    return exec.switch().name === "contractExecutableWasm" && exec.wasmHash().toString("hex") === PASSKEY.accountWasmHash;
+  }
+  return false;
+}
+
 export async function submitCall(func: string, auth: string[]) {
-  // validate that func targets our contract before spending sponsored fees
   const hf = xdr.HostFunction.fromXDR(func, "base64");
-  const target = Address.fromScAddress(hf.invokeContract().contractAddress()).toString();
-  const name = hf.invokeContract().functionName().toString();
-  if (target !== DEAL_CONTRACT_ID || !["lock", "accept", "release", "refund"].includes(name)) throw new UserError("Not a SHAKE call");
+  if (!allowed(hf)) throw new UserError("Not a SHAKE call");
 
   if (process.env.CHANNELS_API_KEY && Date.now() > channelsDownUntil) {
     try {
@@ -320,6 +333,24 @@ const CONTRACT_ERRORS: Record<number, string> = {
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
   return m ? CONTRACT_ERRORS[Number(m[1])] ?? raw : raw;
+}
+
+/** Mint test money straight into a smart account (C… address); the issuer is the token's admin. */
+export async function mintTo(contractAddress: string, amount: number, currency: CurrencyCode) {
+  if (!/^C[A-Z2-7]{55}$/.test(contractAddress)) throw new UserError("Not a smart account");
+  if (!(amount > 0 && amount <= 2000)) throw new UserError("Bad amount");
+  const args = [nativeToScVal(Address.fromString(contractAddress), { type: "address" }), nativeToScVal(BigInt(Math.round(amount * 100)) * BigInt(100_000), { type: "i128" })];
+  const op = new Contract(CURRENCIES[currency].token).call("mint", ...args);
+  const sim = await server.simulateTransaction(new TransactionBuilder(simSource(), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE }).addOperation(op).setTimeout(60).build());
+  if (rpc.Api.isSimulationError(sim)) throw new UserError(sim.error);
+  const auth = await Promise.all(
+    (sim.result?.auth ?? []).map((e) => authorizeEntry(e, issuer(), sim.latestLedger + 100, NETWORK_PASSPHRASE)),
+  );
+  const func = xdr.HostFunction.hostFunctionTypeInvokeContract(
+    new xdr.InvokeContractArgs({ contractAddress: new Address(CURRENCIES[currency].token).toScAddress(), functionName: "mint", args }),
+  );
+  // minting is our own admin action, so it always goes through our pool (never the shared relayer budget)
+  return submitOwn(func, auth.map((a) => a.toXDR("base64")));
 }
 
 /* ---------------- reads ---------------- */
