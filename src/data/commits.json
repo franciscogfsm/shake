@@ -1,0 +1,65 @@
+{
+ "generatedAt": "2026-10-25T11:39:59.917Z",
+ "commits": [
+  {
+   "hash": "f145c21",
+   "at": "2026-10-25T10:09:01+00:00",
+   "author": "Francisco Gama Franco Soares Martins",
+   "subject": "Initial commit"
+  },
+  {
+   "hash": "5abc355",
+   "at": "2026-10-25T10:23:50+00:00",
+   "author": "franciscogfsm",
+   "subject": "Add project context and build prompt"
+  },
+  {
+   "hash": "bae43c0",
+   "at": "2026-10-25T10:38:47+00:00",
+   "author": "franciscogfsm",
+   "subject": "Align context with Genesis + Stellar Composed requirements"
+  },
+  {
+   "hash": "9ec249a",
+   "at": "2026-10-25T10:44:42+00:00",
+   "author": "franciscogfsm",
+   "subject": "Add CLAUDE.md with criteria, requirements and tooling"
+  },
+  {
+   "hash": "1814141",
+   "at": "2026-10-25T10:54:43+00:00",
+   "author": "franciscogfsm",
+   "subject": "Sharpen positioning (no 'escrow'), innovation and UI/UX bar"
+  },
+  {
+   "hash": "ad4b277",
+   "at": "2026-10-25T11:06:47+00:00",
+   "author": "Francisco Martins",
+   "subject": "Lock Graphite Glacier design and verified Stellar stack"
+  },
+  {
+   "hash": "8bfc5b0",
+   "at": "2026-10-25T11:13:16+00:00",
+   "author": "Francisco Martins",
+   "subject": "First commit"
+  },
+  {
+   "hash": "f417cb9",
+   "at": "2026-10-25T11:14:18+00:00",
+   "author": "Francisco Martins",
+   "subject": "Record testnet deployment and smoke-test txs in plan"
+  },
+  {
+   "hash": "8a4cc68",
+   "at": "2026-10-25T11:24:56+00:00",
+   "author": "Francisco Martins",
+   "subject": "Server: sponsored onboarding, Channels-sponsored contract calls, deal reads"
+  },
+  {
+   "hash": "7139958",
+   "at": "2026-10-25T11:38:54+00:00",
+   "author": "Francisco Martins",
+   "subject": "Deal flow UI: create, live deal (buyer/seller), scan + hold-to-shake, receipt, try"
+  }
+ ]
+}

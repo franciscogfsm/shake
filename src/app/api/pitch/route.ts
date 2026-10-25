@@ -21,6 +21,14 @@ export async function POST(req: Request) {
       const auth = await signTeamEntries(prepared.auth, prepared.latestLedger);
       return NextResponse.json(await submitCall(prepared.func, auth));
     }
+    if (action === "refund") {
+      // "Not yet": the team (seller) cancels, so the judge's money goes straight back
+      if (deal.seller !== TEAM) throw new UserError("Only SHAKE demo deals can be cancelled here", 403);
+      if (deal.status === "Refunded") return NextResponse.json({ ok: true });
+      const prepared = await prepareCall("refund", dealArgs("refund", { dealId }));
+      const auth = await signTeamEntries(prepared.auth, prepared.latestLedger);
+      return NextResponse.json(await submitCall(prepared.func, auth));
+    }
     if (action === "secret") {
       if (deal.seller !== TEAM) throw new UserError("Only SHAKE demo deals reveal their code", 403);
       return NextResponse.json({ secret: teamSecret(dealId) });

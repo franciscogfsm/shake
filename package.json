@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "commits": "node scripts/commits.mjs",
+    "e2e": "node scripts/e2e.mjs"
   },
   "dependencies": {
     "@openzeppelin/relayer-plugin-channels": "^0.21.0",

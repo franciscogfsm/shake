@@ -79,6 +79,7 @@ export async function callDeal(
 export const pitchApi = {
   accept: (dealId: string) => post<{ hash?: string }>("/api/pitch", { action: "accept", dealId }),
   secret: (dealId: string) => post<{ secret: string }>("/api/pitch", { action: "secret", dealId }),
+  refund: (dealId: string) => post<{ hash?: string }>("/api/pitch", { action: "refund", dealId }),
 };
 
 export async function sha256Hex(hex: string) {
