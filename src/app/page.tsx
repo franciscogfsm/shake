@@ -5,7 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { HoldToShake } from "@/components/HoldToShake";
-import { BEATS, HowItWorks, beatLine, useBeat } from "@/components/HowItWorks";
+import { HowItWorks, StoryCaption, useBeat } from "@/components/HowItWorks";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { LiveReceipt } from "@/components/LiveReceipt";
 import { Mark, springs } from "@/components/Mark";
@@ -25,7 +25,7 @@ export default function Home() {
   const currency = session.currency ?? (session.dealId ? "EUR" : country.currency);
   const money = formatMoney(5, currency, country.locale);
   const [refunding, setRefunding] = useState(false);
-  const [beat, pickBeat] = useBeat();
+  const [beat, pickBeat, nonce] = useBeat();
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
   const phaseRef = useRef(phase);
   useEffect(() => {
@@ -44,12 +44,8 @@ export default function Home() {
       right={
         <div className="flex items-center gap-2">
           {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
-          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" onPointerDown={() => haptic.tick()} className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
-            <span className="pulse-dot" />
-            Live on Stellar testnet
-          </a>
-          <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Scam check</Link>
-          <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow rounded-full px-3 py-2 hover:text-ink">With a friend</Link>
+          <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-3 hover:text-ink">Scam check</Link>
+          <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-3 hover:text-ink">With a friend</Link>
         </div>
       }
     >
@@ -58,7 +54,7 @@ export default function Home() {
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
-          {phase === "idle" && <Hero onStart={start} money={money} beat={beat} onBeat={pickBeat} />}
+          {phase === "idle" && <Hero onStart={start} money={money} beat={beat} nonce={nonce} onBeat={pickBeat} />}
           {phase === "working" && <Locking money={money} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && availability !== "available" && (
             <div className="flex flex-col items-center gap-5 text-center" aria-live="polite">
@@ -112,7 +108,7 @@ export default function Home() {
         </motion.div>
       </AnimatePresence>
       </div>
-      {phase === "idle" ? <StoryPanel beat={beat} money={money} /> : <LivePanel session={session} money={money} />}
+      {phase === "idle" ? <StoryPanel beat={beat} nonce={nonce} onBeat={pickBeat} money={money} /> : <LivePanel session={session} money={money} />}
       </div>
       <Composed />
       </div>
@@ -120,58 +116,26 @@ export default function Home() {
   );
 }
 
-function Hero({ onStart, money, beat, onBeat }: { onStart: () => void; money: string; beat: number; onBeat: (b: number) => void }) {
+/** Clean on purpose: the film explains it, one line names it, one button tries it, one line proves it's live. */
+function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; money: string; beat: number; nonce: number; onBeat: (b: number) => void }) {
   return (
-    <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-6 lg:py-0 lg:text-left">
-      <Item className="flex justify-center lg:hidden">
+    <Stagger className="flex flex-col justify-center gap-7 py-2 text-center lg:gap-8 lg:py-0 lg:text-left">
+      <Item className="flex flex-col items-center gap-4 lg:hidden">
         <HowItWorks beat={beat} money={money} />
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="w-full max-w-[320px]" />
       </Item>
       <Item>
-        <div className="eyebrow">For deals on OLX, Vinted, WhatsApp</div>
-        <h1 className="display mt-2 text-[36px] leading-[1.02] lg:text-[68px] lg:leading-[0.96]">Pay a stranger.<br /><span className="lg:glacier-text">Only when you meet.</span></h1>
-        <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">Lock it first. They see the real money, not a screenshot. It moves only when you meet, face to face.</p>
+        <h1 className="display text-[40px] leading-[1.0] lg:text-[76px] lg:leading-[0.94]">Pay a stranger.<br /><span className="glacier-text">Only when you meet.</span></h1>
+        <p className="mt-3 text-[15px] text-mute lg:mt-5 lg:text-lg">For deals on OLX, Vinted and WhatsApp.</p>
       </Item>
-      <Item className="flex flex-col gap-3 lg:max-w-[400px]">
+      <Item className="flex flex-col gap-4 lg:max-w-[400px]">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
-        <p className="text-sm text-mute">Live transactions · test assets · no sign-up</p>
+        <Protected live className="justify-center lg:justify-start" />
       </Item>
       <Item>
-        <Protected wall className="justify-center lg:justify-start" />
-      </Item>
-      <Item>
-        <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[14px] text-ink-2 hover:text-ink">
-          Meeting in person? Shake. Shipping it? <span className="text-safe">The shake travels in the box →</span>
+        <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[13px] text-mute hover:text-ink">
+          Also for shipping, deposits, jobs and orders <span className="text-safe">→</span>
         </Link>
-        <p className="mt-2 text-[14px] text-ink-2">
-          Also for{" "}
-          {([["deposit", "rent deposits"], ["service", "jobs"], ["order", "orders"], ["booking", "bookings and hires"]] as const).map(([k, label], i) => (
-            <span key={k}>
-              {i > 0 && (i === 3 ? " and " : ", ")}
-              <Link href={`/deal/new?k=${k}`} className="text-safe hover:underline">{label}</Link>
-            </span>
-          ))}
-          . Nobody can just keep it.
-        </p>
-      </Item>
-      <Item className="grid grid-cols-4 gap-1 lg:max-w-[600px] lg:gap-4">
-        {BEATS.map(({ t, d }, i) => (
-          <motion.button
-            type="button"
-            key={t}
-            aria-pressed={beat === i}
-            onClick={() => { haptic.tick(); onBeat(i); }}
-            className={`flex flex-col items-center gap-1.5 rounded-2xl p-1 transition-opacity lg:items-start ${beat === i ? "" : "opacity-55 hover:opacity-90"}`}
-            whileHover={{ y: -3 }}
-            transition={springs.snappy}
-          >
-            <span className={`step-dot !size-8 font-mono text-xs transition-colors ${beat === i ? "!bg-safe !text-on-safe" : "text-safe"}`}>{i + 1}</span>
-            <div className="font-display text-[15px] font-medium lg:text-lg">{t}</div>
-            <p className="hidden text-sm leading-snug text-ink-2 lg:block">{d}</p>
-          </motion.button>
-        ))}
-        {/* iPhone: one line for the active beat instead of four squeezed ones */}
-        <p className="col-span-4 h-5 text-[13px] text-ink-2 lg:hidden" aria-hidden>{BEATS[beat].d}</p>
-        <p className="sr-only" aria-live="polite">{beatLine(beat, money)}</p>
       </Item>
     </Stagger>
   );
@@ -243,22 +207,14 @@ function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePit
   );
 }
 
-/** Desktop, before they start: the deal they are about to make, told by two phones. */
-function StoryPanel({ beat, money }: { beat: number; money: string }) {
+/** Desktop, before they start: the deal they are about to make, as a short film. */
+function StoryPanel({ beat, nonce, onBeat, money }: { beat: number; nonce: number; onBeat: (b: number) => void; money: string }) {
   return (
     <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
       <div className="halo" aria-hidden />
-      <aside className="glass px-6 py-6">
-        <div className="eyebrow">How it works · 5 seconds</div>
-        <HowItWorks beat={beat} money={money} big className="mt-5" />
-        <div className="relative mt-5 h-[66px] overflow-hidden">
-          <AnimatePresence mode="wait" initial={false}>
-            <motion.p key={beat} className="text-[15px] leading-snug text-ink-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy}>
-              <span className="font-medium text-ink">{BEATS[beat].t}. </span>
-              {beatLine(beat, money)}
-            </motion.p>
-          </AnimatePresence>
-        </div>
+      <aside className="glass px-6 pb-5 pt-7">
+        <HowItWorks beat={beat} money={money} big />
+        <StoryCaption beat={beat} nonce={nonce} money={money} onBeat={onBeat} className="mt-6" />
         <p className="mt-3 border-t border-white/10 pt-3 text-[13px] text-mute">Tap “Try it now” and you do exactly this, for real, on Stellar.</p>
       </aside>
     </motion.div>
@@ -348,7 +304,7 @@ function Composed() {
           </motion.a>
         ))}
       </nav>
-      <TestnetNote className="hidden shrink-0 xl:block" />
+      <TestnetNote className="shrink-0 lg:hidden xl:block" />
     </footer>
   );
 }

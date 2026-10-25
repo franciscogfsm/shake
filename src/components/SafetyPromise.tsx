@@ -54,14 +54,16 @@ export function SafetyPromise({ kind, payer, expiry, locale, className = "" }: {
         <span className="flex-1">Who can move this money?</span>
         <span className="text-mute transition-transform group-hover:translate-x-0.5" aria-hidden>›</span>
       </button>
-      <GlassSheet open={open} onClose={() => setOpen(false)} label="Who can move this money">
-        <div className="flex flex-col gap-5 pb-3">
-          <div>
-            <Mark size={40} state="rest" />
-            <h2 className="display mt-4 text-[30px] leading-[1.05]">Nobody can just keep it.</h2>
-            <p className="mt-2 text-ink-2">These rules are written into public code on Stellar. Nobody can bend them, not {payer ? "the other side" : "the payer"}, not you, not SHAKE.</p>
+      <GlassSheet open={open} onClose={() => setOpen(false)} label="Who can move this money" wide>
+        <div className="flex flex-col gap-5 pb-2">
+          <div className="lg:flex lg:items-end lg:gap-8">
+            <Mark size={40} state="rest" className="shrink-0" />
+            <div>
+              <h2 className="display mt-4 text-[30px] leading-[1.05] lg:mt-0 lg:text-[36px]">Nobody can just keep it.</h2>
+              <p className="mt-2 max-w-[48ch] text-ink-2">These rules are written into public code on Stellar. Nobody can bend them, not {payer ? "the other side" : "the payer"}, not you, not SHAKE.</p>
+            </div>
           </div>
-          <ul className="flex flex-col gap-4 border-t border-line pt-4">
+          <ul className="grid gap-4 border-t border-line pt-4 lg:grid-cols-2">
             {rules(kind, payer, ends).map(([who, what]) => (
               <li key={who}>
                 <div className="font-display text-[16px] font-medium">{cap(who)}</div>
@@ -73,7 +75,7 @@ export function SafetyPromise({ kind, payer, expiry, locale, className = "" }: {
               <p className="mt-0.5 text-[14px] leading-snug text-ink-2">Can&apos;t touch it. The code has no owner key and can&apos;t be changed after the fact.</p>
             </li>
           </ul>
-          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="text-center text-sm text-safe hover:underline">
+          <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" className="text-center text-sm text-safe hover:underline lg:text-left">
             Check the rules yourself on Stellar ↗
           </a>
         </div>

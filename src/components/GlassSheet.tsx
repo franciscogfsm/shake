@@ -1,9 +1,9 @@
 "use client";
-import { AnimatePresence, motion, useReducedMotion } from "motion/react";
+import { AnimatePresence, motion, useDragControls, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { springs } from "./Mark";
 
-/** Phone: bottom sheet. Desktop: centred dialog. Drag-to-dismiss stays on the phone. */
+/** Phone: bottom sheet. Desktop: centred dialog. The close control stays put while the body scrolls. */
 function usePhoneSheet() {
   const [phone, setPhone] = useState(true);
   useEffect(() => {
@@ -16,9 +16,20 @@ function usePhoneSheet() {
   return phone;
 }
 
-export function GlassSheet({ open, onClose, children, label, fill = false }: { open: boolean; onClose: () => void; children: React.ReactNode; label: string; fill?: boolean }) {
+function CloseButton({ onClose }: { onClose: () => void }) {
+  return (
+    <button type="button" onClick={onClose} aria-label="Close" className="grid size-10 shrink-0 place-items-center rounded-full text-ink-2 hover:bg-white/8 hover:text-ink">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+        <path d="M6 6l12 12M18 6L6 18" />
+      </svg>
+    </button>
+  );
+}
+
+export function GlassSheet({ open, onClose, children, label, fill = false, wide = false }: { open: boolean; onClose: () => void; children: React.ReactNode; label: string; fill?: boolean; wide?: boolean }) {
   const phone = usePhoneSheet();
   const reduce = useReducedMotion();
+  const drag = useDragControls();
   useEffect(() => {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -38,34 +49,34 @@ export function GlassSheet({ open, onClose, children, label, fill = false }: { o
             onClick={onClose}
           />
           <motion.div
-            className={`glass glass-strong relative z-10 flex w-full flex-col ${
+            className={`glass glass-strong relative z-10 flex w-full flex-col overflow-hidden ${
               phone
-                ? `max-w-[480px] rounded-t-[28px] rounded-b-none px-6 pt-3 pb-safe ${fill ? "max-h-[92dvh] overflow-hidden" : ""}`
-                : fill
-                  ? "h-[min(720px,calc(100dvh-4rem))] max-w-[720px] overflow-hidden rounded-[28px] p-8"
-                  : "max-h-[min(760px,calc(100dvh-4rem))] max-w-[480px] overflow-y-auto rounded-[28px] p-8"
+                ? "max-h-[92dvh] max-w-[480px] rounded-t-[28px] rounded-b-none"
+                : `max-h-[min(760px,calc(100dvh-4rem))] rounded-[28px] ${fill ? "h-[min(720px,calc(100dvh-4rem))] max-w-[720px]" : wide ? "max-w-[640px]" : "max-w-[480px]"}`
             }`}
             initial={phone ? { y: "100%" } : { opacity: 0, y: 16, scale: 0.98 }}
             animate={phone ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
             exit={phone ? { y: "100%" } : { opacity: 0, y: 8, scale: 0.98 }}
             transition={reduce ? { duration: 0.01 } : springs.smooth}
             drag={phone ? "y" : false}
+            dragControls={drag}
+            dragListener={false}
             dragConstraints={{ top: 0, bottom: 0 }}
             dragElastic={{ top: 0, bottom: 0.6 }}
             onDragEnd={(_, i) => phone && (i.offset.y > 120 || i.velocity.y > 600) && onClose()}
           >
-            {phone ? (
-              <div className="mx-auto mb-5 h-1.5 w-10 shrink-0 rounded-full bg-white/25" />
-            ) : (
-              <div className="mb-2 flex shrink-0 justify-end">
-                <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 -mt-2 grid size-10 place-items-center rounded-full text-ink-2 hover:bg-white/8 hover:text-ink">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-                    <path d="M6 6l12 12M18 6L6 18" />
-                  </svg>
-                </button>
+            <div
+              className="relative flex h-12 shrink-0 items-center justify-center"
+              onPointerDown={(e) => phone && drag.start(e)}
+            >
+              {phone && <div className="h-1.5 w-10 rounded-full bg-white/25" />}
+              <div className="absolute right-3 top-1">
+                <CloseButton onClose={onClose} />
               </div>
-            )}
-            {fill ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
+            </div>
+            <div className={`min-h-0 px-6 lg:px-8 ${phone ? "pb-safe" : "pb-8"} ${fill ? "flex flex-1 flex-col overflow-hidden" : "max-h-[min(680px,calc(100dvh-8rem))] overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin]"}`}>
+              {fill ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
+            </div>
           </motion.div>
         </div>
       )}

@@ -2,7 +2,7 @@
 
 The living tracker. **Update the checkboxes and the "Now" line as work lands**, so the next session knows exactly where we are.
 
-**Now:** everything below is live: meet, ship, hold (deposits), jobs, made-to-order, payment request links for businesses, the 4-beat how-it-works hero (Lock / Verify / Meet / Shake), the live proof wall of real released/refunded deals on the home page, and the "Who can move this money?" safety promise on every deal. Next: visual QA of the new hero and sheets at 393×852 / 1440×900, re-run `scripts/e2e.mjs` against production when testnet is calm, README update.
+**Now:** everything below is live: meet, ship, hold (deposits), jobs, made-to-order, payment request links for businesses, a clean hero: a 4-beat film (Lock / Verify / Meet / Shake) with story-style progress bars, and a live line that alternates the counter with real released/refunded deals (each links its tx), and the "Who can move this money?" safety promise on every deal. Next: visual QA of the new hero and sheets at 393×852 / 1440×900, re-run `scripts/e2e.mjs` against production when testnet is calm, README update.
 
 **Testnet deployment (25 Oct 2026, `scripts/deploy.sh`):**
 - Deal contract: `CC7QNWLSP6W6N5F6A6FB53FLGYTO74HGERKOSBOIPDS6KA5GLYDA4BMX`
