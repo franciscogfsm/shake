@@ -88,7 +88,7 @@ export function CashOut({ amount, currency, locale }: { amount: number; currency
   return (
     <>
       <Button full onClick={start}>
-        <BankIcon /> Send {money} to my bank
+        <BankIcon /> Try bank withdrawal · {money}
       </Button>
       <GlassSheet open={open} onClose={() => phase !== "sending" && setOpen(false)} label="Send to your bank">
         <div className="flex flex-col gap-5 pb-3">
@@ -134,7 +134,7 @@ export function CashOut({ amount, currency, locale }: { amount: number; currency
               </motion.div>
             )}
           </AnimatePresence>
-          <p className="text-center font-mono text-[11px] text-mute">stellar.toml → SEP-10 → SEP-24 · bank transfer simulated on testnet</p>
+          <p className="text-center text-xs text-mute">Demo bank transfer using a test IBAN. Real payouts and local bank details depend on the anchor&apos;s supported countries. No currency conversion.</p>
         </div>
       </GlassSheet>
     </>

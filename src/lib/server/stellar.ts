@@ -19,6 +19,7 @@ import {
 import { ChannelsClient } from "@openzeppelin/relayer-plugin-channels";
 import { createHash, createHmac } from "node:crypto";
 import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, PASSKEY, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, type CurrencyCode } from "@/lib/config";
+import { isCentAmount } from "@/lib/amount";
 
 const need = (k: string) => {
   const v = process.env[k];
@@ -32,7 +33,7 @@ export const issuer = () => Keypair.fromSecret(need("ISSUER_SECRET"));
 export const team = () => Keypair.fromSecret(need("TEAM_SECRET"));
 export const assetOf = (c: CurrencyCode) => new Asset(CURRENCIES[c].asset, TOKEN_ISSUER);
 const ALL_ASSETS = () => (Object.keys(CURRENCIES) as CurrencyCode[]).map(assetOf);
-export const isCurrency = (c: unknown): c is CurrencyCode => typeof c === "string" && c in CURRENCIES;
+export const isCurrency = (c: unknown): c is CurrencyCode => typeof c === "string" && Object.hasOwn(CURRENCIES, c) && !!CURRENCIES[c as CurrencyCode].token;
 const channels = () =>
   new ChannelsClient({ baseUrl: "https://channels.openzeppelin.com/testnet", apiKey: need("CHANNELS_API_KEY") });
 
@@ -172,7 +173,7 @@ export async function fund(userPk: string, amount: number, currency: CurrencyCod
 export async function buildAnchorPayment(userPk: string, assetCode: string, amount: string, memoB64: string) {
   const currency = (Object.keys(CURRENCIES) as CurrencyCode[]).find((c) => CURRENCIES[c].asset === assetCode);
   if (!currency) throw new UserError("Unsupported currency");
-  if (!(Number(amount) > 0 && Number(amount) <= 2000)) throw new UserError("Bad amount");
+  if (!(Number(amount) > 0 && Number(amount) <= 2000) || !isCentAmount(Number(amount))) throw new UserError("Enter an amount with up to two decimal places, between 0 and 2000.");
   const memo = Buffer.from(memoB64, "base64");
   if (memo.length !== 32) throw new UserError("Bad memo");
   const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
@@ -357,7 +358,7 @@ export function explainContractError(raw: string) {
 /** Mint test money straight into a smart account (C… address); the issuer is the token's admin. */
 export async function mintTo(contractAddress: string, amount: number, currency: CurrencyCode) {
   if (!/^C[A-Z2-7]{55}$/.test(contractAddress)) throw new UserError("Not a smart account");
-  if (!(amount > 0 && amount <= 2000)) throw new UserError("Bad amount");
+  if (!(amount > 0 && amount <= 2000) || !isCentAmount(amount)) throw new UserError("Enter an amount with up to two decimal places, between 0 and 2000.");
   const args = [nativeToScVal(Address.fromString(contractAddress), { type: "address" }), nativeToScVal(BigInt(Math.round(amount * 100)) * BigInt(100_000), { type: "i128" })];
   const op = new Contract(CURRENCIES[currency].token).call("mint", ...args);
   const sim = await server.simulateTransaction(new TransactionBuilder(simSource(), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE }).addOperation(op).setTimeout(60).build());

@@ -3,6 +3,7 @@ import { Keypair, WebAuth } from "@stellar/stellar-sdk";
 import { createHash, createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { CURRENCIES, NETWORK_PASSPHRASE, TOKEN_ISSUER } from "@/lib/config";
 import { UserError } from "./stellar";
+import { isCentAmount } from "@/lib/amount";
 
 /**
  * SHAKE is the issuer of its test stablecoins, so it is also their anchor (that's the Stellar model:
@@ -76,6 +77,7 @@ export const ASSET_CODES = Object.values(CURRENCIES).map((c) => c.asset);
 export function newWithdrawal(acct: string, asset: string, amount: string): Withdrawal {
   if (!ASSET_CODES.includes(asset)) throw new UserError("This anchor only redeems SHAKE test currencies");
   if (!(Number(amount) > 0 && Number(amount) <= 2000)) throw new UserError("Amount must be between 0 and 2000");
+  if (!isCentAmount(Number(amount))) throw new UserError("Enter an amount with up to two decimal places.");
   return { id: randomBytes(9).toString("base64url"), account: acct, asset, amount: Number(amount).toFixed(2), created: new Date().toISOString() };
 }
 

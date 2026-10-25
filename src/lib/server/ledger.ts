@@ -2,13 +2,14 @@ import "server-only";
 import { nativeToScVal, scValToNative } from "@stellar/stellar-sdk";
 import { DEAL_CONTRACT_ID } from "@/lib/config";
 import { server } from "./stellar";
+import { currencyTotals } from "@/lib/totals";
 
 /**
  * A tiny in-memory index of the contract's public events (no database):
  * powers the live "€ protected" counter and on-chain reputation.
  * RPC returns a bounded ledger range per call, so we walk the window in chunks and cache briefly.
  */
-export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; dealId: string; who: string; amount: bigint; at: string; ledger: number; txHash: string };
+export type IndexedEvent = { type: "locked" | "accepted" | "released" | "refunded" | "shipped" | "delivered" | "disputed" | "resolved"; dealId: string; who: string; amount: bigint; token?: string; at: string; ledger: number; txHash: string };
 
 const LOOKBACK_LEDGERS = 3 * 17_280; // ~3 days
 const CHUNK = 9_000;
@@ -35,6 +36,7 @@ async function scan(): Promise<IndexedEvent[]> {
           dealId: String(scValToNative(e.topic[1])),
           who: String(scValToNative(e.topic[2])),
           amount: BigInt(data.amount ?? 0),
+          token: data.token ? String(data.token) : undefined,
           at: e.ledgerClosedAt,
           ledger: e.ledger,
           txHash: e.txHash,
@@ -63,22 +65,17 @@ export async function stats() {
   const ev = await allEvents();
   const closed = new Map<string, "released" | "refunded" | "resolved">();
   for (const e of ev) if (e.type === "released" || e.type === "refunded" || e.type === "resolved") closed.set(e.dealId, e.type);
-  let lockedTotal = 0n;
-  let protectedNow = 0n;
   let deals = 0;
   for (const e of ev) {
     if (e.type !== "locked") continue;
     deals++;
-    lockedTotal += e.amount;
-    if (!closed.has(e.dealId)) protectedNow += e.amount;
   }
   const released = [...closed.values()].filter((v) => v === "released").length;
   return {
     deals,
     released,
     refunded: closed.size - released,
-    lockedTotal: lockedTotal.toString(),
-    protectedNow: protectedNow.toString(),
+    ...currencyTotals(ev),
     recent: ev
       .slice(-12)
       .reverse()

@@ -12,10 +12,11 @@ const source = ts.transpileModule(
 
 // Exercise the real hook with browser storage, network responses and wallet
 // submission controlled independently. No funded accounts or network needed.
-function session({ statuses = ["Accepted"], submit = async () => ({ hash: "release-tx" }) } = {}) {
+function session({ statuses = ["Accepted"], submit = async () => ({ hash: "release-tx" }), saved = { status: "ready", dealId: "123", joined: { at: "before" } }, preferred = "EUR" } = {}) {
   const slots = [], effects = [], calls = [];
+  const funding = [], locking = [];
   let cursor = 0, mounted = false, reads = 0;
-  const storage = new Map([["shake.pitch.v1", JSON.stringify({ status: "ready", dealId: "123", joined: { at: "before" } })]]);
+  const storage = new Map(saved ? [["shake.pitch.v1", JSON.stringify(saved)]] : []);
   class ApiError extends Error {}
   const react = {
     useState(initial) {
@@ -43,11 +44,19 @@ function session({ statuses = ["Accepted"], submit = async () => ({ hash: "relea
     },
     require(name) {
       if (name === "react") return react;
-      if (name === "@/lib/config") return {};
+      if (name === "@/lib/config") return {
+        CURRENCIES: Object.fromEntries(["EUR", "USD", "GBP", "BRL"].map((c) => [c, { token: `${c}-token` }])),
+        newDealId: () => "123", toUnits: (n) => BigInt(n) * 10000000n,
+      };
       if (name === "./wallet") return {
         ApiError, getKeypair: () => ({ publicKey: () => "buyer" }),
-        callDeal: async (...args) => { calls.push("release"); return submit(...args); },
+        ensureAccount: async (_kp, amount, currency) => { funding.push({ amount, currency }); return "fund-tx"; },
+        callDeal: async (...args) => {
+          if (args[1] === "lock") { locking.push(args[2]); return { hash: "lock-tx" }; }
+          calls.push("release"); return submit(...args);
+        },
         pitchApi: {
+          accept: async () => ({ hash: "accept-tx" }),
           secret: async () => ({ secret: "demo-secret" }),
           refund: async () => { calls.push("refund"); return { hash: "refund-tx" }; },
         },
@@ -56,11 +65,11 @@ function session({ statuses = ["Accepted"], submit = async () => ({ hash: "relea
     },
   };
   vm.runInNewContext(source, context);
-  const render = () => { cursor = 0; return context.exports.usePitchSession(); };
+  const render = () => { cursor = 0; return context.exports.usePitchSession(preferred); };
   render();
   mounted = true;
   for (const effect of effects) effect();
-  return { render, calls };
+  return { render, calls, funding, locking, setCurrency: (value) => { preferred = value; render(); } };
 }
 
 const flush = () => new Promise((done) => setImmediate(done));
@@ -116,4 +125,26 @@ test("a rejected open deal shows its error and remains retryable", async () => {
   assert.equal(h.render().session.status, "ready");
   assert.equal(h.render().session.error, "Network unavailable");
   assert.equal(h.render().settling, false);
+});
+
+for (const currency of ["EUR", "USD", "GBP", "BRL"]) {
+  test(`the demo funds and locks the same ${currency} token`, async () => {
+    const h = session({ saved: null, preferred: currency });
+    await h.render().start();
+    assert.equal(h.funding[0].currency, currency);
+    assert.equal(h.locking[0].token, `${currency}-token`);
+    assert.equal(h.locking[0].amount, "50000000");
+    assert.equal(h.render().session.currency, currency);
+    assert.equal(h.render().session.status, "ready");
+    h.setCurrency(currency === "USD" ? "EUR" : "USD");
+    assert.equal(h.render().session.currency, currency);
+  });
+}
+
+test("resuming an interrupted demo keeps its saved payment currency", async () => {
+  const h = session({ saved: { status: "working", currency: "GBP" }, preferred: "BRL" });
+  await flush();
+  assert.equal(h.funding[0].currency, "GBP");
+  assert.equal(h.locking[0].token, "GBP-token");
+  assert.equal(h.render().session.currency, "GBP");
 });

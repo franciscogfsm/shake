@@ -29,8 +29,8 @@ export default function Receipt() {
   const [country] = useCountry();
   const item = typeof window !== "undefined" ? dealMeta.get(id).item : undefined;
 
-  if (state === "missing") return <Screen back="/"><p className="mt-24 text-center text-ink-2">No receipt for this code.</p></Screen>;
-  if (!deal) return <Screen back="/"><div className="mt-24 grid place-items-center"><Mark size={64} state="open" /></div></Screen>;
+  if (state === "missing") return <Screen wide fit back="/"><p className="mt-24 text-center text-ink-2">No receipt for this code.</p></Screen>;
+  if (!deal) return <Screen wide fit back="/"><div className="mt-24 grid place-items-center"><Mark size={64} state="open" /></div></Screen>;
 
   const ev = (t: Parameters<typeof eventOf>[1]) => eventOf(events, t);
   const joined = ev("accepted");
@@ -41,11 +41,20 @@ export default function Receipt() {
 
   const euros = fromUnits(deal.amount);
   return (
-    <Screen back="/">
+    <Screen wide fit back="/">
+      <div className="flex min-h-0 flex-1 flex-col justify-center gap-6 lg:grid lg:grid-cols-[minmax(0,0.9fr)_minmax(320px,460px)] lg:items-center lg:gap-16">
+      <div className="order-2 text-center lg:order-1 lg:text-left">
+        <div className="eyebrow">Public record</div>
+        <h1 className="display mt-3 text-[34px] leading-[1.02] lg:text-[64px] lg:leading-[0.96]">A screenshot can lie.<br /><span className="lg:glacier-text">This can&apos;t.</span></h1>
+        <p className="mx-auto mt-4 max-w-[34ch] text-ink-2 lg:mx-0 lg:text-lg">Every line links to the public record on Stellar.</p>
+        <Link href="/try" className="mt-4 inline-block text-sm text-safe">Try SHAKE with a friend →</Link>
+      </div>
+      <div className="relative order-1 lg:order-2">
+      <div className="halo hidden lg:block" aria-hidden />
       <motion.article
         initial={{ opacity: 0, y: 16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="glass mt-4 overflow-hidden"
+        className="glass overflow-hidden"
         aria-label="Receipt"
       >
         <div className="px-6 pt-6">
@@ -80,8 +89,8 @@ export default function Receipt() {
           <dd className="truncate text-right font-mono"><a className="hover:text-safe" href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer">public contract {shortHash(DEAL_CONTRACT_ID, 4)} ↗</a></dd>
         </dl>
       </motion.article>
-      <p className="mt-6 text-center text-sm text-mute">A screenshot can lie. This can&apos;t. Every line links to the public record on Stellar.</p>
-      <Link href="/try" className="mt-3 block text-center text-sm text-safe">Try SHAKE with a friend →</Link>
+      </div>
+      </div>
     </Screen>
   );
 }

@@ -7,7 +7,7 @@ type Props = { onCode: (text: string) => void; paused?: boolean };
 type CamState = "ask" | "starting" | "live" | "denied" | "unavailable";
 
 /** Full-bleed camera viewfinder with custom corners and a scanning shimmer. Explains why before the browser prompt. */
-export function Scanner({ onCode, paused }: Props) {
+export function Scanner({ onCode, paused, className = "" }: Props & { className?: string }) {
   const video = useRef<HTMLVideoElement>(null);
   const [cam, setCam] = useState<CamState>("ask");
   const stopRef = useRef<() => void>(() => {});
@@ -36,7 +36,7 @@ export function Scanner({ onCode, paused }: Props) {
   useEffect(() => () => stopRef.current(), []);
 
   return (
-    <div className="relative aspect-[3/4] w-full overflow-hidden rounded-[28px] bg-black/60">
+    <div className={`relative aspect-[3/4] w-full overflow-hidden rounded-[28px] bg-black/60 lg:aspect-square ${className}`}>
       <video ref={video} className="absolute inset-0 size-full object-cover" playsInline muted aria-label="Camera viewfinder" />
       {cam === "live" && (
         <>

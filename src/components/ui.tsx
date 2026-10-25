@@ -4,6 +4,8 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./Mark";
 import { NumberTicker } from "./Ticker";
+import { useCountry } from "./Money";
+import { availableCurrencies, formatMoney, fromUnits } from "@/lib/config";
 
 /** Phone-first page shell: safe areas, centred column, top bar with the wordmark. `fit` locks the desktop page to one screen. */
 export function Screen({ children, back, right, wide, fit }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean; fit?: boolean }) {
@@ -99,7 +101,8 @@ export function Countdown({ to }: { to: number }) {
 
 /** The live counter: money held safe by SHAKE right now, read from the contract's events. */
 export function Protected({ className = "justify-center" }: { className?: string }) {
-  const [s, setS] = useState<{ protectedNow: string; deals: number } | null>(null);
+  const [country] = useCountry();
+  const [s, setS] = useState<{ openDeals: number; deals: number; totals: { token: string; protectedNow: string }[] } | null>(null);
   useEffect(() => {
     const load = () => fetch("/api/stats").then((r) => (r.ok ? r.json() : null)).then((j) => j && setS(j)).catch(() => {});
     load();
@@ -107,12 +110,15 @@ export function Protected({ className = "justify-center" }: { className?: string
     return () => clearInterval(t);
   }, []);
   if (!s) return <div className="h-[22px]" />;
-  const euros = Number(BigInt(s.protectedNow) / BigInt(10_000_000));
+  const totals = (s.totals ?? []).flatMap((t) => {
+    const currency = availableCurrencies().find((c) => c.token === t.token);
+    return currency && BigInt(t.protectedNow) > 0n ? [formatMoney(fromUnits(t.protectedNow), currency.code, country.locale)] : [];
+  });
   return (
     <div className={`flex items-center gap-2 text-sm text-ink-2 ${className}`}>
       <span className="pulse-dot" />
       <span>
-        <NumberTicker value={euros} format={(n) => `€${Math.round(n).toLocaleString("en-IE")}`} className="font-medium text-ink" /> protected right now · {s.deals} deals on Stellar
+        {totals.length ? <><span className="font-medium text-ink">{totals.join(" · ")}</span> protected right now</> : <><NumberTicker value={s.openDeals ?? 0} format={(n) => new Intl.NumberFormat(country.locale, { maximumFractionDigits: 0 }).format(n)} className="font-medium text-ink" /> open deals</>} · {new Intl.NumberFormat(country.locale).format(s.deals)} deals on Stellar
       </span>
     </div>
   );

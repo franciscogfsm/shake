@@ -1,3 +1,5 @@
+import { isCentAmount } from "./amount";
+import { WORLD_COUNTRIES } from "./regions";
 // Public, build-time config shared by client and server.
 export const NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
 export const RPC_URL = "https://soroban-testnet.stellar.org";
@@ -32,25 +34,22 @@ export const CURRENCIES: Record<CurrencyCode, Currency> = {
   GBP: { code: "GBP", asset: "tGBP", token: process.env.NEXT_PUBLIC_TOKEN_GBP!, name: "Pound sterling", homeLocale: "en-GB" },
   BRL: { code: "BRL", asset: "tBRL", token: process.env.NEXT_PUBLIC_TOKEN_BRL!, name: "Brazilian real", homeLocale: "pt-BR" },
 };
-export const currencyOfToken = (token: string): Currency => Object.values(CURRENCIES).find((c) => c.token === token) ?? CURRENCIES.EUR;
+export const availableCurrencies = () => Object.values(CURRENCIES).filter((c) => !!c.token);
+export const currencyOfToken = (token: string): Currency => {
+  const currency = availableCurrencies().find((c) => c.token === token);
+  if (!currency) throw new Error("This deal uses an unsupported currency.");
+  return currency;
+};
 
-export type Country = { code: string; name: string; flag: string; locale: string; currency: CurrencyCode };
-export const COUNTRIES: Country[] = [
-  { code: "PT", name: "Portugal", flag: "🇵🇹", locale: "pt-PT", currency: "EUR" },
-  { code: "ES", name: "España", flag: "🇪🇸", locale: "es-ES", currency: "EUR" },
-  { code: "FR", name: "France", flag: "🇫🇷", locale: "fr-FR", currency: "EUR" },
-  { code: "DE", name: "Deutschland", flag: "🇩🇪", locale: "de-DE", currency: "EUR" },
-  { code: "IT", name: "Italia", flag: "🇮🇹", locale: "it-IT", currency: "EUR" },
-  { code: "NL", name: "Nederland", flag: "🇳🇱", locale: "nl-NL", currency: "EUR" },
-  { code: "IE", name: "Ireland", flag: "🇮🇪", locale: "en-IE", currency: "EUR" },
-  { code: "GB", name: "United Kingdom", flag: "🇬🇧", locale: "en-GB", currency: "GBP" },
-  { code: "US", name: "United States", flag: "🇺🇸", locale: "en-US", currency: "USD" },
-  { code: "BR", name: "Brasil", flag: "🇧🇷", locale: "pt-BR", currency: "BRL" },
-];
-export const DEFAULT_COUNTRY = COUNTRIES[0];
+export type Country = { code: string; name: string; locale: string; currency: CurrencyCode };
+export const COUNTRIES = WORLD_COUNTRIES;
+export const DEFAULT_COUNTRY = { ...COUNTRIES.find((c) => c.code === "US")!, locale: "en-US" };
 
 /** 12.50 -> 125_000_000 (all our tokens use 7 decimals) */
-export const toUnits = (amount: number) => BigInt(Math.round(amount * 100)) * BigInt(100_000);
+export const toUnits = (amount: number) => {
+  if (!isCentAmount(amount) || amount < 0 || !Number.isSafeInteger(Math.round(amount * 100))) throw new Error("Enter an amount with up to two decimal places.");
+  return BigInt(Math.round(amount * 100)) * BigInt(100_000);
+};
 export const fromUnits = (units: bigint | string | number) => Number(BigInt(units)) / 10 ** DECIMALS;
 
 /** Locale-correct money: "400 €" in Portugal, "€400" in Ireland, "R$ 400" in Brazil. Cents only when needed. */

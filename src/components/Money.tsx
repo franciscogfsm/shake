@@ -1,41 +1,56 @@
 "use client";
 import { motion } from "motion/react";
 import { useEffect, useState } from "react";
-import { COUNTRIES, CURRENCIES, DEFAULT_COUNTRY, moneyParts, type Country, type CurrencyCode } from "@/lib/config";
+import { COUNTRIES, DEFAULT_COUNTRY, availableCurrencies, moneyParts, type Country, type CurrencyCode } from "@/lib/config";
+import { detectCountry } from "@/lib/regions";
 import { GlassSheet } from "./GlassSheet";
 import { NumberTicker } from "./Ticker";
 
 const KEY = "shake.country";
 
-function guess(): Country {
-  const langs = typeof navigator === "undefined" ? [] : navigator.languages ?? [navigator.language];
-  for (const l of langs) {
-    const exact = COUNTRIES.find((c) => c.locale.toLowerCase() === l.toLowerCase());
-    if (exact) return exact;
-    const region = l.split("-")[1]?.toUpperCase();
-    const byRegion = COUNTRIES.find((c) => c.code === region);
-    if (byRegion) return byRegion;
-    const byLang = COUNTRIES.find((c) => c.locale.startsWith(l.split("-")[0] + "-"));
-    if (byLang) return byLang;
-  }
-  return DEFAULT_COUNTRY;
+const PREFERENCES = "shake.region.v2";
+const CHANGE = "shake:region";
+let memoryPreference: Country | null = null;
+
+function preference(): Country {
+  if (memoryPreference) return memoryPreference;
+  const detected = detectCountry(navigator.languages?.length ? navigator.languages : [navigator.language]);
+  let chosen = detected;
+  try {
+    const saved = JSON.parse(localStorage.getItem(PREFERENCES) ?? "null");
+    const legacy = localStorage.getItem(KEY);
+    const country = COUNTRIES.find((c) => c.code === (saved?.code ?? legacy));
+    if (country) {
+      const locale = saved?.locale ?? (country.code === detected.code ? detected.locale : country.locale);
+      new Intl.NumberFormat(locale); // Validate persisted locale data.
+      chosen = { ...country, locale, currency: saved?.currency ?? country.currency };
+    }
+  } catch {}
+  const currencies = availableCurrencies();
+  return { ...chosen, currency: currencies.find((c) => c.code === chosen.currency)?.code ?? currencies[0]?.code ?? "EUR" };
 }
 
 /** The viewer's country: decides number format and default currency. Remembered on this phone. */
 export function useCountry() {
   const [country, setCountry] = useState<Country>(DEFAULT_COUNTRY);
   useEffect(() => {
-    let saved: string | null = null;
-    try {
-      saved = localStorage.getItem(KEY);
-    } catch {}
-    setCountry(COUNTRIES.find((c) => c.code === saved) ?? guess());
+    const sync = (event?: Event) => {
+      if (event?.type === "storage") memoryPreference = null;
+      setCountry(preference());
+    };
+    sync();
+    addEventListener("storage", sync);
+    addEventListener(CHANGE, sync);
+    return () => { removeEventListener("storage", sync); removeEventListener(CHANGE, sync); };
   }, []);
   const choose = (c: Country) => {
+    memoryPreference = c;
     setCountry(c);
     try {
       localStorage.setItem(KEY, c.code);
+      localStorage.setItem(PREFERENCES, JSON.stringify(c));
     } catch {}
+    dispatchEvent(new Event(CHANGE));
   };
   return [country, choose] as const;
 }
@@ -61,9 +76,10 @@ export function Money({ amount, currency, locale, className = "", tick }: { amou
   );
 }
 
-/** Flag + currency chip that opens the country sheet. */
+/** Region, number format and supported settlement currency are separate choices. */
 export function CountryPicker({ country, onChange }: { country: Country; onChange: (c: Country) => void }) {
   const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState("");
   return (
     <>
       <motion.button
@@ -73,31 +89,43 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
         className="glass inline-flex h-10 items-center gap-2 rounded-full pl-3 pr-4 text-[14px]"
         aria-label={`Country: ${country.name}, currency ${country.currency}. Change`}
       >
-        <span className="text-lg leading-none">{country.flag}</span>
+        <span className="font-mono text-xs text-mute">{country.code}</span>
         <span className="font-medium">{country.currency}</span>
       </motion.button>
       <GlassSheet open={open} onClose={() => setOpen(false)} label="Choose your country">
         <div className="pb-3">
-          <h2 className="display text-[26px]">Where are you?</h2>
-          <p className="mt-1 text-sm text-ink-2">Sets your currency and how amounts look.</p>
-          <ul className="mt-4 grid max-h-[55dvh] grid-cols-1 gap-1 overflow-y-auto">
-            {COUNTRIES.map((c) => (
+          <h2 className="display text-[26px]">Your region and currency</h2>
+          <p className="mt-1 text-sm text-ink-2">Amounts follow your number format. Everyone in a deal pays and receives the same currency.</p>
+          <label className="mt-4 flex flex-col gap-2 text-sm">
+            Payment currency
+            <select value={country.currency} onChange={(e) => onChange({ ...country, currency: e.target.value as CurrencyCode })} className="h-11 rounded-xl bg-bg px-3 text-ink border border-line">
+              {availableCurrencies().map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name} · test money</option>)}
+            </select>
+          </label>
+          <label className="mt-3 flex flex-col gap-2 text-sm">
+            Number format
+            <select value={country.locale} onChange={(e) => onChange({ ...country, locale: e.target.value })} className="h-11 rounded-xl border border-line bg-bg px-3">
+              {[...new Set([country.locale, "en-US", "en-GB", "pt-PT", "pt-BR", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "nl-NL", "pl-PL", "tr-TR", "en-IN", "hi-IN", "bn-BD", "ar-EG", "ar-SA", "fa-IR", "he-IL", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "id-ID", "th-TH", "vi-VN", "en-ZA"])].map((locale) => <option key={locale} value={locale}>{locale} · {new Intl.NumberFormat(locale).format(1234.56)}</option>)}
+            </select>
+          </label>
+          <input aria-label="Find country or region" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find your country or region" className="mt-4 h-11 w-full rounded-xl border border-line bg-transparent px-3" />
+          <ul className="mt-3 grid max-h-[32dvh] grid-cols-1 gap-1 overflow-y-auto">
+            {COUNTRIES.filter((c) => `${c.name} ${c.code}`.toLowerCase().includes(search.trim().toLowerCase())).map((c) => (
               <li key={c.code}>
                 <button
                   onClick={() => {
-                    onChange(c);
+                    onChange({ ...c, locale: country.locale, currency: country.currency });
                     setOpen(false);
                   }}
                   className={`flex h-12 w-full items-center gap-3 rounded-2xl px-3 text-left hover:bg-white/5 ${c.code === country.code ? "bg-white/8" : ""}`}
                 >
-                  <span className="text-xl">{c.flag}</span>
+                  <span className="font-mono text-xs text-mute">{c.code}</span>
                   <span className="flex-1">{c.name}</span>
-                  <span className="font-mono text-sm text-mute">{new Intl.NumberFormat(c.locale, { style: "currency", currency: c.currency, minimumFractionDigits: 0 }).format(400)}</span>
                 </button>
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-mute">Each currency is a test stablecoin on Stellar ({Object.values(CURRENCIES).map((c) => c.asset).join(", ")}).</p>
+          <p className="mt-3 text-xs text-mute">Available test currencies: {availableCurrencies().map((c) => c.code).join(", ")}. Choose one even if your local currency is different. No currency conversion is applied.</p>
         </div>
       </GlassSheet>
     </>

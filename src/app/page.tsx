@@ -5,20 +5,24 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { HoldToShake } from "@/components/HoldToShake";
+import { CountryPicker, useCountry } from "@/components/Money";
 import { LiveReceipt } from "@/components/LiveReceipt";
 import { Mark, springs } from "@/components/Mark";
 import { haptic, sfx } from "@/lib/client/sfx";
 import { Seal } from "@/components/Seal";
 import { Item, Protected, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
 import { usePitchSession, type PitchSession } from "@/lib/client/pitchSession";
-import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer } from "@/lib/config";
+import { DEAL_CONTRACT_ID, PASSKEY, TOKEN_CONTRACT_ID, explorer, formatMoney } from "@/lib/config";
 
 /**
  * Home: the product explains itself by being used. One tap locks a real €5 on Stellar,
  * the judge shakes (or says "not yet"), then sees every step's on-chain proof.
  */
 export default function Home() {
-  const { session, start, shake, notYet, reset, settling } = usePitchSession();
+  const [country, setCountry] = useCountry();
+  const { session, start, shake, notYet, reset, settling } = usePitchSession(country.currency);
+  const currency = session.currency ?? (session.dealId ? "EUR" : country.currency);
+  const money = formatMoney(5, currency, country.locale);
   const [refunding, setRefunding] = useState(false);
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
   const phaseRef = useRef(phase);
@@ -37,6 +41,7 @@ export default function Home() {
       fit
       right={
         <div className="flex items-center gap-2">
+          {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
           <a href={explorer.contract(DEAL_CONTRACT_ID)} target="_blank" rel="noreferrer" onPointerDown={() => haptic.tick()} className="eyebrow glass hidden items-center gap-2 !rounded-full px-4 py-2 hover:text-ink lg:flex">
             <span className="pulse-dot" />
             Live on Stellar testnet
@@ -51,14 +56,14 @@ export default function Home() {
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
-          {phase === "idle" && <Hero onStart={start} />}
-          {phase === "working" && <Locking step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
+          {phase === "idle" && <Hero onStart={start} money={money} />}
+          {phase === "working" && <Locking money={money} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && (
             <Stagger className="flex flex-col items-center gap-5 text-center lg:gap-6">
               <Item>
                 <div className="eyebrow">You&apos;re at the meetup</div>
                 <h1 className="display mt-2 text-[34px] leading-[1.02] lg:text-[52px]">It checks out.<br /><span className="glacier-text">Shake on it.</span></h1>
-                <p className="mx-auto mt-3 max-w-[28ch] text-[15px] leading-snug text-ink-2">€5 is locked, and the seller can see it. Hold to pay them.</p>
+                <p className="mx-auto mt-3 max-w-[28ch] text-[15px] leading-snug text-ink-2">{money} is locked, and the seller can see it. Hold to pay them.</p>
               </Item>
               <Item>
                 <HoldToShake onShake={shake} disabled={settling} hint="Money moves only now" size={188} />
@@ -88,11 +93,11 @@ export default function Home() {
               </Item>
             </Stagger>
           )}
-          {phase === "done" && <Reveal session={session} onAgain={reset} />}
+          {phase === "done" && <Reveal session={session} onAgain={reset} money={money} />}
         </motion.div>
       </AnimatePresence>
       </div>
-      <LivePanel session={session} />
+      <LivePanel session={session} money={money} />
       </div>
       <Composed />
       </div>
@@ -100,7 +105,7 @@ export default function Home() {
   );
 }
 
-function Hero({ onStart }: { onStart: () => void }) {
+function Hero({ onStart, money }: { onStart: () => void; money: string }) {
   return (
     <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-6 lg:py-0 lg:text-left">
       <Item className="flex justify-center lg:hidden">
@@ -112,7 +117,7 @@ function Hero({ onStart }: { onStart: () => void }) {
         <p className="mx-auto mt-4 max-w-[30ch] text-[17px] text-ink-2 lg:mx-0 lg:max-w-[38ch] lg:text-xl">The money waits, locked, where the seller can see it. It moves only when your two phones are face to face.</p>
       </Item>
       <Item className="flex flex-col gap-3 lg:max-w-[400px]">
-        <Button full onClick={onStart}>Try it now · lock €5</Button>
+        <Button full onClick={onStart}>Try it now · lock {money}</Button>
         <p className="text-sm text-mute">Test money · 20 seconds · no sign-up</p>
       </Item>
       <Item>
@@ -140,7 +145,7 @@ function Hero({ onStart }: { onStart: () => void }) {
   );
 }
 
-function Locking({ step, error }: { step: string; error?: string }) {
+function Locking({ step, error, money }: { step: string; error?: string; money: string }) {
   const reduce = useReducedMotion();
   const prev = useRef(step);
   useEffect(() => {
@@ -156,13 +161,13 @@ function Locking({ step, error }: { step: string; error?: string }) {
       </motion.div>
       <div className="text-center">
         <div className="eyebrow">Locking for the seller</div>
-        <motion.div className="amount mt-3 text-[64px]" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>€5</motion.div>
+        <motion.div className="amount mt-3 text-[64px]" initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>{money}</motion.div>
       </div>
       <div className="glass w-full p-6">
         <Steps
           steps={[
             { key: "wallet", label: "Making your wallet (no sign-up)" },
-            { key: "locked", label: "Locking €5 on Stellar" },
+            { key: "locked", label: `Locking ${money} on Stellar` },
             { key: "joined", label: "Seller sees it's real" },
           ]}
           current={step}
@@ -173,7 +178,7 @@ function Locking({ step, error }: { step: string; error?: string }) {
   );
 }
 
-function Reveal({ session, onAgain }: { session: ReturnType<typeof usePitchSession>["session"]; onAgain: () => void }) {
+function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePitchSession>["session"]; onAgain: () => void; money: string }) {
   const released = session.outcome === "released";
   return (
     <Stagger className="flex flex-col gap-5 py-4">
@@ -189,7 +194,7 @@ function Reveal({ session, onAgain }: { session: ReturnType<typeof usePitchSessi
           delay={0.3}
           items={[
             { key: "w", title: "Wallet made, no sign-up", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined },
-            { key: "l", title: "€5 locked when you tapped", at: session.locked?.at, hash: session.locked?.hash ?? undefined },
+            { key: "l", title: `${money} locked when you tapped`, at: session.locked?.at, hash: session.locked?.hash ?? undefined },
             { key: "j", title: "Seller saw it was real", at: session.joined?.at, hash: session.joined?.hash ?? undefined },
             { key: "s", title: released ? "Paid when you shook" : "Back to you when you said not yet", at: session.settled?.at, hash: session.settled?.hash ?? undefined, tone: released ? "safe" : "mute" },
           ]}
@@ -207,7 +212,7 @@ function Reveal({ session, onAgain }: { session: ReturnType<typeof usePitchSessi
 }
 
 /** Desktop only: every step of the judge's own deal, landing on Stellar while they watch. */
-function LivePanel({ session }: { session: PitchSession }) {
+function LivePanel({ session, money }: { session: PitchSession; money: string }) {
   const released = session.outcome === "released";
   const refunded = session.outcome === "refunded";
   const next = !session.wallet ? "w" : !session.locked ? "l" : !session.joined ? "j" : !session.settled ? "s" : null;
@@ -229,14 +234,14 @@ function LivePanel({ session }: { session: PitchSession }) {
           </div>
         </div>
       </div>
-      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">~5 seconds · €0 fees · no sign-up</p>
+      <p className="mt-4 font-mono text-[10px] uppercase tracking-[0.14em] text-mute">~5 seconds · zero fees · no sign-up</p>
       <div className="mt-4">
         <LiveReceipt
           dense
           stagger={0.08}
           items={[
             { key: "w", title: "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
-            { key: "l", title: "€5 locked", at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
+            { key: "l", title: `${money} locked`, at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
             { key: "j", title: "Seller sees real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
             { key: "s", title: refunded ? "Refunded to you" : "Released by the handshake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },
           ]}

@@ -58,11 +58,11 @@ export default function ScanPage() {
   };
 
   if (state === "ready" && deal && me && !isMine(deal.buyer))
-    return <Screen back={`/deal/${id}`}><Notice title="Only the buyer scans." body="Open this deal on the phone that locked the money." /></Screen>;
+    return <Screen wide fit back={`/deal/${id}`}><Notice title="Only the buyer scans." body="Open this deal on the phone that locked the money." /></Screen>;
   // while the confirm sheet is open (code accepted) we stay here, even if polling sees the release first
   if (deal && !["Accepted", "Shipped", "Delivered"].includes(deal.status) && !code)
     return (
-      <Screen back={`/deal/${id}`}>
+      <Screen wide fit back={`/deal/${id}`}>
         <Notice
           title={deal.status === "Released" ? "Already released." : deal.status === "Refunded" ? "This deal was refunded." : deal.status === "Disputed" ? "A problem is open." : deal.status === "Resolved" ? "This deal was resolved." : "The seller hasn't joined yet."}
           body={deal.status === "Locked" ? "Send them the link first. Their QR appears once they open it." : "Nothing more to do here."}
@@ -74,14 +74,15 @@ export default function ScanPage() {
   const euros = deal ? fromUnits(deal.amount) : 0;
   const money = deal ? formatMoney(euros, currencyOfToken(deal.token).code, country.locale) : "";
   return (
-    <Screen back={`/deal/${id}`}>
-      <div className="flex flex-1 flex-col gap-5 pt-2">
-        <div>
+    <Screen wide fit back={`/deal/${id}`}>
+      <div className="flex min-h-0 flex-1 flex-col gap-5 pt-2 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(280px,400px)] lg:items-center lg:gap-16 lg:pt-0">
+        <div className="lg:col-start-1">
           <div className="eyebrow">{item ? `${item} · ` : ""}{money}</div>
-          <h1 className="display mt-2 text-[34px]">Check the item. Then scan.</h1>
+          <h1 className="display mt-2 text-[34px] lg:text-[60px] lg:leading-[0.96]">Check the item.<br /><span className="lg:glacier-text">Then scan.</span></h1>
         </div>
-        <Scanner onCode={check} paused={!!code} />
-        {problem && <p className="rounded-2xl bg-white/5 px-4 py-3 text-center text-ink-2" role="alert">{problem}</p>}
+        <Scanner onCode={check} paused={!!code} className="lg:col-start-2 lg:row-span-2 lg:row-start-1" />
+        <div className="flex flex-col gap-5 lg:col-start-1">
+        {problem && <p className="rounded-2xl bg-white/5 px-4 py-3 text-center text-ink-2 lg:text-left" role="alert">{problem}</p>}
         <form
           className="flex gap-2"
           onSubmit={(e) => {
@@ -101,7 +102,8 @@ export default function ScanPage() {
           />
           <Button type="submit" variant="glass" disabled={typed.replace(/[^A-Z0-9]/g, "").length < 10}>Go</Button>
         </form>
-        <TestnetNote className="mt-auto" />
+        <TestnetNote className="mt-auto lg:mt-0 lg:text-left" />
+        </div>
       </div>
 
       <GlassSheet open={!!code} onClose={() => setCode(null)} label="Release the money">

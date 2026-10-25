@@ -54,7 +54,7 @@ function Form() {
       <div>
         <div className="eyebrow">SHAKE anchor · SEP-24 · test network</div>
         <h1 className="display mt-2 text-[28px]">Where should we send {amount} {asset?.replace(/^t/, "")}?</h1>
-        <p className="mt-1.5 text-sm text-ink-2">The anchor turns your Stellar balance into a bank transfer. On the test network the transfer is simulated.</p>
+        <p className="mt-1.5 text-sm text-ink-2">This demo simulates a bank transfer in the deal&apos;s currency using a test IBAN. Real local payouts require a supporting anchor.</p>
       </div>
       {done ? (
         <div className="glass p-5 text-center" role="status">

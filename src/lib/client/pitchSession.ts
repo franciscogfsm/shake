@@ -1,6 +1,6 @@
 "use client";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { TOKEN_CONTRACT_ID, newDealId, toUnits } from "@/lib/config";
+import { CURRENCIES, currencyOfToken, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
 import { ApiError, callDeal, ensureAccount, getKeypair, pitchApi } from "./wallet";
 import type { Deal, DealEvent } from "./useDeal";
 
@@ -13,6 +13,7 @@ export type Step = { at: string; hash?: string | null };
 export type PitchSession = {
   status: "idle" | "working" | "ready" | "failed" | "done";
   dealId?: string;
+  currency?: CurrencyCode;
   wallet?: Step;
   locked?: Step;
   joined?: Step;
@@ -22,7 +23,7 @@ export type PitchSession = {
 };
 
 const KEY = "shake.pitch.v1";
-const EUROS = 5;
+const DEMO_AMOUNT = 5;
 const load = (): PitchSession => {
   try {
     return JSON.parse(localStorage.getItem(KEY) ?? "") as PitchSession;
@@ -31,12 +32,14 @@ const load = (): PitchSession => {
   }
 };
 
-export function usePitchSession() {
+export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
   const [s, setS] = useState<PitchSession>({ status: "idle" });
   const ref = useRef(s);
   const running = useRef(false);
   const settlingRef = useRef(false);
   const [settling, setSettling] = useState(false);
+  const preferred = useRef(preferredCurrency);
+  preferred.current = preferredCurrency;
 
   const update = useCallback((patch: Partial<PitchSession>) => {
     ref.current = { ...ref.current, ...patch };
@@ -57,6 +60,7 @@ export function usePitchSession() {
     const json = await res.json();
     if (!res.ok || !json.deal) throw new ApiError(json.error ?? "We couldn't load this deal. Try again.");
     const deal = json.deal as Deal;
+    if (deal.token) update({ currency: currencyOfToken(deal.token).code });
     if (deal.status === "Released" || deal.status === "Refunded") {
       const outcome = deal.status === "Released" ? "released" : "refunded";
       const event = (json.events as DealEvent[] | undefined)?.find((e) => e.type === outcome);
@@ -73,14 +77,17 @@ export function usePitchSession() {
     if (running.current) return;
     const cur = ref.current;
     if (cur.status === "ready" || cur.status === "done") return;
+    // Persist before funding; changing region cannot change an in-flight deal.
+    // Legacy demo sessions were always EUR.
+    const currency = cur.currency ?? (cur.dealId ? "EUR" : preferred.current);
     running.current = true;
-    update({ status: "working", error: undefined });
+    update({ status: "working", currency, error: undefined });
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const kp = getKeypair();
         if (!ref.current.wallet) {
           const at = now();
-          const hash = await ensureAccount(kp, EUROS);
+          const hash = await ensureAccount(kp, DEMO_AMOUNT, currency);
           update({ wallet: { at, hash } });
         }
         if (!ref.current.locked) {
@@ -88,7 +95,7 @@ export function usePitchSession() {
           update({ dealId });
           const at = now();
           const expiry = String(Math.floor(Date.now() / 1000) + 24 * 60 * 60);
-          const res = await callDeal(kp, "lock", { buyer: kp.publicKey(), token: TOKEN_CONTRACT_ID, amount: toUnits(EUROS).toString(), dealId, expiry, memo: "SHAKE pitch" }).catch((e) => {
+          const res = await callDeal(kp, "lock", { buyer: kp.publicKey(), token: CURRENCIES[currency].token, amount: toUnits(DEMO_AMOUNT).toString(), dealId, expiry, memo: "SHAKE pitch" }).catch((e) => {
             // a retry after a timeout may find the deal already locked
             if (e instanceof ApiError && /already exists/.test(e.message)) return { hash: null };
             throw e;

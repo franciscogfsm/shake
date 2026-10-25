@@ -6,9 +6,19 @@
       <stop stop-color="#8fd3ff" stop-opacity=".18"/>
       <stop offset="1" stop-color="#8fd3ff" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="coin" x2="1" y2="1">
-      <stop stop-color="#d8efff"/>
-      <stop offset="1" stop-color="#8fd3ff"/>
+    <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff"/>
+      <stop offset="1" stop-color="#cfd3da"/>
+    </linearGradient>
+    <linearGradient id="glass" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#bfe6ff" stop-opacity=".85"/>
+      <stop offset=".55" stop-color="#8fd3ff" stop-opacity=".5"/>
+      <stop offset="1" stop-color="#8fd3ff" stop-opacity=".72"/>
+    </linearGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fff" stop-opacity=".95"/>
+      <stop offset=".5" stop-color="#8fd3ff" stop-opacity=".35"/>
+      <stop offset="1" stop-color="#fff" stop-opacity=".8"/>
     </linearGradient>
   </defs>
   <rect width="1280" height="400" rx="24" fill="#0d0f12"/>
@@ -20,9 +30,13 @@
   <text x="68" y="282" fill="#9aa3af" font-family="Arial, Helvetica, sans-serif" font-size="18">The payment that waits for the handover.</text>
   <circle cx="1040" cy="190" r="115" fill="none" stroke="#8fd3ff" stroke-opacity=".12"/>
   <circle cx="1040" cy="190" r="144" fill="none" stroke="#8fd3ff" stroke-opacity=".06"/>
-  <g fill="url(#coin)">
-    <path d="M1028 110 A80 80 0 0 0 1028 270 V222 H1042 V198 H1028 V174 H1014 V150 H1028 Z"/>
-    <path d="M1052 110 A80 80 0 0 1 1052 270 V222 H1066 V198 H1052 V174 H1038 V150 H1052 Z"/>
+  <!-- Static rest-state mark from src/components/Mark.tsx. -->
+  <g transform="translate(944 94) scale(8)">
+    <path transform="translate(-.6 0)" d="M12 2A10 10 0 0 0 12 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12Z" fill="url(#silver)"/>
+    <g transform="translate(.6 0)">
+      <path d="M12 2A10 10 0 0 1 12 22V16H14A1 1 0 0 0 15 15V9A1 1 0 0 0 14 8H12Z" fill="url(#glass)"/>
+      <path d="M12 2.3A9.7 9.7 0 0 1 12 21.7" fill="none" stroke="url(#rim)" stroke-width=".6"/>
+    </g>
   </g>
   <text x="68" y="367" fill="#9aa3af" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="1">HACKMERIDIAN 2026</text>
   <text x="1212" y="367" text-anchor="end" fill="#8fd3ff" font-family="Arial, Helvetica, sans-serif" font-size="13" letter-spacing="1">BUILT ON STELLAR TESTNET</text>

@@ -64,7 +64,7 @@ export default function Check() {
 
   return (
     <Screen back="/" wide>
-      <Stagger className="flex flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-start lg:gap-16 lg:pt-16">
+      <Stagger className="flex min-h-0 flex-1 flex-col justify-center gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] lg:items-center lg:gap-16 lg:pt-0">
         <Item className="flex flex-col gap-6">
           <div>
             <div className="eyebrow">Scam check</div>
@@ -73,8 +73,10 @@ export default function Check() {
             </h1>
             <p className="mt-3 max-w-[38ch] text-ink-2 lg:text-lg">Paste what the buyer or seller sent you, or a SHAKE link or deal code. The check runs on your phone.</p>
           </div>
+          <div className="relative">
+          <div className="halo hidden lg:block" aria-hidden />
           <form
-            className="glass flex flex-col gap-3 p-3"
+            className="glass flex flex-col gap-3 p-3 lg:p-4"
             onSubmit={(e) => {
               e.preventDefault();
               run();
@@ -95,6 +97,7 @@ export default function Check() {
               <input ref={file} type="file" accept="image/png,image/jpeg,image/webp" className="hidden" onChange={(e) => e.target.files?.[0] && screenshot(e.target.files[0])} />
             </div>
           </form>
+          </div>
         </Item>
 
         <Item className="flex flex-col gap-4 lg:pt-6">

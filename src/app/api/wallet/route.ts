@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/server/http";
 import { UserError, buildOnboardTx, fund, isCurrency, isPublicKey, submitOnboardTx } from "@/lib/server/stellar";
+import { isCentAmount } from "@/lib/amount";
 
 export const runtime = "nodejs";
 const MAX = 2000;
@@ -17,6 +18,7 @@ export async function POST(req: Request) {
       const currency = body.currency ?? "EUR";
       if (!isCurrency(currency)) throw new UserError("Unsupported currency");
       if (!Number.isFinite(amount) || amount < 0 || amount > MAX) throw new UserError(`Test deals go up to ${MAX}`);
+      if (!isCentAmount(amount)) throw new UserError("Enter an amount with up to two decimal places.");
       const tx = await buildOnboardTx(publicKey, amount, currency);
       if (!tx) {
         const hash = amount > 0 ? await fund(publicKey, amount, currency) : null;

@@ -38,16 +38,16 @@ function DealScreen() {
   useEffect(() => setMe(getKeypair().publicKey()), []);
   const local = useMemo(() => ({ ...dealMeta.get(id), ...(q.get("s") ? { seller: q.get("s")! } : {}) }), [id, q]);
 
-  if (state === "loading" || !me) return <Screen><Loading /></Screen>;
-  if (state === "missing") return <Screen back="/try"><Empty title="We couldn't find this deal." body="Check the link with the person who sent it." /></Screen>;
-  if (state === "offline" && !deal) return <Screen><Empty title="You're offline." body="We'll show the deal as soon as you're back." /></Screen>;
+  if (state === "loading" || !me) return <Screen wide fit><Loading /></Screen>;
+  if (state === "missing") return <Screen wide fit back="/try"><Empty title="We couldn't find this deal." body="Check the link with the person who sent it." /></Screen>;
+  if (state === "offline" && !deal) return <Screen wide fit><Empty title="You're offline." body="We'll show the deal as soon as you're back." /></Screen>;
   if (!deal) return null;
 
   const role = isMine(deal.buyer) ? "buyer" : deal.seller && deal.seller !== me ? "other" : "seller";
   const meta = { ...local, item: deal.memo || local.item };
   const props = { deal, events, meta, me, refresh, isNew: q.get("new") === "1", replay: q.get("replay") === "1", locale: country.locale, currency: currencyOfToken(deal.token).code };
   return (
-    <Screen right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
+    <Screen wide fit right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
         <motion.div key={`${role}-${["Released", "Refunded", "Resolved"].includes(deal.status) ? deal.status : "open"}`} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
           {deal.status === "Released" ? (
@@ -114,18 +114,21 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
             : "Problem opened. The money is frozen.";
 
   return (
-    <Stagger className="flex flex-1 flex-col gap-6 pt-4">
-      <Item>
-        <div className="eyebrow">{meta.item || "Your deal"}{meta.seller ? ` · ${meta.seller}` : ""}</div>
+    <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
+      <Item className="lg:col-start-1">
+        <div className="eyebrow"><span className="lg:hidden">{meta.item || "Your deal"}{meta.seller ? ` · ${meta.seller}` : ""}</span><span className="hidden lg:inline">Your deal</span></div>
+        <h1 className="display mt-3 hidden text-[52px] leading-[0.98] lg:block">{meta.item || "Your deal"}</h1>
         <div className="mt-3 flex items-center gap-3">
           <span className="pulse-dot" />
           <span className="text-ink-2">{status}</span>
         </div>
         {ship && <ShipSteps status={s} />}
       </Item>
-      <Item className="glass p-6">
+      <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="halo hidden lg:block" aria-hidden />
+        <div className="glass p-6 lg:p-8">
         <div className="eyebrow">Locked by you</div>
-        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[76px]" />
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[76px] lg:text-[88px]" />
         {lockEv && (
           <ProofLink hash={lockEv.txHash} at={lockEv.at} className="mt-3 block text-xs text-mute hover:text-safe">
             proof <HashTyper text={lockEv.txHash.slice(0, 24)} /> ↗
@@ -141,9 +144,10 @@ function BuyerView({ deal, events, meta, refresh, isNew, locale, currency }: Vie
           )}
           <div><div className="text-mute">Seller</div><div className="mt-0.5 text-ink">{inBox ? "Shipped ✓" : joined ? "Joined ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
         </div>
+        </div>
       </Item>
-      <div className="flex-1" />
-      <Item className="flex flex-col gap-3">
+      <div className="flex-1 lg:hidden" />
+      <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
         {ship && joined ? (
           <>
             {inBox && (
@@ -289,15 +293,17 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
 
   const ready = mine && code && codeOk;
   return (
-    <Stagger className="flex flex-1 flex-col gap-6 pt-4">
-      <Item>
+    <Stagger className="flex min-h-0 flex-1 flex-col gap-6 pt-4 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(320px,440px)] lg:items-center lg:gap-x-16 lg:gap-y-6 lg:pt-0">
+      <Item className="lg:col-start-1">
         <div className="eyebrow">{meta.item || "A deal"}{meta.seller ? ` · for ${meta.seller}` : ""}</div>
-        <h1 className="display mt-3 text-[34px]">
+        <h1 className="display mt-3 text-[34px] lg:text-[52px] lg:leading-[0.98]">
           {s === "Shipped" ? "It's on its way." : s === "Delivered" ? "Delivered. Almost yours." : s === "Disputed" ? "The buyer opened a problem." : "Someone locked money for you."}
         </h1>
         {ship && <ShipSteps status={s} />}
       </Item>
-      <Item className="glass p-6">
+      <Item className="relative lg:col-start-2 lg:row-span-2 lg:row-start-1">
+        <div className="halo hidden lg:block" aria-hidden />
+        <div className="glass p-6 lg:p-8">
         <div className="flex items-center justify-between">
           <span className="eyebrow">Locked for you</span>
           <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--safe)" strokeWidth="2.4" strokeLinecap="round" aria-hidden><path d="M5 12.5l4.5 4.5L19 7" /></svg>
@@ -321,9 +327,10 @@ function SellerView({ deal, events, meta, me, refresh, locale, currency }: ViewP
                 : "This is real money held by public code, not a screenshot. Put your QR in the box: it's yours when the buyer scans it."
             : "This is real money held by public code, not a screenshot. It's yours the moment the buyer scans your QR."}
         </p>
+        </div>
       </Item>
-      <div className="flex-1" />
-      <Item className="flex flex-col gap-3">
+      <div className="flex-1 lg:hidden" />
+      <Item className="flex flex-col gap-3 lg:col-start-1 lg:max-w-[420px]">
         {ship && mine && ready && s === "Accepted" && !expired ? (
           <>
             <Button variant="glass" full onClick={() => setShowQR(true)}>Show the QR for the box</Button>
@@ -392,18 +399,18 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
   return (
     <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
       <ShakeMoment play={fresh} onDone={() => setBurst(true)} />
-      <Stagger className="flex flex-1 flex-col items-center justify-center gap-8" delay={0.05} key={String(burst)}>
-      <Item className="relative grid size-56 place-items-center">
+      <Stagger className="flex w-full flex-1 flex-col items-center justify-center gap-8 text-center lg:grid lg:grid-cols-2 lg:items-center lg:gap-x-16 lg:gap-y-4 lg:text-left" delay={0.05} key={String(burst)}>
+      <Item className="relative grid size-56 place-items-center lg:col-start-1 lg:row-span-3 lg:justify-self-end">
         <ShakeBurst fire={burst} size={224} />
         <Mark size={128} state={burst ? "shut" : "open"} />
       </Item>
-      <Item>
+      <Item className="lg:col-start-2">
         <div className="eyebrow">{role === "seller" ? "Paid to you" : "Released to the seller"}</div>
-        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px]" />
-        <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2">Final. No chargebacks. No screenshots.</p>
+        <Money amount={euros} currency={currency} locale={locale} className="mt-3 text-[80px] lg:text-[96px]" />
+        <p className="mx-auto mt-4 max-w-[26ch] text-lg text-ink-2 lg:mx-0">Final. No chargebacks. No screenshots.</p>
       </Item>
-      <Item>{burst && <Seal />}</Item>
-      <Item className="flex w-full flex-col gap-3">
+      <Item className="lg:col-start-2">{burst && <Seal />}</Item>
+      <Item className="flex w-full max-w-[420px] flex-col gap-3 lg:col-start-2 lg:justify-self-start">
         {role === "seller" && <CashOut amount={euros} currency={currency} locale={locale} />}
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
         {rel && <ProofLink hash={rel.txHash} at={rel.at} className="text-sm text-mute hover:text-safe">Proof on Stellar ↗</ProofLink>}
@@ -416,27 +423,31 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
 function Refunded({ deal, locale, currency, resolved }: ViewProps & { resolved?: boolean }) {
   if (resolved)
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+      <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 text-center lg:grid lg:grid-cols-2 lg:gap-16 lg:text-left">
         <Mark size={110} state="shut" />
+        <div className="flex max-w-[440px] flex-col items-center gap-8 lg:items-start">
         <div>
           <div className="eyebrow">Problem resolved</div>
-          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px]" />
-          <p className="mx-auto mt-4 max-w-[30ch] text-ink-2">The resolver split the money between the buyer and the seller. Every cent went to one of you.</p>
+          <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] lg:text-[88px]" />
+          <p className="mx-auto mt-4 max-w-[30ch] text-ink-2 lg:mx-0">The resolver split the money between the buyer and the seller. Every cent went to one of you.</p>
         </div>
         <Seal label="Resolved" sub="Split on Stellar" tone="mute" />
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
+        </div>
       </div>
     );
   return (
-    <div className="flex flex-1 flex-col items-center justify-center gap-8 text-center">
+    <div className="flex min-h-0 flex-1 flex-col items-center justify-center gap-8 text-center lg:grid lg:grid-cols-2 lg:gap-16 lg:text-left">
       <Mark size={110} state="open" />
+      <div className="flex max-w-[440px] flex-col items-center gap-8 lg:items-start">
       <div>
         <div className="eyebrow">Refunded</div>
-        <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] text-ink-2 [text-shadow:none]" />
-        <p className="mx-auto mt-4 max-w-[28ch] text-ink-2">No deal, no problem. The money went back to the buyer.</p>
+        <Money amount={fromUnits(deal.amount)} currency={currency} locale={locale} className="mt-3 text-[72px] text-ink-2 lg:text-[88px] [text-shadow:none]" />
+        <p className="mx-auto mt-4 max-w-[28ch] text-ink-2 lg:mx-0">No deal, no problem. The money went back to the buyer.</p>
       </div>
       <Seal label="Refunded" sub="Back to buyer" tone="mute" />
       <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
+      </div>
     </div>
   );
 }

@@ -6,6 +6,7 @@ import { Button } from "@/components/Button";
 import { Mark } from "@/components/Mark";
 import { Item, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
 import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits } from "@/lib/config";
+import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
 import { dealMeta } from "@/lib/client/handshake";
@@ -35,7 +36,8 @@ export default function NewDeal() {
       const j = await r.json();
       if (!r.ok) throw new Error(j.error);
       if (j.title) setItem(j.title);
-      if (j.price && j.price <= MAX) setPrice(String(j.price));
+      // Do not silently reinterpret a listing's price in a different currency.
+      if (j.currency === currency && j.price && j.price <= MAX) setPrice(new Intl.NumberFormat(country.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(j.price));
       setFrom(`Filled from ${j.source}. Check it matches.`);
     } catch (e) {
       setFrom(e instanceof Error && e.message ? `${e.message}. Type the item instead.` : "Couldn’t read that link. Type the item instead.");
@@ -52,7 +54,7 @@ export default function NewDeal() {
   const currency = country.currency;
   const sym = moneyParts(1, currency, country.locale);
 
-  const amount = Number(price.replace(",", "."));
+  const amount = parseAmount(price, country.locale);
   const valid = item.trim().length > 1 && amount >= 1 && amount <= MAX;
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
@@ -89,7 +91,10 @@ export default function NewDeal() {
   };
 
   return (
-    <Screen back="/try" right={phase === "form" ? <CountryPicker country={country} onChange={setCountry} /> : undefined}>
+    <Screen wide fit back="/try" right={phase === "form" ? <CountryPicker country={country} onChange={(next) => {
+      if (Number.isFinite(amount)) setPrice(new Intl.NumberFormat(next.locale, { useGrouping: false, maximumFractionDigits: 2 }).format(amount));
+      setCountry(next);
+    }} /> : undefined}>
       <AnimatePresence mode="wait">
         {phase === "form" && (
           <motion.form
@@ -101,12 +106,13 @@ export default function NewDeal() {
             }}
             className="flex flex-1 flex-col"
           >
-            <Stagger className="flex flex-1 flex-col gap-8 pt-6">
-              <Item>
+            <Stagger className="flex min-h-0 flex-1 flex-col gap-8 pt-6 lg:grid lg:grid-cols-[minmax(0,1.05fr)_minmax(320px,440px)] lg:items-center lg:gap-16 lg:pt-0">
+              <Item className="flex flex-col gap-8">
+              <div>
                 <div className="eyebrow">New safe payment</div>
-                <h1 className="display mt-3 text-[40px]">What are you buying?</h1>
-              </Item>
-              <Item>
+                <h1 className="display mt-3 text-[40px] lg:text-[64px] lg:leading-[0.96]">What are you<br className="hidden lg:block" /> buying?</h1>
+              </div>
+              <div>
                 <label htmlFor="item" className="sr-only">Item</label>
                 <input
                   id="item"
@@ -122,27 +128,32 @@ export default function NewDeal() {
                   className="w-full border-b border-line bg-transparent pb-3 font-display text-2xl tracking-[-0.02em] text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
                 <p id="item-hint" className="mt-2 text-[13px] text-mute" aria-live="polite">{from || "Or paste the OLX or Vinted link"}</p>
-              </Item>
-              <Item>
+              </div>
+              <div>
                 <label htmlFor="price" className="eyebrow">Price</label>
                 <div className="mt-2 flex items-baseline gap-2">
                   {sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                   <input
                     id="price"
                     value={price}
-                    onChange={(e) => setPrice(e.target.value.replace(/[^\d.,]/g, "").slice(0, 7))}
+                    onChange={(e) => setPrice(e.target.value.slice(0, 32))}
                     inputMode="decimal"
                     placeholder="0"
                     autoComplete="off"
                     className="amount max-w-full bg-transparent text-[88px] text-ink outline-none focus-visible:outline-none placeholder:text-white/20 [text-shadow:none]"
                     aria-describedby="price-hint"
+                    aria-invalid={!!price && (!Number.isFinite(amount) || amount < 1 || amount > MAX)}
                     style={{ width: `${Math.max(1, price.length || 1) * 0.62 + 0.2}em` }}
                   />
                   {!sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                 </div>
-                {amount > MAX && <p id="price-hint" className="mt-1 text-sm text-ink-2">Test deals go up to {money(MAX)}.</p>}
+                <p id="price-hint" className="mt-1 text-sm text-ink-2">{price && !Number.isFinite(amount) ? "Enter a valid amount with up to two decimal places." : `Test deals: ${money(1)} to ${money(MAX)}. Payment stays in ${currency}; no conversion.`}</p>
+              </div>
               </Item>
-              <Item>
+              <Item className="relative flex flex-col gap-6 lg:gap-7">
+              <div className="halo hidden lg:block" aria-hidden />
+              <div className="flex flex-col gap-6 lg:glass lg:gap-7 lg:p-7">
+              <div>
                 <label htmlFor="seller" className="eyebrow">Seller (optional)</label>
                 <input
                   id="seller"
@@ -152,8 +163,8 @@ export default function NewDeal() {
                   autoComplete="off"
                   className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
-              </Item>
-              <Item>
+              </div>
+              <div>
                 <div className="eyebrow">How does it reach you?</div>
                 <div role="radiogroup" aria-label="How does it reach you?" className="glass mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
                   {([[false, "We’ll meet"], [true, "It’s shipped"]] as const).map(([v, label]) => (
@@ -169,9 +180,8 @@ export default function NewDeal() {
                     </button>
                   ))}
                 </div>
-              </Item>
-              <div className="flex-1" />
-              <Item className="flex flex-col gap-3">
+              </div>
+              <div className="flex flex-col gap-3">
                 <p className="text-center text-[15px] text-ink-2">
                   {ship
                     ? "The shake travels in the box: scan the QR inside when you open it. Released 3 days after delivery unless you open a problem."
@@ -186,22 +196,29 @@ export default function NewDeal() {
                     Lock without Face ID
                   </button>
                 )}
-                <TestnetNote />
+                <TestnetNote className="lg:text-left" />
+              </div>
+              </div>
               </Item>
             </Stagger>
           </motion.form>
         )}
 
         {phase !== "form" && (
-          <motion.div key="locking" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex flex-1 flex-col items-center justify-center gap-10">
+          <motion.div key="locking" initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="flex min-h-0 flex-1 flex-col items-center justify-center gap-10 lg:grid lg:grid-cols-2 lg:gap-20">
+            <div className="flex flex-col items-center gap-10 lg:items-start">
             <Mark size={96} state={phase === "failed" ? "open" : "rest"} />
-            <div className="text-center">
+            <div className="text-center lg:text-left">
               <div className="eyebrow">{item}</div>
-              <div className="amount mt-3 text-[64px]">{money(amount)}</div>
+              <div className="amount mt-3 text-[64px] lg:text-[96px]">{money(amount)}</div>
+            </div>
             </div>
             {phase === "locking" ? (
-              <div className="glass w-full p-6">
+              <div className="relative w-full">
+              <div className="halo hidden lg:block" aria-hidden />
+              <div className="glass p-6">
                 <Steps steps={steps(faceId)} current={step} />
+              </div>
               </div>
             ) : (
               <div className="flex w-full flex-col items-center gap-4 text-center">
