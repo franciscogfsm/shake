@@ -121,7 +121,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
               </button>
             </div>
           )}
-          {status === "connect" && made && <p className="mt-5 text-[15px] text-ink-2">Finish with Face ID in Nido's window, then come back here.</p>}
+          {status === "connect" && made && <p className="mt-5 text-[15px] text-ink-2">Finish with Face ID in Nido’s window, then come back here.</p>}
           <Button
             full
             className="mt-6"

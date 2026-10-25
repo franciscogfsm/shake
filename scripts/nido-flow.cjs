@@ -43,31 +43,26 @@ const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).ca
   };
   const visibleText = (w, text) => w.locator(`text=${text}`).locator('visible=true').first();
 
-  // 1. a Nido account, made on Nido's own site (once per person)
-  const nido = await buyerCtx.newPage();
-  await popups.shift();
-  await nido.goto('https://test.nido.fyi/', { timeout: 120000 });
-  await nido.getByRole('button', { name: 'Get started' }).first().click();
-  await nido.getByRole('button', { name: 'Set up with your face' }).first().click();
-  await visibleText(nido, 'Continue').waitFor({ timeout: 120000 });
-  await visibleText(nido, 'Continue').click();
-  await nido.getByText('Continue to my wallet').waitFor({ timeout: 120000 });
-  await nido.getByText('Continue to my wallet').click();
-  await nido.locator('h1', { hasText: 'Your Nido is ready' }).waitFor({ timeout: 180000 });
-  const account = new URL(nido.url()).hostname.split('.')[0].toUpperCase();
-  lap('Nido account ' + account);
-  await nido.close();
-
-  // 2. lock with Face ID: connect → SHAKE's passkey → approve in Nido → pay
+  // 1. lock with Face ID, as a new person: Create my Nido (Nido's sign-up, in a popup) → connect it → SHAKE's passkey → approve → pay
   await buyer.goto(B + '/deal/new', { timeout: 180000 });
   await buyer.fill('#item', 'Nido test bike');
   await buyer.fill('#price', '12');
   await shot(buyer, 'n1-form');
   await buyer.click('button[type=submit]');
-  await buyer.getByRole('button', { name: 'Connect Nido' }).waitFor({ timeout: 20000 });
+  await buyer.getByRole('button', { name: 'Create my Nido' }).waitFor({ timeout: 20000 });
   await shot(buyer, 'n2-connect');
-  const picker = await popup(() => buyer.getByRole('button', { name: 'Connect Nido' }).click());
-  await picker.getByText(account).click({ timeout: 60000 });
+  const nido = await popup(() => buyer.getByRole('button', { name: 'Create my Nido' }).click());
+  await nido.getByRole('button', { name: 'Create with a passkey' }).click({ timeout: 60000 });
+  await visibleText(nido, 'Continue').waitFor({ timeout: 120000 });
+  await visibleText(nido, 'Continue').click();
+  await nido.getByText('Continue to my wallet').click({ timeout: 120000 });
+  await nido.locator('h1', { hasText: 'Your Nido is ready' }).waitFor({ timeout: 180000 });
+  const account = new URL(nido.url()).hostname.split('.')[0].toUpperCase();
+  lap('Nido account ' + account);
+  // the same window turns into Nido's picker
+  await buyer.getByRole('button', { name: 'Connect my new Nido' }).click();
+  await nido.waitForURL(/\/connect\//, { timeout: 30000 });
+  await nido.getByText(account).click({ timeout: 60000 });
   await buyer.getByRole('button', { name: 'Create with Face ID' }).waitFor({ timeout: 30000 });
   lap('connected');
   await shot(buyer, 'n3-passkey');

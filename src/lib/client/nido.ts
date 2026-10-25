@@ -87,7 +87,9 @@ export async function connectNido() {
 
 /** Nido's sign-up, straight to Face ID. It can't hand the address back, so it opens in the window the picker reuses next. */
 export function createNidoAccount() {
-  if (!window.open(new URL("/new-account/?setup=1", apex()).toString(), "nido-wallet", "popup,width=460,height=720"))
+  // the random salt Nido's home page passes; it picks the new account's address
+  const salt = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
+  if (!window.open(`${apex()}/new-account/?setup=1#salt=${salt}`, "nido-wallet", "popup,width=460,height=720"))
     throw new Error("Your browser blocked Nido's window. Allow pop-ups for this site and try again.");
 }
 
