@@ -70,6 +70,7 @@ export async function stats() {
     if (e.type !== "locked") continue;
     deals++;
   }
+  const locks = new Map(ev.filter((e) => e.type === "locked").map((e) => [e.dealId, e]));
   const released = [...closed.values()].filter((v) => v === "released").length;
   return {
     deals,
@@ -80,6 +81,12 @@ export async function stats() {
       .slice(-12)
       .reverse()
       .map((e) => ({ type: e.type, dealId: e.dealId, amount: e.amount.toString(), at: e.at, txHash: e.txHash })),
+    // the proof wall: real deals that ended, each with its own transaction to open
+    shakes: ev
+      .filter((e) => (e.type === "released" || e.type === "refunded") && locks.get(e.dealId)?.token)
+      .slice(-12)
+      .reverse()
+      .map((e) => ({ type: e.type, amount: locks.get(e.dealId)!.amount.toString(), token: locks.get(e.dealId)!.token!, at: e.at, txHash: e.txHash })),
     windowDays: 3,
   };
 }

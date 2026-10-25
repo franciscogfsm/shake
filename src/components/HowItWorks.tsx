@@ -5,9 +5,10 @@ import { Mark, springs } from "@/components/Mark";
 
 /** The three beats of every deal, in the order the hero tells them. */
 export const BEATS = [
-  { t: "Lock", d: "You hold it. It isn't sent." },
-  { t: "They see", d: "Real money, not a photo." },
-  { t: "Shake", d: "You meet. Then it pays." },
+  { t: "Lock", d: "You lock it. It isn't sent." },
+  { t: "Verify", d: "They see it's real. Not a photo." },
+  { t: "Meet", d: "Face to face. A one-time QR." },
+  { t: "Shake", d: "Scan it. Paid in 5 seconds." },
 ] as const;
 
 const BEAT_MS = 3000;
@@ -46,20 +47,21 @@ function Phone({ who, children, big }: { who: string; children: React.ReactNode;
  */
 export function HowItWorks({ beat, money, big, className = "" }: { beat: number; money: string; big?: boolean; className?: string }) {
   const reduce = useReducedMotion();
-  // within the Shake beat: first the QR is scanned, then the halves slam and it pays
-  const [paid, setPaid] = useState(false);
+  // within Verify: a faked screenshot glitches first, then the real locked money replaces it
+  const [real, setReal] = useState(false);
   useEffect(() => {
-    setPaid(false);
-    if (beat !== 2) return;
-    const t = setTimeout(() => setPaid(true), 1100);
+    setReal(false);
+    if (beat !== 1) return;
+    const t = setTimeout(() => setReal(true), 1100);
     return () => clearTimeout(t);
   }, [beat]);
+  const paid = beat === 3;
 
   const amount = big ? "text-[26px]" : "text-[17px]";
   const small = big ? "text-[11px]" : "text-[8px]";
   const fade = { initial: { opacity: 0, y: reduce ? 0 : 8 }, animate: { opacity: 1, y: 0 }, exit: { opacity: 0, y: reduce ? 0 : -6 }, transition: springs.snappy };
-  const near = beat === 2 && !reduce ? (big ? 18 : 10) : 0;
-  const key = `${beat}${paid}`;
+  const near = beat >= 2 && !reduce ? (big ? 18 : 10) : 0;
+  const key = `${beat}${real}`;
 
   return (
     <div className={className}>
@@ -81,16 +83,16 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
                   <span className={`text-mute ${small}`}>Not sent yet</span>
                 </motion.div>
               )}
-              {beat === 2 && !paid && (
+              {beat === 2 && (
                 <motion.div key={key} {...fade} className={`relative grid place-items-center ${big ? "size-[88px]" : "size-[56px]"}`}>
                   {["left-0 top-0 border-l border-t", "right-0 top-0 border-r border-t", "left-0 bottom-0 border-l border-b", "right-0 bottom-0 border-r border-b"].map((c) => (
                     <span key={c} className={`absolute size-3 rounded-[3px] border-safe ${c}`} />
                   ))}
-                  {!reduce && <motion.span className="absolute inset-x-1 h-px bg-safe shadow-[0_0_8px_var(--safe)]" initial={{ top: "10%" }} animate={{ top: ["10%", "90%", "10%"] }} transition={{ duration: 1.1, ease: "easeInOut" }} />}
+                  {!reduce && <motion.span className="absolute inset-x-1 h-px bg-safe shadow-[0_0_8px_var(--safe)]" initial={{ top: "10%" }} animate={{ top: ["10%", "90%", "10%"] }} transition={{ duration: 1.4, ease: "easeInOut", repeat: 1 }} />}
                   <span className={`text-mute ${small}`}>Scanning</span>
                 </motion.div>
               )}
-              {beat === 2 && paid && (
+              {paid && (
                 <motion.div key={key} {...fade} className="flex flex-col items-center gap-1">
                   <span className={`amount ${amount}`}>Paid</span>
                   <span className={`text-safe ${small}`}>in 5 seconds</span>
@@ -111,11 +113,18 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
               transition={{ duration: 1.1, delay: 0.5, ease: [0.3, 0.7, 0.4, 1] }}
             />
           )}
-          <Mark size={big ? 52 : 34} state={beat === 2 && paid ? "shut" : beat === 0 ? "open" : "rest"} />
-          <div className={`mt-1.5 text-center font-mono uppercase tracking-[0.12em] ${big ? "text-[9px]" : "text-[7px]"} ${beat === 2 && paid ? "text-safe" : "text-mute"}`}>
-            {beat === 2 && paid ? "Released" : beat === 0 ? "On Stellar" : "Held safe"}
-          </div>
-          {beat === 2 && paid && !reduce && (
+          <Mark size={big ? 52 : 34} state={paid ? "shut" : beat === 0 ? "open" : "rest"} />
+          {/* the seal lands on the shake, like the real receipt */}
+          <motion.div
+            key={paid ? "seal" : "label"}
+            initial={paid && !reduce ? { opacity: 0, scale: 1.7, rotate: -14 } : { opacity: 0 }}
+            animate={{ opacity: 1, scale: 1, rotate: paid ? -6 : 0 }}
+            transition={paid ? { type: "spring", stiffness: 520, damping: 22, delay: 0.25 } : springs.snappy}
+            className={`mt-1.5 text-center font-mono uppercase tracking-[0.12em] ${big ? "text-[9px]" : "text-[7px]"} ${paid ? "rounded-full border border-safe px-1.5 py-0.5 text-safe shadow-[0_0_14px_-4px_var(--safe)]" : "text-mute"}`}
+          >
+            {paid ? "Released" : beat === 0 ? "On Stellar" : "Held safe"}
+          </motion.div>
+          {paid && !reduce && (
             <motion.span className="pointer-events-none absolute left-1/2 top-[38%] size-24 -translate-x-1/2 -translate-y-1/2 rounded-full bg-safe/30 blur-xl" initial={{ scale: 0.3, opacity: 0.9 }} animate={{ scale: 1.6, opacity: 0 }} transition={{ duration: 0.8, ease: "easeOut" }} />
           )}
         </div>
@@ -125,19 +134,31 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
             <AnimatePresence mode="wait" initial={false}>
               {beat === 0 && (
                 <motion.div key={key} {...fade} className="flex flex-col items-center gap-1">
-                  <span className={`text-mute ${small}`}>“I sent it, look”</span>
-                  <span className={`rounded-md border border-dashed border-white/20 px-2 py-1 text-mute line-through ${small}`}>screenshot</span>
-                  <span className={`text-mute ${small}`}>Not proof</span>
+                  <span className={`text-mute ${small}`}>Waiting for</span>
+                  <span className={`amount ${amount} text-mute`}>{money}</span>
                 </motion.div>
               )}
-              {beat === 1 && (
+              {beat === 1 && !real && (
+                <motion.div
+                  key={key}
+                  {...fade}
+                  animate={reduce ? { opacity: 1, y: 0 } : { opacity: [1, 0.4, 1, 0.6, 1], x: [0, -3, 2, -1, 0], y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.3 }}
+                  className="flex flex-col items-center gap-1"
+                >
+                  <span className={`text-mute ${small}`}>“I sent it, look”</span>
+                  <span className={`rounded-md border border-dashed border-white/25 px-2 py-1 text-mute line-through ${small}`}>screenshot</span>
+                  <span className={`font-medium text-ink-2 ${small}`}>✕ Not on Stellar</span>
+                </motion.div>
+              )}
+              {beat === 1 && real && (
                 <motion.div key={key} {...fade} className="flex flex-col items-center gap-1">
                   <span className={`amount ${amount} glacier-text`}>{money}</span>
                   <span className={`text-ink ${small}`}>locked for you ✓</span>
                   <span className={`text-mute ${small}`}>Checked on Stellar</span>
                 </motion.div>
               )}
-              {beat === 2 && !paid && (
+              {beat === 2 && (
                 <motion.div key={key} {...fade} className="flex flex-col items-center gap-1">
                   <svg viewBox="0 0 11 11" className={`rounded-[4px] bg-white p-[3px] ${big ? "size-[72px]" : "size-[46px]"}`} shapeRendering="crispEdges">
                     {QR.map((on, i) => on && <rect key={i} x={i % 11} y={Math.floor(i / 11)} width="1" height="1" fill="#0d0f12" />)}
@@ -145,7 +166,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
                   <span className={`text-mute ${small}`}>One-time QR</span>
                 </motion.div>
               )}
-              {beat === 2 && paid && (
+              {paid && (
                 <motion.div key={key} {...fade} className="flex flex-col items-center gap-1">
                   <span className={`amount ${amount} text-safe`}>+{money}</span>
                   <span className={`text-ink ${small}`}>Yours ✓</span>
@@ -162,8 +183,9 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
 /** What each beat means, in words. Shared by the mobile caption and the desktop panel. */
 export function beatLine(beat: number, money: string) {
   return [
-    `You lock ${money}. It leaves your wallet, but they can't touch it yet.`,
-    `They see ${money} locked for them, checked on Stellar. Not a screenshot.`,
-    `You meet and scan their one-time QR. It pays in about 5 seconds. Don't meet? It comes back to you.`,
+    `You lock ${money}. It leaves your wallet, but nobody can touch it yet.`,
+    `A screenshot can be faked. They see ${money} really locked for them, checked on Stellar.`,
+    `You meet face to face. They show a one-time QR that only exists on their phone, right now.`,
+    `You scan it and it pays in about 5 seconds. Don't meet? It comes back to you.`,
   ][beat];
 }

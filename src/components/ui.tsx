@@ -1,11 +1,11 @@
 "use client";
-import { motion } from "motion/react";
+import { motion, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Wordmark } from "./Mark";
 import { NumberTicker } from "./Ticker";
 import { useCountry } from "./Money";
-import { availableCurrencies, formatMoney, fromUnits } from "@/lib/config";
+import { availableCurrencies, explorer, formatMoney, fromUnits } from "@/lib/config";
 
 /** Phone-first page shell: safe areas, centred column, top bar with the wordmark. `fit` locks the desktop page to one screen. */
 export function Screen({ children, back, right, wide, fit }: { children: React.ReactNode; back?: string; right?: React.ReactNode; wide?: boolean; fit?: boolean }) {
@@ -101,9 +101,9 @@ export function Countdown({ to }: { to: number }) {
 }
 
 /** The live counter: money held safe by SHAKE right now, read from the contract's events. */
-export function Protected({ className = "justify-center" }: { className?: string }) {
+export function Protected({ className = "justify-center", wall }: { className?: string; wall?: boolean }) {
   const [country] = useCountry();
-  const [s, setS] = useState<{ openDeals: number; deals: number; totals: { token: string; protectedNow: string }[] } | null>(null);
+  const [s, setS] = useState<{ openDeals: number; deals: number; totals: { token: string; protectedNow: string }[]; shakes?: Shake[] } | null>(null);
   useEffect(() => {
     const load = () => fetch("/api/stats").then((r) => (r.ok ? r.json() : null)).then((j) => j && setS(j)).catch(() => {});
     load();
@@ -115,12 +115,50 @@ export function Protected({ className = "justify-center" }: { className?: string
     const currency = availableCurrencies().find((c) => c.token === t.token);
     return currency && BigInt(t.protectedNow) > 0n ? [formatMoney(fromUnits(t.protectedNow), currency.code, country.locale)] : [];
   });
-  return (
+  const line = (
     <div className={`flex items-center gap-2 text-sm text-ink-2 ${className}`}>
       <span className="pulse-dot" />
       <span>
         {totals.length ? <><span className="font-medium text-ink">{totals.join(" · ")}</span> protected right now</> : <><NumberTicker value={s.openDeals ?? 0} format={(n) => new Intl.NumberFormat(country.locale, { maximumFractionDigits: 0 }).format(n)} className="font-medium text-ink" /> open deals</>} · {new Intl.NumberFormat(country.locale).format(s.deals)} deals on Stellar
       </span>
+    </div>
+  );
+  return wall ? <div className="flex flex-col gap-2">{line}<ProofWall shakes={s.shakes ?? []} locale={country.locale} /></div> : line;
+}
+
+type Shake = { type: "released" | "refunded"; amount: string; token: string; at: string; txHash: string };
+
+/** Real deals that just ended on Stellar, each one a link to its transaction. Answers "is this real?" without a word. */
+function ProofWall({ shakes, locale }: { shakes: Shake[]; locale: string }) {
+  const reduce = useReducedMotion();
+  const now = useNow(30_000);
+  const rel = new Intl.RelativeTimeFormat(locale, { numeric: "auto", style: "short" });
+  const ago = (at: string) => {
+    const s = Math.max(0, now - Date.parse(at) / 1000);
+    return s < 60 ? rel.format(0, "second") : s < 3600 ? rel.format(-Math.floor(s / 60), "minute") : s < 86400 ? rel.format(-Math.floor(s / 3600), "hour") : rel.format(-Math.floor(s / 86400), "day");
+  };
+  const chips = shakes.flatMap((x) => {
+    const c = availableCurrencies().find((c) => c.token === x.token);
+    return c ? [{ ...x, money: formatMoney(fromUnits(x.amount), c.code, locale) }] : [];
+  });
+  if (!chips.length) return null;
+  const chip = (x: (typeof chips)[number], i: number) => (
+    <a key={`${x.txHash}${i}`} aria-hidden={i >= chips.length || undefined} tabIndex={i >= chips.length ? -1 : undefined} href={explorer.tx(x.txHash)} target="_blank" rel="noreferrer" className="flex shrink-0 items-center gap-1.5 rounded-full border border-line px-3 py-1 text-[12px] text-ink-2 hover:border-safe/50 hover:text-ink">
+      <span className={x.type === "released" ? "text-safe" : "text-mute"}>{x.type === "released" ? "✓" : "↩"}</span>
+      <span className="font-medium text-ink">{x.money}</span>
+      {x.type === "released" ? "paid on the shake" : "back to the buyer"} · {ago(x.at)} <span className="text-mute">↗</span>
+    </a>
+  );
+  // the row is doubled and slides half its width, so the loop is seamless; the copy is hidden from screen readers and tabbing
+  return (
+    <div className="-mx-5 overflow-hidden [mask-image:linear-gradient(90deg,transparent,#000_12%,#000_88%,transparent)] lg:mx-0" aria-label="Recent deals on Stellar">
+      {reduce ? (
+        <div className="flex gap-2 overflow-x-auto px-5">{chips.map(chip)}</div>
+      ) : (
+        <motion.div className="flex w-max gap-2" animate={{ x: ["0%", "-50%"] }} transition={{ duration: chips.length * 4, ease: "linear", repeat: Infinity }}>
+          {[...chips, ...chips].map(chip)}
+        </motion.div>
+      )}
     </div>
   );
 }

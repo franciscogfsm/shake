@@ -136,7 +136,7 @@ function Hero({ onStart, money, beat, onBeat }: { onStart: () => void; money: st
         <p className="text-sm text-mute">Live transactions · test assets · no sign-up</p>
       </Item>
       <Item>
-        <Protected className="justify-center lg:justify-start" />
+        <Protected wall className="justify-center lg:justify-start" />
       </Item>
       <Item>
         <Link href="/deal/new" onPointerDown={() => haptic.tick()} className="text-[14px] text-ink-2 hover:text-ink">
@@ -153,7 +153,7 @@ function Hero({ onStart, money, beat, onBeat }: { onStart: () => void; money: st
           . Nobody can just keep it.
         </p>
       </Item>
-      <Item className="grid grid-cols-3 gap-2 lg:max-w-[560px] lg:gap-4">
+      <Item className="grid grid-cols-4 gap-1 lg:max-w-[600px] lg:gap-4">
         {BEATS.map(({ t, d }, i) => (
           <motion.button
             type="button"
@@ -166,9 +166,11 @@ function Hero({ onStart, money, beat, onBeat }: { onStart: () => void; money: st
           >
             <span className={`step-dot !size-8 font-mono text-xs transition-colors ${beat === i ? "!bg-safe !text-on-safe" : "text-safe"}`}>{i + 1}</span>
             <div className="font-display text-[15px] font-medium lg:text-lg">{t}</div>
-            <p className="text-[12px] leading-snug text-ink-2 lg:text-sm">{d}</p>
+            <p className="hidden text-sm leading-snug text-ink-2 lg:block">{d}</p>
           </motion.button>
         ))}
+        {/* iPhone: one line for the active beat instead of four squeezed ones */}
+        <p className="col-span-4 h-5 text-[13px] text-ink-2 lg:hidden" aria-hidden>{BEATS[beat].d}</p>
         <p className="sr-only" aria-live="polite">{beatLine(beat, money)}</p>
       </Item>
     </Stagger>
