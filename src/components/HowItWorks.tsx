@@ -130,7 +130,7 @@ export function HowItWorks({ beat, money, big, className = "" }: { beat: number;
                   <span key={c} className={`absolute size-4 rounded-[4px] ${sub ? "border-safe" : "border-white/60"} ${c}`} />
                 ))}
                 {!reduce && !sub && <motion.span className="absolute inset-x-1.5 h-[2px] rounded-full bg-safe shadow-[0_0_12px_var(--safe)]" initial={{ top: "10%" }} animate={{ top: ["10%", "90%", "10%"] }} transition={{ duration: 1.4, ease: "easeInOut" }} />}
-                {sub && <motion.span className={`absolute inset-0 grid place-items-center text-safe ${s.label}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>It's them ✓</motion.span>}
+                {sub && <motion.span className={`absolute inset-0 grid place-items-center text-safe ${s.label}`} initial={{ opacity: 0, scale: 0.6 }} animate={{ opacity: 1, scale: 1 }} transition={springs.slam}>It&apos;s them ✓</motion.span>}
               </motion.div>
             )}
             {paid && flip("paid", <>

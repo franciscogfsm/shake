@@ -65,7 +65,7 @@ Numbers with sources (only these go on screen):
 ## 4. The WOW moments (build the pitch around these)
 
 ### WOW 1: "You didn't just read a website. You used SHAKE." (the pitch is the product)
-A judge opens shake-lake.vercel.app and taps **Try it now · lock €5**. Without noticing, they've just:
+A judge opens shake-lake.vercel.app, taps **Try it now · lock €5** and picks how to pay (Apple Pay, Visa, MB WAY…: test mode, nothing is charged). Without noticing, they've just:
 - had a wallet created (no sign-up, no app, no seed words);
 - received €5 of test money;
 - locked it in our contract for a seller (the SHAKE team).
@@ -256,6 +256,7 @@ Why Stellar specifically: settlement in seconds, fees of fractions of a cent (wh
 - **Crew payouts are "coming next"**, not built.
 - **Extension:** desktop Chrome/Edge, installed manually (no Web Store yet). Checked live on an OLX Portugal and a Vinted Spain listing; other marketplaces were tested against saved copies of their pages.
 - **Cash-out:** the transfer to our test anchor is real; the bank payout itself is simulated.
+- **Pay-in (Apple Pay, Visa, MB WAY, PayPal…):** the "Choose how to pay" sheet is test mode. No card processor is connected and nothing is charged; picking a method brings in test money. Say "in test mode, test money stands in for the card; in production that's a payment processor". Never say a card was charged.
 - **Shipping:** "delivered" is declared by the seller (no carrier tracking). After the 3-day window, someone must tap "release"; nothing submits it automatically.
 - **Disputes:** the neutral resolver is currently the SHAKE team address. It can only split between buyer and seller, never keep.
 - **Track record:** last 3 days of on-chain activity. It's a signal, not identity verification.

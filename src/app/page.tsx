@@ -10,6 +10,7 @@ import { CountryPicker, useCountry } from "@/components/Money";
 import { LiveReceipt } from "@/components/LiveReceipt";
 import { Mark, springs } from "@/components/Mark";
 import { haptic, sfx } from "@/lib/client/sfx";
+import { PaySheet } from "@/components/PaySheet";
 import { Seal } from "@/components/Seal";
 import { Item, Protected, Screen, Stagger, Steps, TestnetNote } from "@/components/ui";
 import { usePitchSession, type PitchSession } from "@/lib/client/pitchSession";
@@ -25,6 +26,7 @@ export default function Home() {
   const currency = session.currency ?? (session.dealId ? "EUR" : country.currency);
   const money = formatMoney(5, currency, country.locale);
   const [refunding, setRefunding] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [beat, pickBeat, nonce] = useBeat();
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
   const phaseRef = useRef(phase);
@@ -56,8 +58,8 @@ export default function Home() {
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
-          {phase === "idle" && <Hero onStart={start} money={money} beat={beat} nonce={nonce} onBeat={pickBeat} />}
-          {phase === "working" && <Locking money={money} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
+          {phase === "idle" && <Hero onStart={() => setPaying(true)} money={money} beat={beat} nonce={nonce} onBeat={pickBeat} />}
+          {phase === "working" && <Locking money={money} via={session.method} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && availability !== "available" && (
             <div className="flex flex-col items-center gap-5 text-center" aria-live="polite">
               <Mark size={88} />
@@ -114,6 +116,7 @@ export default function Home() {
       </div>
       <Composed />
       </div>
+      <PaySheet open={paying} onClose={() => setPaying(false)} title={`Lock ${money}`} money={money} currency={currency} country={country.code} onPay={(m) => { setPaying(false); void start(m); }} />
     </Screen>
   );
 }
@@ -145,7 +148,7 @@ function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; mo
   );
 }
 
-function Locking({ step, error, money }: { step: string; error?: string; money: string }) {
+function Locking({ step, error, money, via }: { step: string; error?: string; money: string; via?: string }) {
   const reduce = useReducedMotion();
   const prev = useRef(step);
   useEffect(() => {
@@ -166,7 +169,7 @@ function Locking({ step, error, money }: { step: string; error?: string; money: 
       <div className="glass w-full p-6">
         <Steps
           steps={[
-            { key: "wallet", label: "Making your wallet (no sign-up)" },
+            { key: "wallet", label: via ? `Paying with ${via} · test money` : "Making your wallet (no sign-up)" },
             { key: "locked", label: `Locking ${money} on Stellar` },
             { key: "joined", label: "Seller sees it's real" },
           ]}
@@ -193,7 +196,7 @@ function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePit
         <LiveReceipt
           delay={0.3}
           items={[
-            { key: "w", title: "Wallet made, no sign-up", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined },
+            { key: "w", title: session.method ? `Paid with ${session.method} · no sign-up` : "Wallet made, no sign-up", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined },
             { key: "l", title: `${money} locked when you tapped`, at: session.locked?.at, hash: session.locked?.hash ?? undefined },
             { key: "j", title: "Seller saw it was real", at: session.joined?.at, hash: session.joined?.hash ?? undefined },
             { key: "s", title: released ? "Paid when you shook" : "Back to you when you said not yet", at: session.settled?.at, hash: session.settled?.hash ?? undefined, tone: released ? "safe" : "mute" },
@@ -251,7 +254,7 @@ function LivePanel({ session, money }: { session: PitchSession; money: string })
           dense
           stagger={0.08}
           items={[
-            { key: "w", title: "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
+            { key: "w", title: session.method ? `${money} in · ${session.method} (test)` : "Wallet made for you", at: session.wallet?.at, hash: session.wallet?.hash ?? undefined, pending: !session.wallet, active: next === "w" },
             { key: "l", title: `${money} locked`, at: session.locked?.at, hash: session.locked?.hash ?? undefined, pending: !session.locked, active: next === "l" },
             { key: "j", title: "Seller sees the real money", at: session.joined?.at, hash: session.joined?.hash ?? undefined, pending: !session.joined, active: next === "j" },
             { key: "s", title: refunded ? "Back to you" : "Paid when you shake", at: session.settled?.at, hash: session.settled?.hash ?? undefined, pending: !session.settled, active: next === "s", tone: refunded ? "mute" : "safe" },

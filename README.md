@@ -60,7 +60,7 @@ Why the seller can hand over the item: once a seller has joined, only that selle
 
 Open the [live SHAKE application](https://shake-lake.vercel.app/).
 
-1. Choose your payment currency in the region picker, then select **Try it now** to lock 5 units. SHAKE creates a browser wallet, funds it with that test asset, locks the funds, and joins using the team's seller account. Saved payment sessions retain their original currency.
+1. Choose your payment currency in the region picker, then select **Try it now** and pick a payment method (Apple Pay, Visa, Mastercard, MB WAY, PayPal…) to lock 5 units. SHAKE creates a browser wallet, funds it with that test asset, locks the funds, and joins using the team's seller account. Saved payment sessions retain their original currency.
 2. Watch the real setup steps complete. No wallet extension or manual XLM funding is needed.
 3. **Hold to shake** to release the test funds, or choose **Not yet, give it back** for a seller-authorized refund.
 4. Inspect the reveal: wallet creation, lock, acceptance, and settlement appear with transaction evidence.
@@ -132,6 +132,7 @@ SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HT
 - **Sponsored fees:** OpenZeppelin Channels handles Soroban submissions, with an application-funded channel pool as a fallback. Users do not need to obtain XLM.
 - **Worldwide region preferences:** 249 countries and territories, browser locale detection, and separate region, number-format, and payment-currency controls. Preferences are remembered across pages and tabs.
 - **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through testnet funding, escrow, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset. These are independently issued test assets; no foreign-exchange conversion is implemented.
+- **Pay-in methods (test mode):** before every lock, one tap picks how to pay: Apple Pay, Google Pay, Visa, Mastercard and PayPal, plus the local favourite (MB WAY in Portugal, Pix for tBRL, SEPA for tEUR, Revolut Pay elsewhere). No card processor is connected and nothing is charged: the sheet says so, and our test issuer sends the test money instead. Everything after it (lock, shake, refund) is a real testnet transaction. Production would put a card/MB WAY processor or an on-ramp anchor (SEP-24 deposit) at this step.
 - **Shake to Bank:** built-in SEP-1 discovery, SEP-10 authentication, and SEP-24 interactive withdrawals, including IBAN checksum validation, a signed testnet payment, and a simulated bank payout. The current cash-out client uses the seller's browser keypair. Worldwide region selection does not imply local fiat or bank payout coverage; real payouts need an anchor supporting the destination and currency.
 
 ### Product experience

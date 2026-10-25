@@ -4,6 +4,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { Mark, springs } from "@/components/Mark";
+import { PaySheet } from "@/components/PaySheet";
 import { NumberTicker } from "@/components/Ticker";
 import { Item, Screen, Stagger, TestnetNote } from "@/components/ui";
 import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
@@ -21,8 +22,8 @@ import { haptic, sfx } from "@/lib/client/sfx";
 const MAX = 2000;
 const DAY = 24 * 60 * 60;
 type Phase = "form" | "locking" | "failed";
-const steps = (faceId: boolean) => [
-  { key: "account", label: faceId ? "Creating your Face ID wallet" : "Setting up your money" },
+const steps = (faceId: boolean, via: string) => [
+  { key: "account", label: faceId ? (via ? `Face ID wallet · paying with ${via}` : "Creating your Face ID wallet") : via ? `Paying with ${via} · test money` : "Setting up your money" },
   { key: "preparing", label: "Preparing the lock" },
   { key: "signing", label: "Signing on this phone" },
   { key: "confirming", label: "Confirming on the network" },
@@ -79,6 +80,9 @@ function NewDeal() {
   const busy = useRef(false);
   const [faceIdOk, setFaceIdOk] = useState(false);
   const [faceId, setFaceId] = useState(false);
+  /** The pay sheet is open (true/false = with or without Face ID), and the method picked in it. */
+  const [paying, setPaying] = useState<boolean | null>(null);
+  const [via, setVia] = useState("");
   useEffect(() => setFaceIdOk(passkeySupported()), []);
   const [country, setCountry] = useCountry();
   const currency = country.currency;
@@ -168,7 +172,7 @@ function NewDeal() {
             onSubmit={(e) => {
               e.preventDefault();
               if (asking) askLink();
-              else lock(faceIdOk);
+              else if (valid) setPaying(faceIdOk);
             }}
             className="flex flex-1 flex-col"
           >
@@ -278,7 +282,7 @@ function NewDeal() {
                   </button>
                 )}
                 {faceIdOk && valid && !asking && (
-                  <button type="button" onClick={() => lock(false)} className="text-sm text-mute underline-offset-4 hover:underline">
+                  <button type="button" onClick={() => setPaying(false)} className="text-sm text-mute underline-offset-4 hover:underline">
                     Lock without Face ID
                   </button>
                 )}
@@ -299,18 +303,33 @@ function NewDeal() {
             phase={phase}
             step={step}
             faceId={faceId}
+            via={via}
             error={error}
             onRetry={() => lock()}
             onEdit={() => setPhase("form")}
           />
         )}
       </AnimatePresence>
+      <PaySheet
+        open={paying !== null}
+        onClose={() => setPaying(null)}
+        title={`${hold ? "Hold" : "Lock"} ${money(amount)}`}
+        money={money(amount)}
+        currency={currency}
+        country={country.code}
+        onPay={(m) => {
+          const withFaceId = !!paying;
+          setPaying(null);
+          setVia(m);
+          void lock(withFaceId);
+        }}
+      />
     </Screen>
   );
 }
 
 function LockMoment({
-  item, amount, currency, locale, phase, step, faceId, error, onRetry, onEdit,
+  item, amount, currency, locale, phase, step, faceId, via, error, onRetry, onEdit,
 }: {
   item: string;
   amount: number;
@@ -319,6 +338,7 @@ function LockMoment({
   phase: "locking" | "failed";
   step: string | null;
   faceId: boolean;
+  via: string;
   error: string;
   onRetry: () => void;
   onEdit: () => void;
@@ -326,7 +346,7 @@ function LockMoment({
   const reduce = useReducedMotion();
   const sym = moneyParts(amount || 0, currency, locale);
   const failed = phase === "failed";
-  const list = steps(faceId);
+  const list = steps(faceId, via);
   const active = list.find((s) => s.key === step);
 
   return (

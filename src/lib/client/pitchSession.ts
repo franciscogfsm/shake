@@ -14,6 +14,8 @@ export type PitchSession = {
   status: "idle" | "working" | "ready" | "failed" | "done";
   dealId?: string;
   currency?: CurrencyCode;
+  /** The payment method the judge picked (test mode: test money stands in for it). */
+  method?: string;
   wallet?: Step;
   locked?: Step;
   joined?: Step;
@@ -94,7 +96,7 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
   }, [reconcile, update]);
 
   /** Idempotent: resumes from whatever step a previous attempt (or a refresh) reached. */
-  const start = useCallback(async () => {
+  const start = useCallback(async (method?: string) => {
     if (running.current) return;
     const cur = ref.current;
     if (cur.status === "ready" || cur.status === "done") return;
@@ -102,7 +104,7 @@ export function usePitchSession(preferredCurrency: CurrencyCode = "EUR") {
     // Legacy demo sessions were always EUR.
     const currency = cur.currency ?? (cur.dealId ? "EUR" : preferred.current);
     running.current = true;
-    update({ status: "working", currency, error: undefined });
+    update({ status: "working", currency, error: undefined, ...(method ? { method } : {}) });
     for (let attempt = 0; attempt < 3; attempt++) {
       try {
         const kp = getKeypair();
