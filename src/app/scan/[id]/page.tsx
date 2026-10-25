@@ -15,15 +15,16 @@ import { ApiError, callDeal, getKeypair, sha256Hex } from "@/lib/client/wallet";
 export default function ScanPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
-  const { deal, state, refresh } = useDeal(id, { interval: 4000 });
+  const { deal, state } = useDeal(id, { interval: 4000 });
   const [me, setMe] = useState<string | null>(null);
   const [code, setCode] = useState<string | null>(null);
   const [typed, setTyped] = useState("");
   const [problem, setProblem] = useState("");
-  const item = dealMeta.get(id).item;
+  const [item, setItem] = useState<string | undefined>();
 
   useEffect(() => {
     setMe(getKeypair().publicKey());
+    setItem(dealMeta.get(id).item);
     // opened from a phone camera: the code rides in the URL fragment
     const fromUrl = location.hash.slice(1);
     if (fromUrl) check(fromUrl.length === 10 ? fromUrl : `${location.origin}/scan/${id}#${fromUrl}`);
@@ -43,8 +44,8 @@ export default function ScanPage() {
   const release = async () => {
     try {
       await callDeal(getKeypair(), "release", { dealId: id, secret: code! });
-      await refresh();
-      setTimeout(() => router.push(`/deal/${id}`), 1400);
+      // let the slam play on this screen, then land on the shared "released" moment
+      setTimeout(() => router.push(`/deal/${id}`), 1600);
     } catch (e) {
       setProblem(e instanceof ApiError ? e.message : "The network didn't confirm. Nothing moved. Try again.");
       setCode(null);
@@ -54,7 +55,8 @@ export default function ScanPage() {
 
   if (state === "ready" && deal && me && deal.buyer !== me)
     return <Screen back={`/deal/${id}`}><Notice title="Only the buyer scans." body="Open this deal on the phone that locked the money." /></Screen>;
-  if (deal && deal.status !== "Accepted")
+  // while the confirm sheet is open (code accepted) we stay here, even if polling sees the release first
+  if (deal && deal.status !== "Accepted" && !code)
     return (
       <Screen back={`/deal/${id}`}>
         <Notice

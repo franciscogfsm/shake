@@ -42,7 +42,7 @@ function DealScreen() {
   return (
     <Screen right={<Link href={`/r/${id}`} className="eyebrow rounded-full px-3 py-2 hover:text-ink">Receipt</Link>}>
       <AnimatePresence mode="wait">
-        <motion.div key={`${role}-${deal.status}`} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
+        <motion.div key={`${role}-${deal.status === "Released" || deal.status === "Refunded" ? deal.status : "open"}`} className="flex flex-1 flex-col" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, scale: 0.98 }}>
           {deal.status === "Released" ? (
             <Released {...props} role={role} />
           ) : deal.status === "Refunded" ? (
