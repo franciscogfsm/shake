@@ -85,7 +85,7 @@ Before shipment, the usual cancellation permissions apply: the buyer can cancel 
 
 ### Use SHAKE from any AI assistant (MCP)
 
-SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HTTP, no auth). Add it as a custom connector in Claude or ChatGPT, or in Cursor (`{"mcpServers":{"shake":{"url":"https://shake-lake.vercel.app/api/mcp"}}}`).
+SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HTTP, no auth). Add it as a custom connector in Claude or ChatGPT, or in Cursor (`{"mcpServers":{"shake":{"url":"https://shake-lake.vercel.app/api/mcp"}}}`). Step-by-step setup for each assistant is at [shake-lake.vercel.app/ai](https://shake-lake.vercel.app/ai).
 
 | Tool | What it does |
 | --- | --- |

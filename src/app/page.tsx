@@ -42,11 +42,13 @@ export default function Home() {
       wide
       fit
       right={
-        <div className="flex items-center gap-2">
-          {session.status === "idle" && <CountryPicker country={country} onChange={setCountry} />}
+        <nav className="flex items-center gap-1 lg:gap-2">
           <Link href="/check" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink sm:inline-flex">Scam check</Link>
+          <Link href="/extension" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">Extension</Link>
+          <Link href="/ai" onPointerDown={() => haptic.tick()} className="eyebrow hidden h-10 items-center rounded-full px-3 hover:text-ink lg:inline-flex">For AI</Link>
           <Link href="/try" onPointerDown={() => haptic.tick()} className="eyebrow inline-flex h-10 items-center rounded-full px-2 hover:text-ink sm:px-3">With a friend</Link>
-        </div>
+          {session.status === "idle" && <span className="ml-1 lg:ml-3"><CountryPicker country={country} onChange={setCountry} /></span>}
+        </nav>
       }
     >
       <div className="flex min-h-0 flex-1 flex-col">
@@ -132,7 +134,6 @@ function Hero({ onStart, money, beat, nonce, onBeat }: { onStart: () => void; mo
       </Item>
       <Item className="flex flex-col gap-4 lg:max-w-[400px]">
         <Button full onClick={onStart}>Try it now · lock {money}</Button>
-        <Link href="/extension" className="text-sm text-safe underline-offset-4 hover:underline">Add SHAKE to your browser ↗</Link>
         <Protected live className="justify-center lg:justify-start" />
       </Item>
       <Item>
