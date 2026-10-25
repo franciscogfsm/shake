@@ -1,2 +1,26 @@
-.tmp/
-out/
+# Keep rendered videos and review screenshots in the repository.
+# Raw camera/audio intermediates and logs remain local.
+!.tmp/
+.tmp/**
+!.tmp/**/
+!.tmp/**/*.png
+!.tmp/**/*.jpg
+!.tmp/**/*.jpeg
+!.tmp/**/*.webp
+!.tmp/**/*.gif
+!.tmp/**/*.mp4
+!.tmp/**/*.mov
+!.tmp/**/*.webm
+
+# Override the root out/ rule for the film's deliverables only.
+!out/
+out/**
+!out/**/
+!out/**/*.mp4
+!out/**/*.mov
+!out/**/*.webm
+!out/**/*.png
+!out/**/*.jpg
+!out/**/*.jpeg
+!out/**/*.webp
+!out/**/*.gif
