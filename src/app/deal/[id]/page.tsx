@@ -10,6 +10,7 @@ import { Seal } from "@/components/Seal";
 import { SellerQR } from "@/components/SellerQR";
 import { ShakeBurst } from "@/components/ShakeBurst";
 import { ShakeMoment } from "@/components/ShakeMoment";
+import { CashOut } from "@/components/CashOut";
 import { HashTyper, NumberTicker } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
 import { currencyOfToken, explorer, formatMoney, fromUnits } from "@/lib/config";
@@ -301,6 +302,7 @@ function Released({ deal, events, role, locale, currency, replay }: ViewProps & 
       </Item>
       <Item>{burst && <Seal />}</Item>
       <Item className="flex w-full flex-col gap-3">
+        {role === "seller" && <CashOut amount={euros} currency={currency} locale={locale} />}
         <Link href={`/r/${deal.id}`} className="contents"><Button full variant="glass">See receipt</Button></Link>
         {rel && <a href={explorer.tx(rel.txHash)} target="_blank" rel="noreferrer" className="text-sm text-mute hover:text-safe">Proof on Stellar ↗</a>}
       </Item>

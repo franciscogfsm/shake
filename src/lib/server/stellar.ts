@@ -2,6 +2,7 @@ import "server-only";
 import {
   Account,
   Address,
+  Memo,
   Asset,
   BASE_FEE,
   Contract,
@@ -162,6 +163,34 @@ export async function fund(userPk: string, amount: number, currency: CurrencyCod
       if (!(e instanceof BadSeq) || attempt >= 3) throw e;
     }
   }
+}
+
+/**
+ * A user's classic payment to the anchor (SEP-24 withdrawal). The user signs the payment;
+ * a channel account is the transaction source and pays the fee, so the user still needs no XLM.
+ */
+export async function buildAnchorPayment(userPk: string, assetCode: string, amount: string, memoB64: string) {
+  const currency = (Object.keys(CURRENCIES) as CurrencyCode[]).find((c) => CURRENCIES[c].asset === assetCode);
+  if (!currency) throw new UserError("Unsupported currency");
+  if (!(Number(amount) > 0 && Number(amount) <= 2000)) throw new UserError("Bad amount");
+  const memo = Buffer.from(memoB64, "base64");
+  if (memo.length !== 32) throw new UserError("Bad memo");
+  const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
+  const account = await server.getAccount(ch.publicKey());
+  return new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE, memo: Memo.hash(memo) })
+    .addOperation(Operation.payment({ destination: TOKEN_ISSUER, asset: assetOf(currency), amount: Number(amount).toFixed(2), source: userPk }))
+    .setTimeout(120)
+    .build();
+}
+
+export async function submitAnchorPayment(signedXdr: string, userPk: string) {
+  const tx = TransactionBuilder.fromXDR(signedXdr, NETWORK_PASSPHRASE) as Transaction;
+  if (!isChannel(tx.source)) throw new UserError("Unexpected transaction source");
+  const op = tx.operations[0];
+  if (tx.operations.length !== 1 || op.type !== "payment" || op.source !== userPk || op.destination !== TOKEN_ISSUER) throw new UserError("Unexpected transaction shape");
+  const ch = Array.from({ length: CHANNEL_COUNT }, (_, i) => channel(i)).find((k) => k.publicKey() === tx.source)!;
+  tx.sign(ch);
+  return sendClassic(tx);
 }
 
 /* ---------------- contract calls ---------------- */
