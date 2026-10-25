@@ -16,7 +16,7 @@ function usePhoneSheet() {
   return phone;
 }
 
-export function GlassSheet({ open, onClose, children, label }: { open: boolean; onClose: () => void; children: React.ReactNode; label: string }) {
+export function GlassSheet({ open, onClose, children, label, fill = false }: { open: boolean; onClose: () => void; children: React.ReactNode; label: string; fill?: boolean }) {
   const phone = usePhoneSheet();
   const reduce = useReducedMotion();
   useEffect(() => {
@@ -38,10 +38,12 @@ export function GlassSheet({ open, onClose, children, label }: { open: boolean; 
             onClick={onClose}
           />
           <motion.div
-            className={`glass glass-strong relative z-10 w-full max-w-[480px] ${
+            className={`glass glass-strong relative z-10 flex w-full flex-col ${
               phone
-                ? "rounded-t-[28px] rounded-b-none px-6 pt-3 pb-safe"
-                : "max-h-[min(760px,calc(100dvh-4rem))] overflow-y-auto rounded-[28px] p-8"
+                ? `max-w-[480px] rounded-t-[28px] rounded-b-none px-6 pt-3 pb-safe ${fill ? "max-h-[92dvh] overflow-hidden" : ""}`
+                : fill
+                  ? "h-[min(720px,calc(100dvh-4rem))] max-w-[720px] overflow-hidden rounded-[28px] p-8"
+                  : "max-h-[min(760px,calc(100dvh-4rem))] max-w-[480px] overflow-y-auto rounded-[28px] p-8"
             }`}
             initial={phone ? { y: "100%" } : { opacity: 0, y: 16, scale: 0.98 }}
             animate={phone ? { y: 0 } : { opacity: 1, y: 0, scale: 1 }}
@@ -53,9 +55,9 @@ export function GlassSheet({ open, onClose, children, label }: { open: boolean; 
             onDragEnd={(_, i) => phone && (i.offset.y > 120 || i.velocity.y > 600) && onClose()}
           >
             {phone ? (
-              <div className="mx-auto mb-5 h-1.5 w-10 rounded-full bg-white/25" />
+              <div className="mx-auto mb-5 h-1.5 w-10 shrink-0 rounded-full bg-white/25" />
             ) : (
-              <div className="mb-2 flex justify-end">
+              <div className="mb-2 flex shrink-0 justify-end">
                 <button type="button" onClick={onClose} aria-label="Close" className="-mr-2 -mt-2 grid size-10 place-items-center rounded-full text-ink-2 hover:bg-white/8 hover:text-ink">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
                     <path d="M6 6l12 12M18 6L6 18" />
@@ -63,7 +65,7 @@ export function GlassSheet({ open, onClose, children, label }: { open: boolean; 
                 </button>
               </div>
             )}
-            {children}
+            {fill ? <div className="flex min-h-0 flex-1 flex-col">{children}</div> : children}
           </motion.div>
         </div>
       )}

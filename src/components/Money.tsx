@@ -92,24 +92,26 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
         <span className="font-mono text-xs text-mute">{country.code}</span>
         <span className="font-medium">{country.currency}</span>
       </motion.button>
-      <GlassSheet open={open} onClose={() => setOpen(false)} label="Choose your country">
-        <div className="pb-3">
-          <h2 className="display text-[26px]">Your region and currency</h2>
-          <p className="mt-1 text-sm text-ink-2">Amounts follow your number format. Everyone in a deal pays and receives the same currency.</p>
-          <label className="mt-4 flex flex-col gap-2 text-sm">
-            Payment currency
-            <select value={country.currency} onChange={(e) => onChange({ ...country, currency: e.target.value as CurrencyCode })} className="h-11 rounded-xl bg-bg px-3 text-ink border border-line">
-              {availableCurrencies().map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name} · test money</option>)}
-            </select>
-          </label>
-          <label className="mt-3 flex flex-col gap-2 text-sm">
-            Number format
-            <select value={country.locale} onChange={(e) => onChange({ ...country, locale: e.target.value })} className="h-11 rounded-xl border border-line bg-bg px-3">
-              {[...new Set([country.locale, "en-US", "en-GB", "pt-PT", "pt-BR", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "nl-NL", "pl-PL", "tr-TR", "en-IN", "hi-IN", "bn-BD", "ar-EG", "ar-SA", "fa-IR", "he-IL", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "id-ID", "th-TH", "vi-VN", "en-ZA"])].map((locale) => <option key={locale} value={locale}>{locale} · {new Intl.NumberFormat(locale).format(1234.56)}</option>)}
-            </select>
-          </label>
-          <input aria-label="Find country or region" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find your country or region" className="mt-4 h-11 w-full rounded-xl border border-line bg-transparent px-3" />
-          <ul className="mt-3 grid max-h-[32dvh] grid-cols-1 gap-1 overflow-y-auto">
+      <GlassSheet open={open} onClose={() => setOpen(false)} label="Choose your country" fill>
+        <div className="flex min-h-0 flex-1 flex-col">
+          <h2 className="display shrink-0 text-[26px] lg:text-[32px]">Your region and currency</h2>
+          <p className="mt-1 shrink-0 text-sm text-ink-2">Amounts follow your number format. Everyone in a deal pays and receives the same currency.</p>
+          <div className="mt-4 grid shrink-0 gap-3 lg:grid-cols-2">
+            <label className="flex flex-col gap-2 text-sm">
+              Payment currency
+              <select value={country.currency} onChange={(e) => onChange({ ...country, currency: e.target.value as CurrencyCode })} className="h-11 rounded-xl border border-line bg-bg px-3 text-ink">
+                {availableCurrencies().map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name} · test money</option>)}
+              </select>
+            </label>
+            <label className="flex flex-col gap-2 text-sm">
+              Number format
+              <select value={country.locale} onChange={(e) => onChange({ ...country, locale: e.target.value })} className="h-11 rounded-xl border border-line bg-bg px-3">
+                {[...new Set([country.locale, "en-US", "en-GB", "pt-PT", "pt-BR", "es-ES", "es-MX", "fr-FR", "de-DE", "it-IT", "nl-NL", "pl-PL", "tr-TR", "en-IN", "hi-IN", "bn-BD", "ar-EG", "ar-SA", "fa-IR", "he-IL", "zh-CN", "zh-TW", "ja-JP", "ko-KR", "id-ID", "th-TH", "vi-VN", "en-ZA"])].map((locale) => <option key={locale} value={locale}>{locale} · {new Intl.NumberFormat(locale).format(1234.56)}</option>)}
+              </select>
+            </label>
+          </div>
+          <input aria-label="Find country or region" value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find your country or region" className="mt-4 h-11 w-full shrink-0 rounded-xl border border-line bg-transparent px-3" />
+          <ul className="mt-3 grid min-h-0 flex-1 content-start grid-cols-1 gap-1 overflow-y-auto overscroll-contain [scrollbar-color:rgba(255,255,255,0.28)_transparent] [scrollbar-width:thin] lg:grid-cols-2">
             {COUNTRIES.filter((c) => `${c.name} ${c.code}`.toLowerCase().includes(search.trim().toLowerCase())).map((c) => (
               <li key={c.code}>
                 <button
@@ -125,7 +127,7 @@ export function CountryPicker({ country, onChange }: { country: Country; onChang
               </li>
             ))}
           </ul>
-          <p className="mt-3 text-xs text-mute">Available test currencies: {availableCurrencies().map((c) => c.code).join(", ")}. Choose one even if your local currency is different. No currency conversion is applied.</p>
+          <p className="mt-3 shrink-0 text-xs text-mute">Test currencies: {availableCurrencies().map((c) => c.code).join(", ")}. No conversion. Pick one even if it isn&apos;t your local currency.</p>
         </div>
       </GlassSheet>
     </>

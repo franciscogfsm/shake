@@ -13,6 +13,7 @@ import { ShakeMoment } from "@/components/ShakeMoment";
 import { CashOut } from "@/components/CashOut";
 import { ProofLink } from "@/components/LiveReceipt";
 import { SafeSpots } from "@/components/SafeSpots";
+import { SafetyPromise } from "@/components/SafetyPromise";
 import { HashTyper } from "@/components/Ticker";
 import { Countdown, Item, Screen, Stagger, TestnetNote, useNow } from "@/components/ui";
 import { currencyOfToken, formatMoney, fromUnits, toUnits } from "@/lib/config";
@@ -147,6 +148,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency 
           )}
           <div><div className="text-mute">{job ? "Pro" : "Seller"}</div><div className="mt-0.5 text-ink">{inBox ? (job ? "Working ✓" : "Shipped ✓") : joined ? "Joined ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
         </div>
+        <SafetyPromise kind={kind} payer expiry={deal.expiry} locale={locale} className="mt-4 border-t border-line pt-4" />
         </div>
       </Item>
       <div className="flex-1 lg:hidden" />
@@ -398,6 +400,7 @@ function SellerView({ kind, deal, events, meta, me, refresh, locale, currency }:
                 : "This is real money held by public code, not a screenshot. Put your QR in the box: it's yours when the buyer scans it."
             : "This is real money held by public code, not a screenshot. It's yours the moment the buyer scans your QR."}
         </p>
+        <SafetyPromise kind={kind} payer={false} expiry={deal.expiry} locale={locale} className="mt-4" />
         </div>
       </Item>
       <div className="flex-1 lg:hidden" />
@@ -633,6 +636,7 @@ function HoldPayer({ kind, deal, events, meta, refresh, isNew, locale, currency 
             <div><div className="text-mute">Back to you</div><div className="mt-0.5 text-ink">{s === "Disputed" ? "Frozen by a claim" : due ? "Now" : <>in <Countdown to={deal.expiry} /></>}</div></div>
             <div><div className="text-mute">{k.payee[0].toUpperCase() + k.payee.slice(1)}</div><div className="mt-0.5 text-ink">{joined ? "Confirmed ✓" : "Not yet"}{deal.seller && <Link href={`/u/${deal.seller}`} className="ml-2 text-mute underline-offset-4 hover:text-safe hover:underline">track record</Link>}</div></div>
           </div>
+          <SafetyPromise kind={kind} payer expiry={deal.expiry} locale={locale} className="mt-4 border-t border-line pt-4" />
         </div>
       </Item>
       <div className="flex-1 lg:hidden" />
@@ -725,6 +729,7 @@ function HoldHolder({ kind, deal, events, meta, me, refresh, locale, currency }:
               ? "Frozen until the payer accepts your claim, or a neutral resolver splits it. Nobody can keep it."
               : `Real money held by public code, not a promise. It goes back to the payer on ${ends} unless you claim damage before then.`}
           </p>
+          <SafetyPromise kind={kind} payer={false} expiry={deal.expiry} locale={locale} className="mt-4" />
         </div>
       </Item>
       <div className="flex-1 lg:hidden" />

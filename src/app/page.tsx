@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { HoldToShake } from "@/components/HoldToShake";
+import { BEATS, HowItWorks, beatLine, useBeat } from "@/components/HowItWorks";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { LiveReceipt } from "@/components/LiveReceipt";
 import { Mark, springs } from "@/components/Mark";
@@ -24,6 +25,7 @@ export default function Home() {
   const currency = session.currency ?? (session.dealId ? "EUR" : country.currency);
   const money = formatMoney(5, currency, country.locale);
   const [refunding, setRefunding] = useState(false);
+  const [beat, pickBeat] = useBeat();
   const phase = session.status === "done" ? "done" : session.status === "ready" ? "ready" : session.status === "idle" ? "idle" : "working";
   const phaseRef = useRef(phase);
   useEffect(() => {
@@ -56,7 +58,7 @@ export default function Home() {
       <div className={`flex min-h-0 flex-col justify-center ${phase === "idle" || phase === "ready" ? "" : "w-full lg:mx-auto lg:max-w-[420px]"}`}>
       <AnimatePresence mode="wait">
         <motion.div key={phase} className="flex flex-1 flex-col" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }} transition={springs.smooth}>
-          {phase === "idle" && <Hero onStart={start} money={money} />}
+          {phase === "idle" && <Hero onStart={start} money={money} beat={beat} onBeat={pickBeat} />}
           {phase === "working" && <Locking money={money} step={!session.wallet ? "wallet" : !session.locked ? "locked" : "joined"} error={session.status === "failed" ? session.error : undefined} />}
           {phase === "ready" && availability !== "available" && (
             <div className="flex flex-col items-center gap-5 text-center" aria-live="polite">
@@ -110,7 +112,7 @@ export default function Home() {
         </motion.div>
       </AnimatePresence>
       </div>
-      <LivePanel session={session} money={money} />
+      {phase === "idle" ? <StoryPanel beat={beat} money={money} /> : <LivePanel session={session} money={money} />}
       </div>
       <Composed />
       </div>
@@ -118,11 +120,11 @@ export default function Home() {
   );
 }
 
-function Hero({ onStart, money }: { onStart: () => void; money: string }) {
+function Hero({ onStart, money, beat, onBeat }: { onStart: () => void; money: string; beat: number; onBeat: (b: number) => void }) {
   return (
     <Stagger className="flex flex-col justify-center gap-5 py-2 text-center lg:gap-6 lg:py-0 lg:text-left">
       <Item className="flex justify-center lg:hidden">
-        <Mark size={76} assemble />
+        <HowItWorks beat={beat} money={money} />
       </Item>
       <Item>
         <div className="eyebrow">For deals on OLX, Vinted, WhatsApp</div>
@@ -152,17 +154,22 @@ function Hero({ onStart, money }: { onStart: () => void; money: string }) {
         </p>
       </Item>
       <Item className="grid grid-cols-3 gap-2 lg:max-w-[560px] lg:gap-4">
-        {[
-          ["Lock", "You hold it. It isn't sent."],
-          ["They see", "Real money, not a photo."],
-          ["Shake", "You meet. Then it pays."],
-        ].map(([t, d], i) => (
-          <motion.div key={t} className="flex flex-col items-center gap-1.5 lg:items-start" whileHover={{ y: -3 }} transition={springs.snappy}>
-            <span className="step-dot !size-8 font-mono text-xs text-safe">{i + 1}</span>
+        {BEATS.map(({ t, d }, i) => (
+          <motion.button
+            type="button"
+            key={t}
+            aria-pressed={beat === i}
+            onClick={() => { haptic.tick(); onBeat(i); }}
+            className={`flex flex-col items-center gap-1.5 rounded-2xl p-1 transition-opacity lg:items-start ${beat === i ? "" : "opacity-55 hover:opacity-90"}`}
+            whileHover={{ y: -3 }}
+            transition={springs.snappy}
+          >
+            <span className={`step-dot !size-8 font-mono text-xs transition-colors ${beat === i ? "!bg-safe !text-on-safe" : "text-safe"}`}>{i + 1}</span>
             <div className="font-display text-[15px] font-medium lg:text-lg">{t}</div>
             <p className="text-[12px] leading-snug text-ink-2 lg:text-sm">{d}</p>
-          </motion.div>
+          </motion.button>
         ))}
+        <p className="sr-only" aria-live="polite">{beatLine(beat, money)}</p>
       </Item>
     </Stagger>
   );
@@ -231,6 +238,28 @@ function Reveal({ session, onAgain, money }: { session: ReturnType<typeof usePit
         </div>
       </Item>
     </Stagger>
+  );
+}
+
+/** Desktop, before they start: the deal they are about to make, told by two phones. */
+function StoryPanel({ beat, money }: { beat: number; money: string }) {
+  return (
+    <motion.div className="relative hidden lg:block" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ ...springs.smooth, delay: 0.2 }}>
+      <div className="halo" aria-hidden />
+      <aside className="glass px-6 py-6">
+        <div className="eyebrow">How it works · 5 seconds</div>
+        <HowItWorks beat={beat} money={money} big className="mt-5" />
+        <div className="relative mt-5 h-[66px] overflow-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.p key={beat} className="text-[15px] leading-snug text-ink-2" initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={springs.snappy}>
+              <span className="font-medium text-ink">{BEATS[beat].t}. </span>
+              {beatLine(beat, money)}
+            </motion.p>
+          </AnimatePresence>
+        </div>
+        <p className="mt-3 border-t border-white/10 pt-3 text-[13px] text-mute">Tap “Try it now” and you do exactly this, for real, on Stellar.</p>
+      </aside>
+    </motion.div>
   );
 }
 

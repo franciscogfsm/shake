@@ -8,6 +8,7 @@ import { NumberTicker } from "@/components/Ticker";
 import { Item, Screen, Stagger, TestnetNote } from "@/components/ui";
 import { CURRENCIES, formatMoney, moneyParts, newDealId, toUnits, type CurrencyCode } from "@/lib/config";
 import { WORLD_COUNTRIES } from "@/lib/regions";
+import { SafetyPromise } from "@/components/SafetyPromise";
 import { parseAmount } from "@/lib/amount";
 import { CountryPicker, useCountry } from "@/components/Money";
 import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wallet";
@@ -206,6 +207,7 @@ function NewDeal() {
                     id="price"
                     value={price}
                     onChange={(e) => setPrice(e.target.value.slice(0, 32))}
+                    readOnly={request && askedOk}
                     inputMode="decimal"
                     placeholder="0"
                     autoComplete="off"
@@ -249,6 +251,7 @@ function NewDeal() {
               )}
               <div className="flex flex-col gap-3">
                 <p className="text-center text-[15px] text-ink-2 lg:text-left">{k.blurb}</p>
+                <SafetyPromise kind={kind} payer={!asking} expiry={hold ? endsAt : Math.floor(Date.now() / 1000) + k.days * DAY} locale={country.locale} className="justify-center lg:justify-start" />
                 <Button type="submit" full disabled={!valid}>
                   {faceIdOk && !asking && <FaceIdIcon />}
                   {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
