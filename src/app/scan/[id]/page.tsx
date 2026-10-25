@@ -60,11 +60,11 @@ export default function ScanPage() {
   if (state === "ready" && deal && me && !isMine(deal.buyer))
     return <Screen back={`/deal/${id}`}><Notice title="Only the buyer scans." body="Open this deal on the phone that locked the money." /></Screen>;
   // while the confirm sheet is open (code accepted) we stay here, even if polling sees the release first
-  if (deal && deal.status !== "Accepted" && !code)
+  if (deal && !["Accepted", "Shipped", "Delivered"].includes(deal.status) && !code)
     return (
       <Screen back={`/deal/${id}`}>
         <Notice
-          title={deal.status === "Released" ? "Already released." : deal.status === "Refunded" ? "This deal was refunded." : "The seller hasn't joined yet."}
+          title={deal.status === "Released" ? "Already released." : deal.status === "Refunded" ? "This deal was refunded." : deal.status === "Disputed" ? "A problem is open." : deal.status === "Resolved" ? "This deal was resolved." : "The seller hasn't joined yet."}
           body={deal.status === "Locked" ? "Send them the link first. Their QR appears once they open it." : "Nothing more to do here."}
           cta={{ href: `/deal/${id}`, label: "Back to the deal" }}
         />

@@ -26,6 +26,7 @@ export default function NewDeal() {
   const [item, setItem] = useState("");
   const [price, setPrice] = useState("");
   const [seller, setSeller] = useState("");
+  const [ship, setShip] = useState(false);
   const [phase, setPhase] = useState<Phase>("form");
   const [step, setStep] = useState<string | null>(null);
   const [error, setError] = useState("");
@@ -57,10 +58,11 @@ export default function NewDeal() {
         await fundPasskeyWallet(buyer, amount, currency);
       } else await ensureAccount(kp, amount, currency);
       const dealId = newDealId();
-      const expiry = String(Math.floor(Date.now() / 1000) + DAY);
+      // shipping needs time to post the box; refund stays possible until the seller marks it shipped
+      const expiry = String(Math.floor(Date.now() / 1000) + (ship ? 14 : 1) * DAY);
       // the memo is public on-chain: it is what the link preview and receipt show
       const memo = (seller.trim() ? `${item.trim()} · for ${seller.trim()}` : item.trim()).slice(0, 60);
-      await callDeal(kp, "lock", { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
+      await callDeal(kp, ship ? "lock_ship" : "lock", { buyer, token: CURRENCIES[currency].token, amount: toUnits(amount).toString(), dealId, expiry, memo }, setStep);
       dealMeta.set(dealId, { item: item.trim(), seller: seller.trim() });
       const q = new URLSearchParams({ i: item.trim(), ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${q}&new=1`);
@@ -131,9 +133,30 @@ export default function NewDeal() {
                   className="mt-2 w-full border-b border-line bg-transparent pb-2 text-lg text-ink outline-none focus-visible:outline-none placeholder:text-white/25 focus:border-safe"
                 />
               </Item>
+              <Item>
+                <div className="eyebrow">How does it reach you?</div>
+                <div role="radiogroup" aria-label="How does it reach you?" className="glass mt-3 grid grid-cols-2 gap-1 rounded-full p-1">
+                  {([[false, "We’ll meet"], [true, "It’s shipped"]] as const).map(([v, label]) => (
+                    <button
+                      key={label}
+                      type="button"
+                      role="radio"
+                      aria-checked={ship === v}
+                      onClick={() => setShip(v)}
+                      className={`rounded-full px-4 py-2.5 text-[15px] font-medium transition-colors ${ship === v ? "bg-safe text-on-safe" : "text-ink-2 hover:text-ink"}`}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </Item>
               <div className="flex-1" />
               <Item className="flex flex-col gap-3">
-                <p className="text-center text-[15px] text-ink-2">Held safely until you shake. Refunded if you don&apos;t.</p>
+                <p className="text-center text-[15px] text-ink-2">
+                  {ship
+                    ? "The shake travels in the box: scan the QR inside when you open it. Released 3 days after delivery unless you open a problem."
+                    : "Held safely until you shake. Refunded if you don’t."}
+                </p>
                 <Button type="submit" full disabled={!valid}>
                   {faceIdOk && <FaceIdIcon />}
                   {valid ? `Lock ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : "Lock"}

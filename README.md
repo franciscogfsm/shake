@@ -70,6 +70,7 @@ Use separate browser profiles because wallets are stored on each device. For pho
 - **QR handshake:** seller acceptance commits a SHA-256 hash; release requires buyer authorization and the matching secret.
 - **QR rotation:** the bound seller can replace the committed hash before settlement, invalidating the previous code.
 - **Refund controls:** buyer cancellation before acceptance, seller cancellation after acceptance, and permissionless refund submission after expiry.
+- **Ship mode (the shake travels in the box):** the seller puts the QR inside the package and the buyer scans it on opening. The seller marks it shipped (with tracking) and delivered; if the buyer stays silent, anyone can release to the seller 3 days after delivery. Before then the buyer can open a problem, which freezes the money until a resolver chosen at lock splits it between buyer and seller. The resolver can never keep it.
 - **Public receipts:** transaction hashes, timestamps, and Stellar Expert links expose the deal's on-chain history.
 
 ### Accounts, currencies, and cash-out
@@ -144,8 +145,16 @@ stateDiagram-v2
     Accepted --> Released: buyer authorization and matching secret
     Locked --> Refunded: buyer cancels or expiry refund
     Accepted --> Refunded: seller cancels or expiry refund
+    Accepted --> Shipped: ship mode, seller marks shipped
+    Shipped --> Delivered: seller marks delivered (3-day window starts)
+    Shipped --> Released: buyer scans the QR in the box
+    Delivered --> Released: buyer scans, or claim after 3 days
+    Shipped --> Disputed: buyer opens a problem
+    Delivered --> Disputed: buyer opens a problem within 3 days
+    Disputed --> Resolved: resolver splits between buyer and seller
     Released --> [*]
     Refunded --> [*]
+    Resolved --> [*]
 ```
 
 The escrow implementation is in [`contracts/escrow/src/lib.rs`](contracts/escrow/src/lib.rs).
@@ -156,6 +165,11 @@ The escrow implementation is in [`contracts/escrow/src/lib.rs`](contracts/escrow
 | `accept(deal_id, seller, hash)` | Requires seller authorization, an open unexpired deal, and a seller distinct from the buyer. Binds the seller; only that seller can rotate the hash. |
 | `release(deal_id, secret)` | Requires buyer authorization, accepted status, and a matching SHA-256 preimage. Transfers funds to the bound seller. |
 | `refund(deal_id)` | Returns funds to the buyer. Before expiry, requires the buyer if unaccepted or the seller if accepted; after expiry, anyone may submit it. |
+| `lock_ship(…, resolver)` | Same as `lock`, in Ship mode, naming the resolver (never the buyer or the seller). |
+| `mark_shipped(deal_id, tracking)` / `mark_delivered(deal_id)` | Bound seller only, Ship mode. After shipping the buyer can no longer refund. Delivery sets `release_after = now + 3 days`. |
+| `claim(deal_id)` | Anyone, once a delivered deal passes `release_after`. Pays the seller. |
+| `dispute(deal_id)` | Buyer only, while shipped or within 3 days of delivery. Freezes the deal. |
+| `resolve(deal_id, to_buyer)` | Resolver only, on a disputed deal. Sends `to_buyer` back and the rest to the seller; the run is `node scripts/resolve.mjs <id> <euros>`. |
 | `get(deal_id)` | Returns participants, token, amount, expiry, memo, hash, and status. |
 
 State-changing operations emit events. Deal records use persistent storage with TTL extension on writes. Released and refunded deals cannot settle again.
@@ -164,7 +178,7 @@ State-changing operations emit events. Deal records use persistent storage with 
 
 The contract verifies **buyer authorization plus knowledge of the seller's committed secret**. This supports a face-to-face handover flow, but a QR or code can be shared remotely; it is not an independent proof of physical proximity. Phone motion is a confirmation gesture, not an on-chain security input.
 
-The contract does not inspect the item, arbitrate disputes, or reverse a completed release. Currently, `release` does not check expiry: after expiry, release and refund remain possible until one transaction settles the deal. There is no background refund scheduler in this repository.
+The contract does not inspect the item, decide disputes itself (the resolver splits them), or reverse a completed release. Currently, `release` does not check expiry: after expiry, release and refund remain possible until one transaction settles the deal. There is no background refund scheduler in this repository.
 
 The browser-keypair path stores its signing key in local storage. Passkeys provide a separate smart-account authorization path. Server-held issuer, sponsor, and team keys support test funding, sponsorship, and the single-device demo. This is a hackathon implementation, not an audited production payment service.
 
@@ -174,7 +188,7 @@ Public deployment identifiers from the repository's local configuration at the t
 
 | Component | Stellar Testnet identifier |
 | --- | --- |
-| Deal contract | [`CBPJPV7RBCC5WXB7BNLOYULIDMLECOSPBRGVYCLPU7PX6C6VQBWFQRVS`](https://stellar.expert/explorer/testnet/contract/CBPJPV7RBCC5WXB7BNLOYULIDMLECOSPBRGVYCLPU7PX6C6VQBWFQRVS) |
+| Deal contract | [`CCRNA6KYB3I2JYTL4XDHCOH7LY3E5ULX5OL6EWN4TN4MGLYB3QKBV4QN`](https://stellar.expert/explorer/testnet/contract/CCRNA6KYB3I2JYTL4XDHCOH7LY3E5ULX5OL6EWN4TN4MGLYB3QKBV4QN) |
 | tEUR contract | [`CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR`](https://stellar.expert/explorer/testnet/contract/CCFUCVE7557QSF3HPM26D6CNBNZINFGHH7LERSZXVBCAV6KYRYIVPTAR) |
 | tUSD contract | [`CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K`](https://stellar.expert/explorer/testnet/contract/CB2566JZPAWMJJ7M3HQONF5S7F7PKSNTAO46KCUTEPS6OSLKPV4LQT5K) |
 | tGBP contract | [`CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M`](https://stellar.expert/explorer/testnet/contract/CDE7CPLXT5RXLQAOXQ6HHVFYBZKNSWJ2IRKAON5VQFWIEJ4BE32HKD7M) |

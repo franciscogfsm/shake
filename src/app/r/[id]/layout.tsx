@@ -10,7 +10,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const { id } = await params;
   const deal = /^\d{1,16}$/.test(id) ? await readDeal(id).catch(() => null) : null;
   if (!deal) return { title: "Deal" };
-  const status = deal.status === "Released" ? "released ✓" : deal.status === "Refunded" ? "refunded" : "locked for you ✓";
+  const status = deal.status === "Released" ? "released ✓" : deal.status === "Refunded" ? "refunded" : deal.status === "Shipped" ? "shipped · locked ✓" : deal.status === "Delivered" ? "delivered · locked ✓" : deal.status === "Disputed" ? "problem open · frozen" : deal.status === "Resolved" ? "resolved" : "locked for you ✓";
   const title = `${dealMoney(deal.amount, deal.token)} ${status}${deal.memo ? ` · ${deal.memo}` : ""}`;
   const description = "Real money on the Stellar network, not a screenshot. Meet, scan, and it's paid.";
   return { title, description, openGraph: { title, description }, twitter: { title, description } };
