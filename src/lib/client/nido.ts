@@ -140,7 +140,9 @@ export function disconnectNido() {
 type Grant = { target: string; functions: string[]; label: string; to?: string; limit?: string };
 type Session = { account: string; credentialId: string; publicKey: string; approved: Record<string, number> };
 
-const DEAL_FNS = ["lock", "lock_ship", "lock_hold", "approve", "agree", "release", "settle", "dispute", "refund"];
+// no "approve": Nido treats that name as a token function and then forces a spending cap or a manual
+// "spend without a cap" tick on the whole rule. Face ID job payers get paid out by the timed claim instead.
+const DEAL_FNS = ["lock", "lock_ship", "lock_hold", "agree", "release", "settle", "dispute", "refund"];
 
 /** What SHAKE asks for: calls on the deal contract, and paying that currency's test money only into it (≤2000 a day). */
 export const grantsFor = (currency: CurrencyCode): Grant[] => [

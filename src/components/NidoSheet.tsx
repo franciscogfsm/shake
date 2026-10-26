@@ -38,7 +38,7 @@ const COPY: Record<Exclude<NidoStatus, "ready">, { title: string; body: string; 
     title: "Set SHAKE's limits",
     body: "",
     cta: "Approve in Nido",
-    note: "In Nido, tick “spend without a cap” on shake-deals: it can only release or refund money you already locked. Your spending cap is on the second rule.",
+    note: "In Nido, review the two rules and confirm with Face ID. Your spending cap is on the second one.",
   },
 };
 
