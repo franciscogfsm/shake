@@ -274,8 +274,8 @@ export async function approveNido(currency: CurrencyCode) {
   const account = nidoAddress();
   const s = account && load(account);
   if (!account || !s) throw new Error("Make SHAKE's key first.");
-  // every currency at once, so switching currency never sends the person back to Nido
-  const grants = nidoGrants();
+  // only this payment's currency: all five rules in one go is more than Nido's relayer will submit (it never lands)
+  const grants = grantsFor(currency);
   const u = new URL("/security/delegate-doc/", accountOrigin(account));
   const set = (k: string, v: string) => u.searchParams.set(k, v);
   set("origin", location.origin);

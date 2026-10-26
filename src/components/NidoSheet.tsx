@@ -37,7 +37,7 @@ const COPY: Record<Exclude<NidoStatus, "ready">, { title: string; body: string; 
     title: "Set SHAKE's limits",
     body: "",
     cta: "Approve in Nido",
-    note: "In Nido, review SHAKE's rules and confirm with Face ID. The daily caps are on the currency rules.",
+    note: "In Nido, review SHAKE's rules and confirm with Face ID. The daily cap is on the second one.",
   },
 };
 
@@ -143,7 +143,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
                 <>
                   <ul className="mt-4 flex flex-col gap-2 text-[15px] text-ink-2">
                     <li className="flex gap-2.5"><span className="text-safe">✓</span>Lock, release or refund your SHAKE payments</li>
-                    <li className="flex gap-2.5"><span className="text-safe">✓</span>Move up to {NIDO_DAILY_CAP.toLocaleString("en")} {asset} a day (the same in each currency), only into the SHAKE contract</li>
+                    <li className="flex gap-2.5"><span className="text-safe">✓</span>Move up to {NIDO_DAILY_CAP.toLocaleString("en")} {asset} a day, only into the SHAKE contract</li>
                     <li className="flex gap-2.5"><span className="text-safe">✓</span>Ends by itself in 7 days</li>
                     <li className="flex gap-2.5"><span className="text-mute">✕</span><span className="text-mute">Pay anyone else. Your account refuses it on chain.</span></li>
                   </ul>
