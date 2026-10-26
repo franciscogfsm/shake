@@ -799,18 +799,31 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 /* trust: our contract first, then every other Stellar piece, one line each */
 [data-n="Trust"] h2{font-size:calc(var(--u)*4.2)}
 [data-n="Trust"] > .eyebrow{align-self:flex-start;color:var(--ice)}
-.stk{list-style:none;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1fr;grid-auto-rows:1fr;gap:calc(var(--u)*1);width:min(calc(var(--u)*100),100%);margin-top:calc(var(--u)*3.4);text-align:left}
-.sti{display:flex;flex-direction:column;justify-content:center;padding:calc(var(--u)*1.6) calc(var(--u)*1.8);border-radius:calc(var(--u)*1.3);opacity:.75;transition:opacity .5s,border-color .5s,box-shadow .5s,transform .6s var(--spring)}
-.stk h4{font-family:var(--display);font-size:calc(var(--u)*1.55);font-weight:700;letter-spacing:-.03em;line-height:1.1}
-.stk p{font-size:calc(var(--u)*1.15);color:var(--mute);margin-top:calc(var(--u)*.5);line-height:1.35}
-.sti.x{opacity:1;transform:translateY(-4px);border-color:rgba(140,207,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 24px 50px -28px #000,0 0 46px -18px var(--ice)}
-.tcore{grid-row:span 2;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--u)*2) calc(var(--u)*2.2);border-radius:calc(var(--u)*1.6);border-color:rgba(140,207,255,.55);background:linear-gradient(180deg,rgba(140,207,255,.16),rgba(255,255,255,.02) 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 30px 60px -30px #000,0 0 90px -20px var(--ice)}
-.sti .k{font-family:var(--mono);font-size:calc(var(--u)*.62);letter-spacing:.12em;text-transform:uppercase;color:var(--ice);margin:0 0 calc(var(--u)*.55);opacity:.85}
-.tcore .k{font-family:var(--mono);font-size:calc(var(--u)*.72);letter-spacing:.14em;text-transform:uppercase;color:var(--ice)}
-.tcore .cm{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);margin:calc(var(--u)*1.4) 0 calc(var(--u)*1)}
-.tcore h4{font-size:calc(var(--u)*2.3)}
-.tcore span{font-family:var(--mono);font-size:calc(var(--u)*.8);letter-spacing:.1em;color:var(--ice);margin-top:calc(var(--u)*.5)}
-.tcore p{color:var(--ink);margin-top:calc(var(--u)*1.2)}
+.orb{position:relative;container-type:inline-size;width:min(calc(var(--u)*100),100%,116vh);aspect-ratio:100/44;margin-top:calc(var(--u)*1.8)}
+.orb ul{list-style:none;margin:0;padding:0}
+.orbl{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.orbl .ln{fill:none;stroke:rgba(140,207,255,.18);stroke-width:1.2;vector-effect:non-scaling-stroke;opacity:0;transition:opacity .8s ease calc(.4s + var(--i)*.09s),stroke .5s}
+.slide.cur .orbl .ln{opacity:1}
+.orbl .ln.x{stroke:rgba(140,207,255,.75);transition-delay:0s}
+.orbl .pl{fill:none;stroke:var(--ice);stroke-width:2.6;stroke-linecap:round;vector-effect:non-scaling-stroke;stroke-dasharray:4 96;stroke-dashoffset:4;opacity:0;filter:drop-shadow(0 0 4px var(--ice))}
+.slide.cur .orbl .pl{animation:orbp 2.4s linear calc(1.6s + var(--i)*.3s) infinite}
+@keyframes orbp{0%{stroke-dashoffset:4;opacity:0}12%,80%{opacity:1}100%{stroke-dashoffset:-96;opacity:0}}
+.onode{background-color:#12161c;position:absolute;left:var(--x);top:var(--y);transform:translate(-50%,-50%);width:calc(1cqw*20);padding:calc(1cqw*1.1) calc(1cqw*1.2);border-radius:calc(1cqw*1.1);text-align:center;opacity:.8;transition:opacity .5s,border-color .5s,box-shadow .5s}
+.slide.cur .onode{animation:orbin .8s var(--spring) calc(.8s + var(--i)*.09s) both}
+@keyframes orbin{from{opacity:0;scale:.75}}
+.onode.x{opacity:1;border-color:rgba(140,207,255,.65);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 0 46px -14px var(--ice)}
+.onode .k{font-family:var(--mono);font-size:calc(1cqw*.78);letter-spacing:.12em;text-transform:uppercase;color:var(--ice);opacity:.85;margin-bottom:calc(1cqw*.35)}
+.onode small{display:block;font-size:calc(1cqw*1.15);color:rgba(230,236,245,.62);margin-top:calc(1cqw*.35);line-height:1.2}
+.onode h4{font-family:var(--display);font-size:calc(1cqw*1.6);font-weight:700;letter-spacing:-.025em;line-height:1.1}
+.ocore{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:calc(1cqw*23);aspect-ratio:1;border-radius:50%;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:calc(1cqw*2);background:radial-gradient(circle at 50% 30%,rgba(140,207,255,.24),rgba(13,15,18,.94) 72%),#0e1116;border:1px solid rgba(140,207,255,.55);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 0 100px -12px var(--ice)}
+.ocore::before{content:"";position:absolute;inset:-1px;border-radius:50%;border:1px solid var(--ice);opacity:0;pointer-events:none}
+.slide.cur .ocore::before{animation:orbr 2.4s ease-out 1.6s infinite}
+@keyframes orbr{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.45);opacity:0}}
+.ocore .k{font-family:var(--mono);font-size:calc(1cqw*.78);letter-spacing:.14em;text-transform:uppercase;color:var(--ice)}
+.ocore .cm{width:calc(1cqw*2.8);height:calc(1cqw*2.8);margin:calc(1cqw*.9) 0 calc(1cqw*.7)}
+.ocore h4{font-family:var(--display);font-size:calc(1cqw*2.2);font-weight:700;letter-spacing:-.03em;line-height:1.05}
+.ocore span{font-family:var(--mono);font-size:calc(1cqw*.85);letter-spacing:.08em;color:var(--ice);margin-top:calc(1cqw*.6)}
+@media (prefers-reduced-motion:reduce){.slide.cur .orbl .pl,.slide.cur .ocore::before,.slide.cur .onode{animation:none}.orbl .ln{transition:stroke .5s}}
 /* slide 8: bigger, fewer words on the card */
 .again{margin-top:calc(var(--u)*1.2);font-size:max(13px,calc(var(--u)*1.05));color:var(--ice);border-bottom:1px solid rgba(143,211,255,.4);padding-bottom:2px}
 .again:hover{color:var(--ink);border-color:var(--ink)}
@@ -919,9 +932,17 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .cap.back .hold svg{opacity:0}
 .cap:not(.shut):not(.back) .hold[disabled]{opacity:.45;cursor:default}
 .cap.shut .hold[disabled],.cap.back .hold[disabled]{opacity:1;cursor:default}
-.holdhint{display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*.65);margin-top:calc(var(--u)*2.4);font-family:var(--mono);font-size:calc(var(--u)*.85);letter-spacing:.14em;text-transform:uppercase;color:var(--mute)}
-.holdhint kbd{display:inline-grid;place-items:center;min-width:calc(var(--u)*2.3);height:calc(var(--u)*2.1);padding:0 .45em;border:1px solid rgba(140,207,255,.45);border-radius:6px;background:rgba(140,207,255,.08);box-shadow:inset 0 1px 0 rgba(255,255,255,.1);color:var(--ice);font:inherit;font-size:calc(var(--u)*1.05)}
+.holdhint{display:flex;align-items:center;justify-content:center;gap:calc(var(--u)*.9);margin-top:calc(var(--u)*2.4);font-family:var(--mono);font-size:calc(var(--u)*1.25);letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.holdhint kbd{display:inline-grid;place-items:center;min-width:calc(var(--u)*3.4);height:calc(var(--u)*3);padding:0 .5em;border:1px solid rgba(140,207,255,.6);border-radius:9px;background:rgba(140,207,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 0 rgba(140,207,255,.25);color:var(--ice);font:inherit;font-size:calc(var(--u)*1.6);animation:keyPress 2.4s ease-in-out infinite}
 .holdhint em{font-style:normal}
+/* idle cue: the key presses down and the coin dips + ripples on the same beat, so it's obvious what to hold */
+@keyframes keyPress{0%,15%,85%,100%{transform:none;box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 4px 0 rgba(140,207,255,.25)}25%,70%{transform:translateY(4px) scale(.94);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 0 18px rgba(140,207,255,.55)}}
+@keyframes coinPress{0%,15%,85%,100%{transform:none}25%,70%{transform:scale(.94)}}
+@keyframes coinRipple{0%,20%{opacity:0;transform:scale(1)}30%{opacity:.8}75%,100%{opacity:0;transform:scale(1.35)}}
+[data-n="Decide"] .cap:not(.shut):not(.back) .hold:not([disabled]){animation:coinPress 2.4s ease-in-out infinite}
+[data-n="Decide"] .cap:not(.shut):not(.back) .hold:not([disabled])::after{content:"";position:absolute;inset:-2px;border-radius:50%;border:2px solid var(--ice);opacity:0;pointer-events:none;animation:coinRipple 2.4s ease-out infinite}
+.holding [data-n="Decide"] .hold,.holding [data-n="Decide"] .hold::after,.holding .holdhint kbd{animation:none!important}
+.holding [data-n="Decide"] .hold::after{opacity:0}
 [data-n="Decide"] .dec{margin-top:calc(var(--u)*1.5);gap:calc(var(--u)*1.2);transition:opacity .4s}
 [data-n="Decide"] .dec .ghost{font-size:calc(var(--u)*1.05);padding:calc(var(--u)*.8) calc(var(--u)*1.9);color:var(--mute)}
 [data-n="Decide"] .dec .ghost:hover{color:var(--ink);border-color:rgba(255,255,255,.3)}
@@ -1196,17 +1217,20 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 <section class="slide center" data-n="Trust">
  <p class="eyebrow r">Why Stellar · Stellar Composed</p>
  <h2 class="r" style="--d:1">We never hold your money.<br><span>A public contract on Stellar does.</span></h2>
- <ul class="stk r" style="--d:2">
-  <li class="tcore glass"><p class="k">The core · we wrote it</p><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><h4>Soroban smart contract</h4><span id="tcores">locked on Stellar</span><p>Pays the seller only with the code in their one-time QR. Refunds the buyer if it falls through.</p></li>
-  <li class="sti glass"><p class="k">OpenZeppelin · Nido</p><h4>Smart Accounts with passkeys</h4><p>The buyer pays with Face ID. Nothing to write down.</p></li>
-  <li class="sti glass"><p class="k">Stellar protocol</p><h4>Stellar Asset Contracts</h4><p>tEUR, tUSD, tGBP, tBRL as Soroban tokens.</p></li>
-  <li class="sti glass"><p class="k">Stellar protocol · SDEX</p><h4>Path Payments + Liquidity Pools</h4><p>Pay in reais. She gets euros.</p></li>
-  <li class="sti glass"><p class="k">Reflector · SEP-40</p><h4>Reflector FX Oracle</h4><p>Live €, $, £, R$ rates, read on-chain.</p></li>
-  <li class="sti glass"><p class="k">OpenZeppelin</p><h4>OpenZeppelin Channels</h4><p>Every fee paid for you. No XLM.</p></li>
-  <li class="sti glass"><p class="k">Stellar protocol</p><h4>Sponsored Reserves</h4><p>Account and trustlines opened in one tap.</p></li>
-  <li class="sti glass"><p class="k">SEP-1 · SEP-10 · SEP-24</p><h4>Stellar Anchor</h4><p>Cash out to a bank.</p></li>
-  <li class="sti glass"><p class="k">Stellar infrastructure</p><h4>Stellar RPC + Horizon</h4><p>Every step public on Stellar Expert.</p></li>
- </ul>
+ <div class="orb r" style="--d:2">
+  <svg class="orbl" viewBox="0 0 100 44" preserveAspectRatio="none" aria-hidden="true"><path class="ln" pathLength="100" style="--i:0" d="M50 4L50 22"/><path class="pl" pathLength="100" style="--i:0" d="M50 4L50 22"/><path class="ln" pathLength="100" style="--i:1" d="M76.9 9.3L50 22"/><path class="pl" pathLength="100" style="--i:1" d="M76.9 9.3L50 22"/><path class="ln" pathLength="100" style="--i:2" d="M88 22L50 22"/><path class="pl" pathLength="100" style="--i:2" d="M88 22L50 22"/><path class="ln" pathLength="100" style="--i:3" d="M76.9 34.7L50 22"/><path class="pl" pathLength="100" style="--i:3" d="M76.9 34.7L50 22"/><path class="ln" pathLength="100" style="--i:4" d="M50 40L50 22"/><path class="pl" pathLength="100" style="--i:4" d="M50 40L50 22"/><path class="ln" pathLength="100" style="--i:5" d="M23.1 34.7L50 22"/><path class="pl" pathLength="100" style="--i:5" d="M23.1 34.7L50 22"/><path class="ln" pathLength="100" style="--i:6" d="M12 22L50 22"/><path class="pl" pathLength="100" style="--i:6" d="M12 22L50 22"/><path class="ln" pathLength="100" style="--i:7" d="M23.1 9.3L50 22"/><path class="pl" pathLength="100" style="--i:7" d="M23.1 9.3L50 22"/></svg>
+  <div class="ocore"><p class="k">The core · we wrote it</p><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><h4>Soroban smart contract</h4><span id="tcores">locked on Stellar</span></div>
+  <ul role="list" aria-label="Stellar pieces SHAKE uses">
+  <li class="onode glass" style="--i:0;--x:50%;--y:9.1%"><p class="k">OpenZeppelin · Nido</p><h4>Smart Accounts with passkeys</h4><small>Pay with Face ID</small></li>
+  <li class="onode glass" style="--i:1;--x:76.9%;--y:21.1%"><p class="k">Stellar protocol</p><h4>Sponsored Reserves</h4><small>No XLM to start</small></li>
+  <li class="onode glass" style="--i:2;--x:88%;--y:50.0%"><p class="k">OpenZeppelin</p><h4>OpenZeppelin Channels</h4><small>Every fee paid for you</small></li>
+  <li class="onode glass" style="--i:3;--x:76.9%;--y:78.9%"><p class="k">Stellar protocol</p><h4>Stellar Asset Contracts</h4><small>€ $ £ R$ as tokens</small></li>
+  <li class="onode glass" style="--i:4;--x:50%;--y:90.9%"><p class="k">Stellar infrastructure</p><h4>Stellar RPC + Horizon</h4><small>Every step public</small></li>
+  <li class="onode glass" style="--i:5;--x:23.1%;--y:78.9%"><p class="k">SEP-1 · SEP-10 · SEP-24</p><h4>Stellar Anchor</h4><small>Cash out to a bank</small></li>
+  <li class="onode glass" style="--i:6;--x:12%;--y:50.0%"><p class="k">Stellar protocol · SDEX</p><h4>Path Payments + Liquidity Pools</h4><small>Pay in R$, they get €</small></li>
+  <li class="onode glass" style="--i:7;--x:23.1%;--y:21.1%"><p class="k">Reflector · SEP-40</p><h4>Reflector FX Oracle</h4><small>Live € $ £ R$ rates</small></li>
+  </ul>
+ </div>
 </section>
 
 <section class="slide" data-n="Passkeys">
@@ -1299,7 +1323,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   <button class="hold" id="hold" aria-label="Hold to shake on it" aria-keyshortcuts="ArrowRight Space Enter"><svg viewBox="0 0 36 36"><circle class="bgc" cx="18" cy="18" r="15.9" pathLength="100"/><circle class="fgc" cx="18" cy="18" r="15.9" pathLength="100"/></svg><span id="capmid">10€</span></button>
   <div class="half glass sr"><p class="k">SELLER</p><b>The SHAKE team</b><p class="hs" id="hsr">waiting for your hand</p></div>
  </div>
- <p class="holdhint r" style="--d:4"><em>Hold the coin</em><span>·</span><em>or hold</em><kbd aria-label="Right arrow">→</kbd><em>for two seconds</em></p>
+ <p class="holdhint r" style="--d:4"><em>Hold</em><kbd aria-label="Right arrow">→</kbd><em>to shake</em></p>
  <div class="dec r" style="--d:5">
   <button class="btn ghost" id="notyet">Not yet, give me the 10€ back</button>
  </div>
@@ -1400,7 +1424,7 @@ const CAPTIONS={
  Offline:"Neither phone has any signal. The buyer scans the seller's QR and holds; their phone then shows its own QR, and the seller scans it back. The two halves of the key meet and the seller is paid. Back online, it lands on Stellar by itself.",
  Ship:"For shipped deals, the seller packs a one-time QR in the box. Tap the three outcomes: whatever happens, nobody keeps both the item and the money.",
  Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE payment link and send it to the buyer.",
- Trust:"Nine Stellar pieces, one payment. Our own Soroban contract holds the money; the other eight get the buyer in with Face ID and no XLM, let them pay in their own currency, prove the lock to the seller, and cash it out.",
+ Trust:"Nine Stellar pieces, one payment. Our contract holds the money; the other eight bring Face ID, no fees, any currency and cash-out.",
  Passkeys:"Open SHAKE, confirm with your passkey, and you’re ready.",
  Workflow:"The deal starts on Vinted, OLX or WhatsApp. The buyer locks the money in a public contract. It pays only when the seller’s one-time code is scanned, phone to phone. Otherwise it comes back. A screenshot cannot do that.",
  First:"Who we start with, and why the two strangers would use it. Five pairs outside the team still have to try it, so this is a hypothesis, not product-market fit. The extension and a shared link are how we reach them.",
@@ -1559,8 +1583,8 @@ const P={
    push(ms[3]);await S(1100);push(ms[4]);await S(900);push(ms[5]);pulse();
    return}},
  Trust:async(s,S)=>{$("#tcores").textContent=deal.status==="locked"?"your 10€, locked right now":"locked on Stellar";
-  const tiles=$$(".sti",s);await S(900);ripple($(".tcore",s),"140,207,255");
-  for(let k=0;;k=(k+1)%tiles.length){add(tiles[k]);await S(1300);tiles[k].classList.remove("x");await S(150)}},
+  const tiles=$$(".onode",s),lns=$$(".orbl .ln",s);await S(900);ripple($(".ocore",s),"140,207,255");
+  for(let k=0;;k=(k+1)%tiles.length){add(tiles[k]);add(lns[k]);await S(1300);tiles[k].classList.remove("x");lns[k].classList.remove("x");await S(150)}},
  Passkeys:async(s,S)=>{const popup=$("#passkey-popup"),label=$("#passkey-label"),detail=$("#passkey-detail"),steps=$$("[data-pk-step]",s),results=$$(".passkey-results>span",s);const step=n=>steps.forEach((el,i)=>el.classList.toggle("x",i<=n));popup.classList.remove("scanning","confirmed");results.forEach(el=>el.classList.remove("x"));step(0);label.textContent="Confirm with Face ID";detail.textContent="Your passkey. Your approval.";await S(1100);step(1);popup.classList.add("scanning");await S(2600);popup.classList.remove("scanning");popup.classList.add("confirmed");label.textContent="You’re ready.";detail.textContent="Approved in SHAKE.";await S(650);for(const result of results){result.classList.add("x");await S(650)}step(2);},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
  Built:async()=>{},

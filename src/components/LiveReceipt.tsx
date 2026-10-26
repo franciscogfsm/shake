@@ -23,7 +23,13 @@ export function ProofLink({ hash, at, className, children }: { hash: string; at?
     return () => clearTimeout(t);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ready, at]);
-  if (!ready) return <span className={className} title="Stellar Expert is indexing this transaction">confirmed · proof link in a moment…</span>;
+  if (!ready)
+    return (
+      <span className={`${(className ?? "").replace(/\bhover:\S+/g, "")} inline-flex cursor-wait items-center gap-2`} aria-busy="true" title="Stellar Expert is indexing this transaction">
+        <span aria-hidden className="size-3 shrink-0 animate-spin rounded-full border-[1.5px] border-current border-t-transparent opacity-70 motion-reduce:animate-none" />
+        Confirmed · loading proof link…
+      </span>
+    );
   return (
     <a href={explorer.tx(hash)} target="_blank" rel="noreferrer" className={className}>
       {children}
