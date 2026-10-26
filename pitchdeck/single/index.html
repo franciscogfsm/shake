@@ -1023,6 +1023,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .passkey-layout{display:grid;grid-template-columns:1.1fr 1fr;gap:calc(var(--u)*7);align-items:center;width:100%}
 [data-n="Passkeys"] h2{font-size:calc(var(--u)*4);line-height:1.02;margin-top:calc(var(--u)*1.5)}
 .passkey-intro{font-size:calc(var(--u)*1.23);line-height:1.55;color:var(--mute);margin-top:calc(var(--u)*1.7)}
+.passkey-intro b{display:block;font:700 calc(var(--u)*2) var(--display);letter-spacing:-.03em;line-height:1.1;color:var(--ink);margin-bottom:calc(var(--u)*.45)}
 .passkey-benefits{display:flex;flex-wrap:wrap;gap:8px;margin-top:calc(var(--u)*1.5)}.passkey-benefits span{padding:8px 12px;border:1px solid #8fd3ff25;border-radius:99px;background:#8fd3ff08;color:#d2e8f4;font-size:calc(var(--u)*.82)}
 .passkey-agent{font-size:calc(var(--u)*1);line-height:1.6;color:var(--mute);margin-top:calc(var(--u)*1.6)}.passkey-agent strong{font-weight:500;color:var(--ice)}
 .passkey-preview{padding:calc(var(--u)*1.6);border:1px solid #c6e7ff32;border-radius:calc(var(--u)*2.2);background:linear-gradient(145deg,#a6dcff16,#ffffff04);box-shadow:inset 0 1px 0 #ffffff20,0 30px 90px #0003;position:relative}
@@ -1348,8 +1349,8 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   <div class="passkey-copy">
    <p class="passkey-nido r"><span class="nido-context">We use</span> Nido<span>for passkey accounts</span></p>
    <h2 class="r" style="--d:1">Unlock.<br>Confirm.<br><span>Done.</span></h2>
-   <p class="passkey-intro r" style="--d:2">As easy as unlocking your phone.</p>
-   <div class="passkey-benefits r" style="--d:3"><span>No wallet to install</span><span>No recovery phrase</span></div>
+   <p class="passkey-intro r" style="--d:2"><b>Simple enough for your grandma.</b>If she can unlock her phone, she can pay safely. No blockchain to learn.</p>
+   <div class="passkey-benefits r" style="--d:3"><span>No wallet to install</span><span>No recovery phrase</span><span>No fees</span></div>
   </div>
   <div class="phone r" style="--d:2" id="pk-phone" data-s="pay" role="img" aria-label="Paying 60€ with Face ID in SHAKE">
    <div class="ph-screen">
@@ -1357,7 +1358,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
     <div class="ph-status"><span>9:41</span><i></i></div>
     <div class="ph-app ph-pay">
      <p class="ph-brand"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>SHAKE</p>
-     <div class="ph-item"><i></i><p>Leather jacket<span>Vinted · meet today</span></p></div>
+     <div class="ph-item"><i></i><p>Leather jacket<span>OLX · meet today</span></p></div>
      <p class="ph-lbl ph-you">You pay</p>
      <p class="ph-amt">60€</p>
      <p class="ph-lbl">Locked until you meet</p>
@@ -1544,7 +1545,7 @@ const CAPTIONS={
  Ship:"Shipped deals: a QR in the box. Tap the outcomes; nobody keeps both.",
  Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE link.",
  Trust:"Nine Stellar pieces, one payment: Face ID, no fees, any currency, cash-out.",
- Passkeys:"Open SHAKE, confirm with your passkey, and you’re ready.",
+ Passkeys:"One look at the phone and it’s paid. Anyone can do it, no tech needed.",
  Workflow:"Deal on Vinted or OLX. Money locked. Paid only on a face-to-face scan.",
  First:"Who we start with, and why. A hypothesis we still have to test.",
  Built:"Pedro and Francisco, 21, from Técnico Lisbon. Built in 24 hours.",
