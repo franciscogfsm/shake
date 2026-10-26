@@ -69,7 +69,8 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
       if (s === "ready") onReady();
       else setStatus(s);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : "Something went wrong. Try again.";
+      // WebAuthn's NotAllowedError covers a cancelled or timed-out Face ID; its message is a spec link
+      const msg = e instanceof DOMException && e.name === "NotAllowedError" ? "Face ID didn't finish. Tap to try again." : e instanceof Error ? e.message : "Something went wrong. Try again.";
       setError(status === "connect" && /closed/.test(msg) ? "Nido's window closed. Tap again to continue." : msg);
     } finally {
       setBusy(false);

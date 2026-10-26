@@ -119,6 +119,8 @@ export function createNidoAccount(): Promise<string> {
         // let Nido finish its own last step (it shows "done" for a few seconds), then close it for the user
         await new Promise((r) => setTimeout(r, 2_500));
         try { w.close(); } catch {}
+        // Face ID needs this page focused; the closed popup can leave it in the background
+        window.focus();
         localStorage.setItem(ADDRESS_KEY, address);
         return address;
       }
