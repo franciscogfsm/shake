@@ -9,7 +9,7 @@ const t0 = Date.now(); const lap = (m) => console.log(((Date.now() - t0) / 1000)
 const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).catch(() => {}) : null);
 
 (async () => {
-  const br = await chromium.launch();
+  const br = await chromium.launch({ args: ['--disable-quic'] });
   const phone = { viewport: { width: 393, height: 852 }, deviceScaleFactor: 2 };
   const buyerCtx = await br.newContext(phone);
   const creds = new Map(), armed = [];
@@ -52,7 +52,6 @@ const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).ca
   await buyer.getByRole('button', { name: 'Create my Nido' }).waitFor({ timeout: 20000 });
   await shot(buyer, 'n2-connect');
   const nido = await popup(() => buyer.getByRole('button', { name: 'Create my Nido' }).click());
-  await nido.getByRole('button', { name: 'Create with a passkey' }).click({ timeout: 60000 });
   await visibleText(nido, 'Continue').waitFor({ timeout: 120000 });
   await visibleText(nido, 'Continue').click();
   await nido.getByText('Continue to my wallet').click({ timeout: 120000 });
