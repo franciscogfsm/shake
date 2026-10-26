@@ -337,12 +337,13 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 [data-n="Problem"] .fk{grid-column:1 / -1;margin:calc(var(--u)*.15) 0 0;font-family:var(--mono);font-size:calc(var(--u)*.7);letter-spacing:.16em;text-transform:uppercase;color:var(--ice)}
 [data-n="Problem"] .fk.bad{color:var(--red);margin-top:calc(var(--u)*.7)}
 [data-n="Problem"] .fact{padding:calc(var(--u)*.8) calc(var(--u)*.95);border:1px solid var(--line);border-radius:calc(var(--u)*1);background:rgba(255,255,255,.03)}
-[data-n="Problem"] .fact b{font-size:calc(var(--u)*2.05)}
+[data-n="Problem"] .fact b{font-size:calc(var(--u)*3)}
 [data-n="Problem"] .fact.mkt{border-color:rgba(143,211,255,.35);background:rgba(143,211,255,.06)}
-[data-n="Problem"] .fact.mkt b{color:var(--ice);font-size:calc(var(--u)*2.2)}
-[data-n="Problem"] .fact span{font-size:calc(var(--u)*.78);margin-top:calc(var(--u)*.3)}
+[data-n="Problem"] .fact.mkt b{color:var(--ice);font-size:calc(var(--u)*3.2)}
+[data-n="Problem"] .fact{padding:calc(var(--u)*1.2) calc(var(--u)*1.4)}[data-n="Problem"] .fact span{font-size:calc(var(--u)*.98);margin-top:calc(var(--u)*.3)}
 [data-n="Problem"] .ainote{display:flex;align-items:center;gap:calc(var(--u)*.7);margin-top:calc(var(--u)*.85);font-size:calc(var(--u)*.92);line-height:1.3;color:var(--mute)}
 [data-n="Problem"] .ainote b{flex:none;font-family:var(--mono);font-size:calc(var(--u)*.72);letter-spacing:.14em;color:var(--ice);border:1px solid rgba(143,211,255,.4);border-radius:99px;padding:calc(var(--u)*.22) calc(var(--u)*.6)}
+[data-n="Problem"] .two{grid-template-columns:minmax(0,calc(var(--u)*72));justify-content:center}
 /* 9 built */
 .tl{position:relative;display:grid;grid-template-columns:repeat(var(--n,7),minmax(0,1fr));margin-top:calc(var(--u)*4)}
 .tl::before{content:"";position:absolute;left:0;right:0;top:calc(var(--u)*.55);height:2px;background:var(--line)}
@@ -1037,7 +1038,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 
 /* Minimal Nido approval story. */
 .passkey-nido{font:600 calc(var(--u)*3.1) var(--display);letter-spacing:-.05em;display:flex;align-items:center;gap:calc(var(--u)*1.3);line-height:1.1}.passkey-nido>span{font:calc(var(--u)*.72) var(--mono);letter-spacing:.02em;color:var(--ice);max-width:12em;line-height:1.6;border-left:1px solid #8fd3ff44;padding-left:calc(var(--u)*1)}
-[data-n="Passkeys"] .passkey-layout{grid-template-columns:1fr 1fr;gap:calc(var(--u)*8)}[data-n="Passkeys"] h2{font-size:calc(var(--u)*5.3);line-height:.99;margin-top:calc(var(--u)*1.6)}[data-n="Passkeys"] h2 span{color:var(--ice)}.passkey-intro{font-size:calc(var(--u)*1.25)}.passkey-agent{font:calc(var(--u)*.78) var(--mono);color:var(--dim);margin-top:calc(var(--u)*1.3)}
+[data-n="Passkeys"] .passkey-layout{grid-template-columns:auto auto;justify-content:center;gap:calc(var(--u)*10)}[data-n="Passkeys"] h2{font-size:calc(var(--u)*5.3);line-height:.99;margin-top:calc(var(--u)*1.6)}[data-n="Passkeys"] h2 span{color:var(--ice)}.passkey-intro{font-size:calc(var(--u)*1.25)}.passkey-agent{font:calc(var(--u)*.78) var(--mono);color:var(--dim);margin-top:calc(var(--u)*1.3)}
 .passkey-preview{padding:calc(var(--u)*1.7);border-radius:calc(var(--u)*2.5);background:linear-gradient(145deg,#a6dcff17,#ffffff03)}.passkey-preview-top{letter-spacing:0;padding:0 calc(var(--u)*.3) calc(var(--u)*1.2)}.passkey-wallet-name{font:600 calc(var(--u)*2.1) var(--display);letter-spacing:-.05em}.passkey-secure{font:calc(var(--u)*.7) var(--mono)}
 .passkey-purchase{display:flex;align-items:center;justify-content:space-between;text-align:left;padding:calc(var(--u)*1.1);border:1px solid #ffffff12;border-radius:calc(var(--u)*1.1);background:#ffffff04;margin-bottom:calc(var(--u)*1.3)}.passkey-purchase p{font-size:calc(var(--u)*.82);color:var(--ink);font-weight:600}.passkey-purchase p span{display:block;color:var(--mute);font-size:calc(var(--u)*.75);font-weight:400;margin-top:4px}.passkey-purchase b{font-size:calc(var(--u)*2.1);margin:0;line-height:1}
 .passkey-popup{padding:calc(var(--u)*2.1) calc(var(--u)*1);background:linear-gradient(155deg,#3c4d5bbf,#212b37ed);transition:transform .65s var(--ease),border-color .6s,box-shadow .6s;position:relative;overflow:hidden}.passkey-face{width:calc(var(--u)*6.5);height:calc(var(--u)*6.5);margin-bottom:calc(var(--u)*1.3)}.passkey-face svg{stroke-width:2.3}.passkey-popup h3{font-size:calc(var(--u)*1.55)}.passkey-popup p{font-size:calc(var(--u)*.85);min-height:1.45em}.passkey-domain{font-size:calc(var(--u)*.62);margin-top:calc(var(--u)*1.4)}
@@ -1081,6 +1082,66 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .ph-big{font:700 9.5cqw var(--display);letter-spacing:-.04em;color:var(--ink);margin:5cqw 0 1.5cqw}
 .ph-res{list-style:none;margin:7cqw 0 0;padding:0;display:flex;flex-direction:column;gap:2.4cqw;font-size:4.1cqw;color:var(--ink)}.ph-res li{opacity:0;transform:translateY(2cqw);transition:opacity .4s,transform .4s}.phone[data-s=done] .ph-res li{opacity:1;transform:none}.phone[data-s=done] .ph-res li:nth-child(1){transition-delay:.45s}.phone[data-s=done] .ph-res li:nth-child(2){transition-delay:.65s}.phone[data-s=done] .ph-res li:nth-child(3){transition-delay:.85s}
 @media(prefers-reduced-motion:reduce){.phone *{animation:none!important;transition-duration:.01s!important}}
+
+/* Ways: a real-looking listing page, with SHAKE's widget injected into it */
+#wbrw .wlst{background:#fff;color:#171717}
+#wbrw .wlst .ph{background:radial-gradient(55% 40% at 50% 40%,#8b6a4f,#4b3627 72%),#3a2a20;box-shadow:none}
+#wbrw .lt{color:#171717;font-weight:500}#wbrw .lp2{color:#111}#wbrw .wsel{color:#757575}
+#wbrw .wbuy{background:#002f34;color:#fff;font-weight:600;border-radius:6px}
+#wbrw .ways-extension-area{position:relative;border:1px solid #8fd3ff70;border-radius:12px;background:linear-gradient(165deg,#1c2636,#0e131b);padding:calc(var(--u)*.7);box-shadow:0 14px 34px -14px rgba(10,20,35,.6),0 0 0 4px rgba(143,211,255,.14)}
+.slide.cur #wbrw .ways-extension-area{animation:extIn .7s var(--spring) .8s both}
+@keyframes extIn{from{opacity:0;transform:translateY(-8px) scale(.97)}}
+#wbrw .ways-extension-label{display:flex;align-items:center;gap:6px;text-align:left;margin-bottom:calc(var(--u)*.6);font:500 calc(var(--u)*.62) var(--mono);color:#cfe9fb}
+#wbrw .ways-extension-label .cm{width:calc(var(--u)*1.2);height:calc(var(--u)*1.2)}
+#wbrw .ways-extension-label b{font-weight:700;letter-spacing:.14em;color:#fff}
+#wbrw .ways-extension-label span{padding:1px 6px;border-radius:99px;border:1px solid #8fd3ff55;color:var(--ice);font-size:.9em}
+#wbrw .ways-extension-label i{margin-left:auto;font-style:normal;color:#8ea3b6}
+#wbrw .ways-extension-area .wpay{background:var(--ice);color:#06121c;border-color:transparent;box-shadow:0 8px 24px -10px var(--ice)}
+#wbrw .ways-extension-area .wadd{color:#8ea3b6}
+.ways-extension-pin{position:relative}.ways-extension-pin::after{content:"";position:absolute;top:2px;right:2px;width:7px;height:7px;border-radius:50%;background:var(--ice);box-shadow:0 0 0 2px #222a39}
+#wbrw{overflow:visible}#wbrw .ways-browser-tabs{border-radius:inherit;border-bottom-left-radius:0;border-bottom-right-radius:0}#wbrw .wlst{border-radius:0 0 calc(var(--u)*1.4) calc(var(--u)*1.4);overflow:hidden}
+#wbrw .bar{position:relative;z-index:4}
+#wbrw .ways-extension-area{position:absolute;top:calc(100% + 4px);right:calc(var(--u)*.5);width:min(64%,calc(var(--u)*19));margin:0;border-radius:12px;border:1px solid #ffffff1f;background:#151b26;padding:calc(var(--u)*.8);box-shadow:0 22px 50px -12px rgba(0,0,0,.75),0 0 0 1px #00000040;transform-origin:calc(100% - var(--u)*2) 0}
+#wbrw .ways-extension-area::before{content:"";position:absolute;top:-6px;right:calc(var(--u)*2);width:10px;height:10px;background:#151b26;border:solid #ffffff1f;border-width:1px 0 0 1px;transform:rotate(45deg)}
+@keyframes extIn{from{opacity:0;transform:translateY(-6px) scale(.94)}}
+#wbrw .ways-extension-label small{margin-left:auto;font-size:.95em;color:#8ea3b6;white-space:nowrap}
+.xitem{display:flex;align-items:center;gap:calc(var(--u)*.55);padding:calc(var(--u)*.5);margin-bottom:calc(var(--u)*.6);border-radius:9px;background:#ffffff0d}
+.xth{width:calc(var(--u)*1.8);height:calc(var(--u)*1.8);border-radius:6px;flex:none;background:linear-gradient(140deg,#6b4a33,#2a1c14)}
+.xitem p{flex:1;min-width:0;font-size:calc(var(--u)*.72);font-weight:600;color:#fff;line-height:1.25}.xitem p small{display:block;font-weight:400;color:#8ea3b6}
+.olxfav{width:14px;height:14px;flex:none}
+.xitem b{font:700 calc(var(--u)*1) var(--display);color:#fff}
+.vhead{grid-column:1/-1;display:flex;align-items:center;gap:calc(var(--u)*.8);padding-bottom:calc(var(--u)*.7);margin-bottom:calc(var(--u)*.1);border-bottom:1px solid #ececec}
+.vhead b{font:900 calc(var(--u)*1.25) var(--display);letter-spacing:-.02em}.vhead b i{font-style:normal}
+.vhead span{flex:1;padding:calc(var(--u)*.3) calc(var(--u)*.7);border-radius:6px;background:#f2f2f2;color:#9a9a9a;font-size:calc(var(--u)*.62)}
+.vhead em{font-style:normal;font-size:calc(var(--u)*.62);font-weight:600;color:#002f34;background:#fff;border:2px solid #002f34;padding:calc(var(--u)*.3) calc(var(--u)*.6);border-radius:6px}
+#wbrw .wlst .ph{display:grid;place-items:center;background:#f1efec}#wbrw .wlst .ph svg{width:82%;filter:drop-shadow(0 8px 10px rgba(0,0,0,.18))}
+.woffer{margin-top:calc(var(--u)*.45);text-align:center;padding:calc(var(--u)*.6);border-radius:6px;border:2px solid #002f34;color:#002f34;font-size:calc(var(--u)*.92);font-weight:600}
+@media(prefers-reduced-motion:reduce){.slide.cur #wbrw .ways-extension-area{animation:none}}
+
+/* Problem: big numbers, short labels, cards rise in and count up */
+[data-n="Problem"] .fact{opacity:0;transform:translateY(16px) scale(.97);transition:opacity .5s,transform .8s var(--spring),box-shadow .8s}
+[data-n="Problem"] .fact.x{opacity:1;transform:none}
+[data-n="Problem"] .fact b{display:block;line-height:1}
+[data-n="Problem"] .fact span{display:block;font-size:calc(var(--u)*1.15);color:var(--ink);opacity:.72;margin-top:calc(var(--u)*.6)}
+[data-n="Problem"] .fact:not(.mkt).x{border-color:rgba(255,90,79,.35);box-shadow:0 0 40px -16px var(--red)}
+[data-n="Problem"] .fk{font-size:calc(var(--u)*.8)}
+@media(prefers-reduced-motion:reduce){[data-n="Problem"] .fact{opacity:1;transform:none;transition:none}}
+[data-n="Product"] .steps.big3{gap:calc(var(--u)*1.4);margin-top:calc(var(--u)*3)}
+[data-n="Product"] .stp{opacity:.42;transition:opacity .5s,background .5s,border-color .5s}[data-n="Product"] .stp.x{opacity:1}[data-n="Product"] .stp.x small{color:var(--ink)}
+
+/* Product: one glowing card slides between steps, with a bar that fills while the phones play that step */
+[data-n="Product"] .ph2{grid-template-columns:minmax(0,calc(var(--u)*44)) calc(var(--u)*36.4);justify-content:center;gap:calc(var(--u)*6)}
+[data-n="Product"] .steps.big3{position:relative}
+[data-n="Product"] .product-step{position:relative;z-index:1}
+[data-n="Product"] .product-step.x,[data-n="Product"] .product-step:hover{background:transparent;border-color:transparent}
+[data-n="Product"] .product-step span{transition:transform .6s var(--spring)}[data-n="Product"] .product-step.x span{transform:translateX(calc(var(--u)*.4))}
+.stp-glow{position:absolute;left:0;right:0;top:0;height:0;opacity:0;border-radius:calc(var(--u)*1);overflow:hidden;pointer-events:none;background:linear-gradient(105deg,rgba(143,211,255,.16),rgba(143,211,255,.03) 70%);border:1px solid rgba(143,211,255,.38);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 18px 40px -22px #000,0 0 50px -18px var(--ice);transition:transform .75s var(--spring),height .5s var(--ease),opacity .4s}
+.stp-glow.on{opacity:1}
+.stp-glow::before{content:"";position:absolute;left:0;top:18%;bottom:18%;width:3px;border-radius:3px;background:var(--ice);box-shadow:0 0 12px var(--ice)}
+.stp-glow::after{content:"";position:absolute;left:0;right:0;bottom:0;height:2px;background:linear-gradient(90deg,transparent,var(--ice));transform-origin:left;transform:scaleX(0)}
+.stp-glow.run::after{animation:stpFill var(--dur,3000ms) linear forwards}
+@keyframes stpFill{to{transform:scaleX(1)}}
+@media(prefers-reduced-motion:reduce){.stp-glow{transition:none}}
 </style>
 </head>
 <body>
@@ -1133,22 +1194,15 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   <p class="eyebrow r">The problem, everywhere</p>
   <h2 class="r" style="--d:1">Proof of payment is an image.<br><span>Images lie.</span></h2>
   <div class="facts r" style="--d:2">
-   <p class="fk">The market</p>
-   <div class="fact mkt"><b>121bn€</b><span>second-hand sold in Europe, 2025.</span></div>
-   <div class="fact mkt"><b>74%</b><span>of it goes through marketplaces.</span></div>
-   <div class="fact mkt"><b>11bn€</b><span>traded on Vinted alone, 2025.</span></div>
-   <p class="fk bad">What fake proof already costs</p>
-   <div class="fact"><b>4,467</b><span>MB WAY scam complaints in Portugal, 2024.</span></div>
-   <div class="fact"><b>$432M</b><span>lost to online shopping scams in the US, 2024.</span></div>
-   <div class="fact"><b>156,516</b><span>UK purchase scams in one year. £85.9M gone.</span></div>
+   <p class="fk">The market · 2025</p>
+   <div class="fact mkt"><b>121bn€</b><span>Second-hand in Europe</span></div>
+   <div class="fact mkt"><b>74%</b><span>Sold on marketplaces</span></div>
+   <div class="fact mkt"><b>11bn€</b><span>On Vinted alone</span></div>
+   <p class="fk bad">Lost to fake payments · 2024</p>
+   <div class="fact"><b>4,467</b><span>MB WAY scam reports · Portugal</span></div>
+   <div class="fact"><b>$432M</b><span>Shopping scams · US</span></div>
+   <div class="fact"><b>£85.9M</b><span>Purchase scams · UK</span></div>
   </div>
-  <p class="ainote r" style="--d:3"><b>AI</b><span>A fake receipt now takes seconds. These numbers are from before that.</span></p>
-  <p class="src r" style="--d:4">RetailDetail 2025 · FTC 2024 · UK Finance 2024 · PSP and GNR 2024</p>
-  </div>
-  <div class="scams">
-   <div class="scam glass r" style="--d:3"><b>01</b><div><h3>The fake screenshot</h3></div></div>
-   <div class="scam glass r" style="--d:4"><b>02</b><div><h3>The request-money trick</h3></div></div>
-   <div class="scam glass r" style="--d:5"><b>03</b><div><h3>The fake checkout link</h3></div></div>
   </div></div>
 </section>
 
@@ -1157,12 +1211,12 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   <p class="eyebrow r">How it works</p>
   <h2 class="r" style="--d:1">Lock it. See it.<br><span>Scan. Paid.</span></h2>
   <div class="steps big3">
-   <button class="stp product-step" type="button" data-product-step="0" aria-pressed="false"><b>01</b><span>Lock the funds<small>Pedro confirms 400€ with Face ID.</small></span></button>
-   <button class="stp product-step" type="button" data-product-step="2" aria-pressed="false"><b>02</b><span>Verify the lock<small>Francisco checks the funds on his own phone.</small></span></button>
-   <button class="stp product-step" type="button" data-product-step="3" aria-pressed="false"><b>03</b><span>Inspect. Scan. Approve.<small>Pedro checks the item, then confirms payment.</small></span></button>
+   <i class="stp-glow" aria-hidden="true"></i>
+   <button class="stp product-step" type="button" data-product-step="0" aria-pressed="false"><b>01</b><span>Pay. It locks.<small>Pedro pays 400€ with Face ID. It waits, locked.</small></span></button>
+   <button class="stp product-step" type="button" data-product-step="2" aria-pressed="false"><b>02</b><span>The seller sees it.<small>Francisco sees the real 400€ on his phone. Not a screenshot.</small></span></button>
+   <button class="stp product-step" type="button" data-product-step="3" aria-pressed="false"><b>03</b><span>Meet. Scan. Paid.<small>Pedro checks the bike and scans. Francisco is paid.</small></span></button>
   </div>
-  <div class="product-actions"><p class="product-phase" id="product-phase" aria-live="polite">01 / 03 · Buyer confirms the lock</p><button class="product-control" id="product-toggle" type="button">Pause</button><button class="product-control" id="product-replay" type="button">Restart</button></div>
-  <p class="aside r" style="--d:3">Funds stay locked until approval. If the deal expires, they can be refunded.</p></div>
+  </div>
   <div class="phslot"></div></div>
 </section>
 
@@ -1203,20 +1257,21 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
  <p class="eyebrow r">Two ways in</p>
  <h2 class="r" style="--d:1">One click on the listing.<br><span>Or one sentence to your AI.</span></h2>
  <div class="ways2">
-   <p class="ways-head r" style="--d:2"><b><i>1</i>Browser extension</b><span>Add SHAKE to Vinted, OLX, eBay and more</span></p>
-  <p class="ways-head ways-center r" style="--d:2"><span>Same result</span></p>
+   <p class="ways-head r" style="--d:2"><b><i>1</i>Browser extension</b></p>
+  <p class="ways-head ways-center r" style="--d:2"></p>
    <p class="ways-head r" style="--d:2"><b><i>2</i>Your AI assistant</b><span class="ways-ai-brands"><img src="data:image/png;base64,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" data-ways-icon="claude" alt="" />Claude <span>·</span> <img src="data:image/png;base64,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" data-ways-icon="chatgpt" alt="" />ChatGPT</span></p>
   <div class="wbrw glass r" style="--d:3" id="wbrw">
-    <div class="ways-browser-tabs"><i></i><i></i><i></i><div class="ways-browser-tab"><img src="data:image/png;base64,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" data-ways-icon="vinted" alt="" />Leather jacket · Vinted <b>×</b></div><b>+</b></div>
-    <div class="bar"><b class="ways-browser-back" aria-hidden="true">←</b><b class="ways-browser-refresh" aria-hidden="true">↻</b><span>vinted.pt/items/leather-jacket</span><svg class="ways-puzzle" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h3V2a2 2 0 0 1 4 0v2h5v5h2a2 2 0 0 1 0 4h-2v7h-7v-2a2 2 0 0 0-4 0v2H4v-7h2a2 2 0 0 0 0-4H4V4Z"/></svg><div class="ways-extension-pin"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><b>SHAKE</b></div></div>
+    <div class="ways-browser-tabs"><i></i><i></i><i></i><div class="ways-browser-tab"><svg class="olxfav" viewBox="0 0 16 16" aria-hidden="true"><rect width="16" height="16" rx="3" fill="#002f34"/><text x="8" y="11" text-anchor="middle" font-family="Arial,sans-serif" font-weight="900" font-size="6.6" fill="#fff">OLX</text></svg>Leather jacket · OLX <b>×</b></div><b>+</b></div>
+    <div class="bar"><b class="ways-browser-back" aria-hidden="true">←</b><b class="ways-browser-refresh" aria-hidden="true">↻</b><span>olx.pt/d/anuncio/leather-jacket</span><svg class="ways-puzzle" viewBox="0 0 24 24" aria-hidden="true"><path d="M8 4h3V2a2 2 0 0 1 4 0v2h5v5h2a2 2 0 0 1 0 4h-2v7h-7v-2a2 2 0 0 0-4 0v2H4v-7h2a2 2 0 0 0 0-4H4V4Z"/></svg><div class="ways-extension-pin"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><b>SHAKE</b></div><div class="ways-extension-area" role="presentation"><p class="ways-extension-label"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><b>SHAKE</b><small>Pays only when you meet</small></p><div class="xitem"><div class="xth"></div><p>Leather jacket<small>marta_92 · Lisbon</small></p><b>60€</b></div><div class="wpay"><em class="s0"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>Pay safely with SHAKE</em><em class="s1">Opening SHAKE…</em><em class="s2">Payment ready →</em></div><p class="wadd">Opens SHAKE for your approval</p></div></div>
    <div class="wlst">
-    <div class="ph"></div>
+    <div class="vhead"><b><i style="color:#23e5db">O</i><i style="color:#ffce32">L</i><i style="color:#3a77ff">X</i></b><span>What are you looking for?</span><em>Post an ad</em></div>
+    <div class="ph"><svg viewBox="0 0 100 120" aria-hidden="true"><defs><linearGradient id="jk" x1="0" x2="1"><stop offset="0" stop-color="#3b2a1f"/><stop offset=".5" stop-color="#5a4130"/><stop offset="1" stop-color="#2e2018"/></linearGradient></defs><path d="M38 16 50 24 62 16 78 24 90 92 79 95 72 52V108H28V52L21 95 10 92 22 24Z" fill="url(#jk)"/><path d="M38 16 50 24 45 46 33 26ZM62 16 50 24 55 46 67 26Z" fill="#2a1d15"/><path d="M50 24V108" stroke="#c9b79c" stroke-width=".9"/><path d="M33 62h11M56 62h11" stroke="#22170f" stroke-width="1.6" stroke-linecap="round"/><rect x="28" y="100" width="44" height="8" fill="#24180f"/><path d="M22 24 28 52M78 24 72 52" stroke="#22170f" stroke-width=".8" opacity=".6"/></svg></div>
     <div class="wli">
      <p class="lt">Leather jacket · M</p>
      <p class="lp2">60€</p>
-     <p class="wsel">marta_92 · Lisbon</p>
+     <p class="wsel">Used · Very good · marta_92, Lisbon</p>
      <span class="wbuy">Buy now</span>
-      <div class="ways-extension-area"><p class="ways-extension-label">Added by the SHAKE extension</p><span class="wpay"><em class="s0"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>Pay safely with SHAKE</em><em class="s1">Opening SHAKE…</em><em class="s2">Payment ready →</em></span><p class="wadd">Opens SHAKE for your approval</p></div>
+     <span class="woffer">Message seller</span>
     </div>
    </div>
    <svg class="wcur" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 2.5 19.5 12l-6.6 1.5L9.4 20Z" fill="#fff" stroke="#0d0f12" stroke-width="1.3" stroke-linejoin="round"/></svg>
@@ -1226,7 +1281,6 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
    <div class="hcoin"><svg viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg></div>
    <p class="ha"><b>60€</b> locked</p>
    <p class="hs">Released only after you approve the payment</p>
-   <p class="hn">Not a screenshot. Live on Stellar.</p>
   </div>
   <div class="wchat glass r" style="--d:5" id="wchat">
     <div class="ways-claude-header"><span class="ways-claude-brand"><img src="data:image/png;base64,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" data-ways-icon="claude" alt="" />Claude</span><span class="ways-ai-connection"><i></i>SHAKE connected</span><span class="ways-chat-menu" aria-hidden="true">···</span></div>
@@ -1455,23 +1509,25 @@ const CFG={
 const PRESENT=/[?&]present\b/.test(location.search);
 document.documentElement.classList.add(PRESENT?"present":"read");
 const CAPTIONS={
- Hook:"Most second-hand scams start with a fake “proof of payment”. Watch both answers play out. (That “10.00€ locked” at the top? You'll see at the end.)",
- Problem:"The market, and what fake proof of payment already costs. Every one of these scams works because proof of payment is just a picture.",
- Product:"The buyer locks the money in a public contract on Stellar. The seller sees it's real. At the meetup one scan pays them, and the seller keeps the item until their own screen says paid.",
+ Hook:"Scams start with a fake “proof of payment”. Watch both endings play out.",
+ Problem:"The market, and what fake proof of payment costs. A picture proves nothing.",
+ Product:"The buyer locks money on Stellar. The seller sees it. One scan pays them.",
  Demo:"",
- Offline:"Neither phone has any signal. The buyer scans the seller's QR and holds; their phone then shows its own QR, and the seller scans it back. The two halves of the key meet and the seller is paid. Back online, it lands on Stellar by itself.",
- Ship:"For shipped deals, the seller packs a one-time QR in the box. Tap the three outcomes: whatever happens, nobody keeps both the item and the money.",
- Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE payment link and send it to the buyer.",
- Trust:"Nine Stellar pieces, one payment. Our contract holds the money; the other eight bring Face ID, no fees, any currency and cash-out.",
+ Offline:"No signal on either phone. Two QR scans, and the seller is still paid.",
+ Ship:"Shipped deals: a QR in the box. Tap the outcomes; nobody keeps both.",
+ Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE link.",
+ Trust:"Nine Stellar pieces, one payment: Face ID, no fees, any currency, cash-out.",
  Passkeys:"Open SHAKE, confirm with your passkey, and you’re ready.",
- Workflow:"The deal starts on Vinted, OLX or WhatsApp. The buyer locks the money in a public contract. It pays only when the seller’s one-time code is scanned, phone to phone. Otherwise it comes back. A screenshot cannot do that.",
- First:"Who we start with, and why the two strangers would use it. Five pairs outside the team still have to try it, so this is a hypothesis, not product-market fit. The extension and a shared link are how we reach them.",
- Built:"We are Pedro and Francisco: two 21-year-old students from Portugal, at Instituto Superior Técnico. We buy and sell second-hand ourselves. Pedro owns product, design and pitch; Francisco owns engineering. In 24 hours, we turned that shared problem into a working payment on Stellar Testnet.",
- Decide:"Test money only. Hold the coin, or hold the right-arrow key, for about two seconds to shake on it. Not yet gives the 10€ straight back.",
- Reveal:"The record of what you just did, with the real transactions. Scan the QR to try the two-phone version yourself."};
+ Workflow:"Deal on Vinted or OLX. Money locked. Paid only on a face-to-face scan.",
+ First:"Who we start with, and why. A hypothesis we still have to test.",
+ Built:"Pedro and Francisco, 21, from Técnico Lisbon. Built in 24 hours.",
+ Decide:"Test money only. Hold the coin ~2s to shake. Not yet refunds the 10€.",
+ Reveal:"The real transactions you just made. Scan the QR to try it on two phones."};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
 const REDUCED=matchMedia("(prefers-reduced-motion: reduce)").matches,root=document.documentElement;
 const add=(el,c="x")=>el.classList.add(c);
+// counts a stat like "121bn€" or "$432M" up from zero, keeping its prefix, suffix and separators
+const countUp=el=>{const v=el.dataset.v??=el.textContent,m=v.match(/^([^\d]*)([\d.,]+)(.*)$/);if(!m||REDUCED){el.textContent=v;return}const n=parseFloat(m[2].replace(/,/g,"")),dp=(m[2].split(".")[1]||"").length,t0=performance.now();const f=t=>{const k=Math.min(1,(t-t0)/1100),e=1-Math.pow(1-k,3);el.textContent=m[1]+(n*e).toLocaleString("en",{minimumFractionDigits:dp,maximumFractionDigits:dp})+m[3];if(k<1)requestAnimationFrame(f)};requestAnimationFrame(f)};
 /* ── contract adapter: real if wired, labelled demo otherwise ── */
 const hex=n=>Array.from(crypto.getRandomValues(new Uint8Array(n)),b=>b.toString(16).padStart(2,"0")).join("");
 const wait=ms=>new Promise(r=>setTimeout(r,ms));
@@ -1582,21 +1638,16 @@ const P={
  Hook:async(s,S)=>{const m=$$(".msg,.rcpt",s),o=$$(".opt",s),r=$("#rcpt");await S(250);for(const message of m){add(message);await S(220)}
   await S(200);for(const e of o){add(e,"on");ripple(e,"140,207,255");await S(250);add(e);await S(800);e.classList.remove("on")}
   add($("#choose"),"y");add(r,"g");ripple(r,"255,90,79");await S(250);r.classList.remove("g");add(r,"y");await S(100);add($("#verdict"));ripple($("#verdict"),"255,90,79")},
- Problem:async(s,S)=>{await S(500);for(const e of $$(".scam",s)){add(e);ripple(e,"255,90,79");await S(420)}},
- Product:async(s,S,from=0)=>{const st=$$(".product-step",s),{sc,caps}=phMode("p"),toggle=$("#product-toggle"),replay=$("#product-replay");
-  const labels=["01 / 03 · Buyer confirms the lock","01 / 03 · Buyer shares the deal","02 / 03 · Seller verifies the funds","03 / 03 · Buyer inspects and approves","03 / 03 · Payment confirmed on both phones"];
+ Problem:async(s,S)=>{const fs=$$(".fact",s);fs.forEach(f=>f.classList.remove("x"));await S(450);for(const f of fs){add(f);countUp($("b",f));await S(150)}},
+ Product:async(s,S,from=0)=>{const st=$$(".product-step",s),{sc,caps}=phMode("p");
   let phase=from,manual=false;
-  const step=k=>{phase=k;const active=[0,0,1,2,2][k];st.forEach((e,i)=>{e.classList.toggle("x",i===active);e.setAttribute("aria-pressed",String(i===active))});sc.forEach(e=>e.classList.toggle("on",e.dataset.s.split(" ").includes(String(k))));sph.dataset.focus=k<2?"buyer":k===2?"seller":"both";$("#product-phase").textContent=labels[k];caps.forEach(c=>c.classList.toggle("snap",k===4))};
-  const restart=()=>run(next=>P.Product(s,next,0));
-  st.forEach(e=>{e.onclick=()=>{manual=true;step(Number(e.dataset.productStep));toggle.textContent=REDUCED?"Next step":"Play"}});
-  replay.onclick=restart;
-  toggle.textContent=REDUCED?"Next step":"Pause";
-  toggle.onclick=()=>{if(REDUCED){manual=true;step([2,2,3,4,0][phase]);return}if(manual){run(next=>P.Product(s,next,phase))}else{manual=true;toggle.textContent="Play"}};
+  const glow=$(".stp-glow",s),ACT=[0,0,1,2,2],DUR=[2800,2800,1600,4600,4600];let lit=-1;
+  const step=k=>{phase=k;const active=ACT[k];if(active!==lit){lit=active;const el=st[active];glow.style.transform=`translateY(${el.offsetTop}px)`;glow.style.height=el.offsetHeight+"px";glow.classList.add("on");glow.classList.remove("run");void glow.offsetWidth;glow.style.setProperty("--dur",DUR[k]+"ms");if(!manual&&!REDUCED)glow.classList.add("run")}st.forEach((e,i)=>{e.classList.toggle("x",i===active);e.setAttribute("aria-pressed",String(i===active))});sc.forEach(e=>e.classList.toggle("on",e.dataset.s.split(" ").includes(String(k))));sph.dataset.focus=k<2?"buyer":k===2?"seller":"both";caps.forEach(c=>c.classList.toggle("snap",k===4))};
+  st.forEach(e=>{e.onclick=()=>{manual=true;lit=-1;step(Number(e.dataset.productStep));}});
   step(from);
   if(REDUCED){manual=true;return}
   await S(350);
   for(let k=from;k<5;k++){if(manual)return;step(k);if(k===4){await S(150);if(manual)return;ripple(sph,"140,207,255")}await S([1400,1400,1600,2200,2400][k])}
-  if(!manual){manual=true;toggle.textContent="Replay";toggle.onclick=restart}
  },
  Offline:async(s,S)=>{const st=$$(".stp",s),{sc,caps}=phMode("o"),bars=$$("#sph .sbar");
   const step=k=>{st.forEach((e,i)=>e.classList.toggle("x",i===k));sc.forEach(e=>e.classList.toggle("on",e.dataset.s.split(" ").includes(String(k))))};
@@ -1614,7 +1665,7 @@ const P={
   const push=e=>add(e);
   const pulse=()=>{h.classList.remove("pulse","deny");void h.offsetWidth;add(h,"pulse");ripple(coin,"140,207,255")};
   {b.classList.remove("b1","b2","b3","b4");h.classList.remove("on","pulse","deny");wl.classList.remove("go");wr.classList.remove("go");ms.forEach(m=>m.classList.remove("x","ok"));push(ms[0]);
-   b.style.setProperty("--cx",pay.offsetLeft+pay.offsetWidth*.6+"px");b.style.setProperty("--cy",pay.offsetTop+pay.offsetHeight*.45+"px");
+   let px=0,py=0;for(let e=pay;e&&e!==b;e=e.offsetParent){px+=e.offsetLeft;py+=e.offsetTop}b.style.setProperty("--cx",px+pay.offsetWidth*.6+"px");b.style.setProperty("--cy",py+pay.offsetHeight*.45+"px");
    await S(1100);add(b,"b1");await S(950);add(b,"b2");ripple(pay,"140,207,255");await S(170);b.classList.remove("b2");add(b,"b3");await S(950);b.classList.remove("b3");add(b,"b4");
    add(wl,"go");await S(450);add(h,"on");pulse();await S(1500);
    push(ms[0]);await S(850);push(ms[1]);await S(420);push(ms[2]);await S(1000);add(ms[2],"ok");add(wr,"go");await S(450);pulse();await S(1500);
