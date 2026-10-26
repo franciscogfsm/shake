@@ -56,7 +56,9 @@ On testnet: [a new account pays in reais and receives exactly 200 €](https://s
 
 [`scripts/fx.mjs`](scripts/fx.mjs) opens three pools (tEUR against tUSD, tGBP and tBRL) at Reflector's rate. Each is 5 million euros deep, so a 2 000 € deal moves the rate by about 0.04%. Run it again at any time to re-peg the pools to the latest rate.
 
-Limits: conversion is offered on the browser-key wallet. Face ID (Nido) smart accounts pay in the deal's currency, because classic path payments can't credit a contract address. The rates are real; the liquidity is our own test liquidity.
+**It works with Face ID too.** A Nido smart account is a contract address, and classic path payments can't credit one. So for Face ID buyers the conversion lands at the FX desk that provides the pools' liquidity, and the desk forwards the converted money to the smart account through the asset's SAC: two public transactions. [Here a Nido account is paid in reais and receives 1 €](https://stellar.expert/explorer/testnet/tx/376f487ca43edfbc86518f7a0cc8f1e46104fefea096b4d780a67b2eb5b75505).
+
+The rates are real; the liquidity is our own test liquidity.
 
 ## SHAKE on marketplace listings
 
@@ -187,7 +189,7 @@ Public track records describe recent address activity, not a verified person's i
 
 Meetup payments, shipping/disputes, public activity, listing-title import, nearby-place lookup, four test currencies with cross-currency pay-in (Reflector and path payments), passkey accounts, and the test anchor are implemented in this repository.
 
-Planned work includes conversion for Face ID smart accounts (through a Soroban DEX such as Soroswap), confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The offline shake needs the deal page opened online once; the app has no service worker for loading pages without signal. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
+Planned work includes routing Face ID conversions through a Soroban DEX such as Soroswap (today they go through the FX desk), confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The offline shake needs the deal page opened online once; the app has no service worker for loading pages without signal. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
 ### Deal kinds and deposits
 
@@ -356,7 +358,7 @@ The [build log](docs/plan.md) records an earlier deployment's smoke-test sequenc
 
 No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.mjs`): [lock with the buyer's half committed](https://stellar.expert/explorer/testnet/tx/9278ddfda63cc42060a28212abd180ade1a62da1f16c3083ed4e871688fde68e) → [seller joins](https://stellar.expert/explorer/testnet/tx/97b16753c71b7d254904b48c066b2c7cb4cb11549c71f18b94021d4bdecb4aca) → [`settle` through OpenZeppelin Channels with zero signatures](https://stellar.expert/explorer/testnet/tx/8f4ac9af17ca2f98e243d50556c057aafd46fd903ebe43a335df39375899bde1). A CLI run also showed a stranger's account submitting a [settle](https://stellar.expert/explorer/testnet/tx/8e338ded03a63eb9a5b064370eed4c6fdae8913d62c1073778d7a5aa97dba5f7) that could only pay the seller, and a wrong half rejected with contract error #18. For a new run, follow the transaction links in its live receipt.
 
-Pay in your own currency (26 Oct 2026, the app's server code against testnet): pools opened at Reflector's rate ([tEUR/tUSD](https://stellar.expert/explorer/testnet/tx/2bfb8474196d479f1d6b859e646ec6571140319a6c97fac750aaa9151178fe36), [tEUR/tGBP](https://stellar.expert/explorer/testnet/tx/a066dda57e191ec1c0ba67edf0ff71476eaf6aa8b732749e3ea1059e6c27c098), [tBRL/tEUR](https://stellar.expert/explorer/testnet/tx/77aced0361b0bbb41d504b17b28888bac39fb1abad20488a10524020f320f295)) → [a new sponsored account pays 1 133,14 R$ and receives 200 €](https://stellar.expert/explorer/testnet/tx/582b5f352b88e6ad83dad8f2e29a1cfbcbdd9b1b71e587ec9962b6db44ba45d9) → [a top-up paid in pounds arrives as 50 €](https://stellar.expert/explorer/testnet/tx/0684617839ac5e95defc37623e76072d79e69628d6e6b1d39ce2ca4c70e0cf94).
+Pay in your own currency (26 Oct 2026, the app's server code against testnet): pools opened at Reflector's rate ([tEUR/tUSD](https://stellar.expert/explorer/testnet/tx/2bfb8474196d479f1d6b859e646ec6571140319a6c97fac750aaa9151178fe36), [tEUR/tGBP](https://stellar.expert/explorer/testnet/tx/a066dda57e191ec1c0ba67edf0ff71476eaf6aa8b732749e3ea1059e6c27c098), [tBRL/tEUR](https://stellar.expert/explorer/testnet/tx/77aced0361b0bbb41d504b17b28888bac39fb1abad20488a10524020f320f295)) → [a new sponsored account pays 1 133,14 R$ and receives 200 €](https://stellar.expert/explorer/testnet/tx/582b5f352b88e6ad83dad8f2e29a1cfbcbdd9b1b71e587ec9962b6db44ba45d9) → [a top-up paid in pounds arrives as 50 €](https://stellar.expert/explorer/testnet/tx/0684617839ac5e95defc37623e76072d79e69628d6e6b1d39ce2ca4c70e0cf94) → [a Face ID (Nido) smart account paid in reais](https://stellar.expert/explorer/testnet/tx/376f487ca43edfbc86518f7a0cc8f1e46104fefea096b4d780a67b2eb5b75505). A real Face ID lock from a Nido account, with both of its approved rules and the daily spending cap enforced on-chain: [`lock` of 200 €](https://stellar.expert/explorer/testnet/tx/c6bc66865405ec9c713b3d4a50266cc32b9b4d15cab5cc34bb520d08e4c74c21).
 
 Testnet resets and redeployments can invalidate older identifiers.
 

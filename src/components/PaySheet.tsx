@@ -3,6 +3,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
 import { GlassSheet } from "./GlassSheet";
 import { springs } from "./Mark";
+import { NumberTicker } from "./Ticker";
 import { haptic, sfx } from "@/lib/client/sfx";
 import { COUNTRIES, availableCurrencies, formatMoney, moneyParts, type CurrencyCode } from "@/lib/config";
 
@@ -126,8 +127,11 @@ export function PaySheet({ open, onClose, onPay, title, money, currency, country
         <h2 className="display mt-2 text-[32px] leading-none lg:text-[36px]">{title}</h2>
         {convertible && (
           <div className="mt-5">
-            <div role="radiogroup" aria-label="Pay in" className="flex flex-wrap items-center gap-2">
-              <span className="mr-1 text-[13px] text-mute">Pay in</span>
+            <div className="mb-2 flex items-baseline justify-between">
+              <span className="text-[13px] text-mute">Pay in</span>
+              <span className="font-mono text-[10px] uppercase tracking-[0.14em] text-mute">Converted on Stellar</span>
+            </div>
+            <div role="radiogroup" aria-label="Pay in" className="grid grid-flow-col auto-cols-fr rounded-full border border-white/8 bg-white/[0.035] p-1">
               {availableCurrencies().map((c) => {
                 const on = payIn === c.code;
                 return (
@@ -139,35 +143,51 @@ export function PaySheet({ open, onClose, onPay, title, money, currency, country
                     aria-label={c.name}
                     disabled={!!picked}
                     onClick={() => { if (!on) { haptic.tick(); setPayIn(c.code); } }}
-                    className={`h-9 min-w-12 rounded-full border px-3 font-mono text-[14px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-safe ${on ? "border-safe/60 bg-safe/10 text-safe" : "border-white/8 bg-white/[0.035] text-ink-2 hover:border-white/20"}`}
+                    className={`relative flex h-10 items-center justify-center gap-1.5 rounded-full transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-safe ${on ? "text-on-safe" : "text-ink-2 hover:text-ink"}`}
                   >
-                    {moneyParts(1, c.code, locale).symbol}
+                    {on && <motion.span layoutId="payin-pill" aria-hidden className="absolute inset-0 rounded-full bg-safe shadow-[0_0_24px_rgba(143,211,255,0.35)]" transition={reduce ? { duration: 0 } : springs.snappy} />}
+                    <span className="relative text-[15px] font-semibold">{moneyParts(1, c.code, locale).symbol}</span>
+                    <span className={`relative font-mono text-[11px] tracking-[0.06em] ${on ? "opacity-70" : "text-mute"}`}>{c.code}</span>
                   </button>
                 );
               })}
             </div>
             <AnimatePresence initial={false}>
               {converting && (
-                <motion.p
+                <motion.div
                   key="fx"
-                  aria-live="polite"
-                  className="mt-3 text-[14px] leading-snug text-ink-2"
+                  className="overflow-hidden"
                   initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
                   exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
                   transition={springs.snappy}
                 >
-                  {typeof quote === "object" ? (
-                    <>
-                      You pay <span className="text-ink">{fmt(quote.send, payIn)}</span>. Stellar converts it to <span className="text-ink">{money}</span> on the way in.
-                      <span className="mt-1 block font-mono text-[11px] tracking-[0.04em] text-mute">
-                        Reflector rate: {formatMoney(1, currency, locale)} = {fmt(quote.rate, payIn)}
-                      </span>
-                    </>
-                  ) : (
-                    "Getting the rate from Stellar…"
-                  )}
-                </motion.p>
+                  <div aria-live="polite" className="mt-3 rounded-2xl border border-safe/20 bg-safe/[0.05] p-4">
+                    <div className="flex items-center gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="text-[12px] text-mute">You pay</div>
+                        <div className="amount mt-0.5 truncate text-[26px] leading-none">
+                          {typeof quote === "object" ? (
+                            <NumberTicker value={Math.ceil(quote.send * 100) / 100} format={(n) => fmt(n, payIn)} />
+                          ) : (
+                            <span className="inline-block h-[26px] w-28 animate-pulse rounded-md bg-white/10 align-middle" />
+                          )}
+                        </div>
+                      </div>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden className="shrink-0 text-safe"><path d="M5 12h14M13 6l6 6-6 6" /></svg>
+                      <div className="min-w-0 flex-1 text-right">
+                        <div className="text-[12px] text-mute">Locks as</div>
+                        <div className="amount mt-0.5 truncate text-[26px] leading-none">{money}</div>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap items-center gap-x-2 gap-y-1 border-t border-white/[0.06] pt-3 font-mono text-[11px] tracking-[0.03em] text-mute">
+                      <span className="inline-flex items-center gap-1.5 text-safe"><span className="pulse-dot !size-1.5" aria-hidden />Live rate</span>
+                      <span>{typeof quote === "object" ? `${formatMoney(1, currency, locale)} = ${fmt(quote.rate, payIn)}` : "Reading Reflector…"}</span>
+                      <span aria-hidden>·</span>
+                      <span>Reflector oracle → Stellar DEX</span>
+                    </div>
+                  </div>
+                </motion.div>
               )}
             </AnimatePresence>
           </div>
