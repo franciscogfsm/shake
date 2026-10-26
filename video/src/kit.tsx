@@ -165,13 +165,13 @@ const SB = 50; // status bar, in logical px of a 393×852 screen
 export type Layer = { src: string; o: number; scale?: number; origin?: string };
 export function Phone({ w, layers, airplane, glow = 0.4, children, time = "9:41" }: { w: number; layers: Layer[]; airplane?: boolean; glow?: number; children?: React.ReactNode; time?: string }) {
   const k = w / 393, h = 852 * k, bez = 12 * k, R = 62 * k;
-  const top = layers.find((l) => l.o > 0.01)?.src ?? layers[0].src;
+  const top = layers.find((l) => l.o > 0.01)?.src ?? layers[0]?.src;
   return (
     <div style={{ width: w + bez * 2, height: h + bez * 2, borderRadius: R + bez, padding: 3 * k, background: "linear-gradient(145deg,#5b626c,#1b1e23 32%,#2e333a 58%,#121417 80%,#454b54)", boxShadow: `0 ${50 * k}px ${140 * k}px rgba(0,0,0,.65), 0 0 ${120 * k}px rgba(143,211,255,${glow * 0.35})`, position: "relative" }}>
       <div style={{ width: "100%", height: "100%", borderRadius: R + bez - 3 * k, background: "#030405", padding: bez - 3 * k }}>
         <div style={{ position: "relative", width: w, height: h, borderRadius: R, overflow: "hidden", background: C.bg }}>
           {/* the app's own top light continues under the status bar */}
-          <Img src={staticFile(`shots/${top}`)} style={{ position: "absolute", left: 0, top: 0, width: w, height: h, filter: "blur(18px)", transform: "scale(1.1)", opacity: 0.9 }} />
+          {top && <Img src={staticFile(`shots/${top}`)} style={{ position: "absolute", left: 0, top: 0, width: w, height: h, filter: "blur(18px)", transform: "scale(1.1)", opacity: 0.9 }} />}
           {layers.map((l, i) =>
             l.o > 0.001 ? (
               <div key={i} style={{ position: "absolute", left: 0, top: SB * k, width: w, height: h - SB * k, overflow: "hidden", opacity: l.o, WebkitMaskImage: `linear-gradient(transparent, #000 ${14 * k}px)` }}>

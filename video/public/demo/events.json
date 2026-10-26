@@ -1,0 +1,64 @@
+{
+ "id": "186662115765",
+ "code": "N3BKYYKBVA",
+ "ev": [
+  {
+   "t": 2.184,
+   "m": "start"
+  },
+  {
+   "t": 6.461,
+   "m": "form"
+  },
+  {
+   "t": 11.2,
+   "m": "lock tapped"
+  },
+  {
+   "t": 27.747,
+   "m": "locked https://shake-lake.vercel.app/deal/186662115765?i=Bike&k=meet&new=1"
+  },
+  {
+   "t": 32.66,
+   "m": "seller opens link"
+  },
+  {
+   "t": 34.428,
+   "m": "seller sees locked"
+  },
+  {
+   "t": 38.011,
+   "m": "seller meeting"
+  },
+  {
+   "t": 59.184,
+   "m": "qr shown"
+  },
+  {
+   "t": 62.36,
+   "m": "scan screen"
+  },
+  {
+   "t": 66.475,
+   "m": "code entered"
+  },
+  {
+   "t": 68.183,
+   "m": "hold"
+  },
+  {
+   "t": 78.361,
+   "m": "released"
+  },
+  {
+   "t": 79.408,
+   "m": "seller paid"
+  },
+  {
+   "t": 85.292,
+   "m": "receipt"
+  }
+ ],
+ "buyer": "C:\\Users\\marti\\AppData\\Local\\Temp\\shotpw\\demo\\buyer\\22a14da1455ee8a8b009124eb7e55aae.webm",
+ "seller": "C:\\Users\\marti\\AppData\\Local\\Temp\\shotpw\\demo\\seller\\93515466bb8ba5b949ea86ddcc702940.webm"
+}

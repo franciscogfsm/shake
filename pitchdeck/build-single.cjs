@@ -20,6 +20,13 @@ swap('v.src=location.protocol==="file:"?new URL("../public"+CFG.DEMO_VIDEO,locat
 swap('const src=["/teamimage.jpeg","../public/teamimage.jpeg"]', "const src=[img.src]");
 swap('src="/teamimage.jpeg"', `src="${team}"`);
 
+// Submission sanitizers flag hidden content and external scripts: drop the appendix slides and the top comment, inline the QR lib.
+const before = html.length;
+html = html.replace(/<section class="slide" data-n="\w+" data-appendix hidden>[\s\S]*?<\/section>\n?/g, "");
+if (/data-appendix hidden/.test(html) || html.length === before) throw new Error("appendix slides not stripped");
+html = html.replace(/<!--[\s\S]*?-->\n?/g, "");
+swap('<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js" defer></script>', "<script>" + fs.readFileSync(path.join(here, "vendor/qrcode.min.js"), "utf8") + "</script>");
+
 fs.mkdirSync(path.join(here, "single"), { recursive: true });
 const out = path.join(here, "single/index.html");
 fs.writeFileSync(out, html);
