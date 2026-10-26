@@ -16,12 +16,14 @@ export async function POST(req: Request) {
     if (action === "prepare") {
       const amount = Number(body.amount ?? body.euros ?? 0);
       const currency = body.currency ?? "EUR";
-      if (!isCurrency(currency)) throw new UserError("Unsupported currency");
+      // payIn: the currency the buyer pays in; Stellar converts it to the deal's currency on the way in
+      const payIn = body.payIn ?? currency;
+      if (!isCurrency(currency) || !isCurrency(payIn)) throw new UserError("Unsupported currency");
       if (!Number.isFinite(amount) || amount < 0 || amount > MAX) throw new UserError(`Test deals go up to ${MAX}`);
       if (!isCentAmount(amount)) throw new UserError("Enter an amount with up to two decimal places.");
-      const tx = await buildOnboardTx(publicKey, amount, currency);
+      const tx = await buildOnboardTx(publicKey, amount, currency, payIn);
       if (!tx) {
-        const hash = amount > 0 ? await fund(publicKey, amount, currency) : null;
+        const hash = amount > 0 ? await fund(publicKey, amount, currency, payIn) : null;
         return NextResponse.json({ ready: true, hash });
       }
       return NextResponse.json({ ready: false, xdr: tx.toXDR() });

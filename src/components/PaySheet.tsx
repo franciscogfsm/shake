@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { GlassSheet } from "./GlassSheet";
 import { springs } from "./Mark";
 import { haptic, sfx } from "@/lib/client/sfx";
-import type { CurrencyCode } from "@/lib/config";
+import { COUNTRIES, availableCurrencies, formatMoney, moneyParts, type CurrencyCode } from "@/lib/config";
 
 /* Brand marks: Simple Icons (CC0) paths, Mastercard drawn from its circles. Sized by height, width follows the viewBox. */
 const P = {
@@ -67,28 +67,56 @@ function methodsFor(country: string, currency: CurrencyCode): MethodId[] {
   return ["applepay", local, "visa", "mastercard", "paypal", "googlepay"];
 }
 
+type Quote = { send: number; rate: number } | "loading" | "none";
+
 /** One tap picks how to pay, then the lock starts. Test mode says plainly what is and isn't real. */
-export function PaySheet({ open, onClose, onPay, title, money, currency, country }: {
+export function PaySheet({ open, onClose, onPay, title, money, currency, country, amount, locale }: {
   open: boolean;
   onClose: () => void;
-  onPay: (method: string) => void;
+  onPay: (method: string, payIn: CurrencyCode) => void;
   title: string;
   money: string;
   currency: CurrencyCode;
   country: string;
+  /** Given with `locale`: the buyer may pay in another currency, converted on Stellar. */
+  amount?: number;
+  locale?: string;
 }) {
   const reduce = useReducedMotion();
   const [picked, setPicked] = useState<MethodId | null>(null);
-  useEffect(() => { if (open) setPicked(null); }, [open]);
-  const methods = methodsFor(country, currency);
+  const home = COUNTRIES.find((c) => c.code === country)?.currency ?? currency;
+  const convertible = amount !== undefined && !!locale && availableCurrencies().length > 1;
+  const [payIn, setPayIn] = useState<CurrencyCode>(currency);
+  const [quote, setQuote] = useState<Quote>("none");
+  useEffect(() => {
+    if (!open) return;
+    setPicked(null);
+    setPayIn(convertible && availableCurrencies().some((c) => c.code === home) ? home : currency);
+  }, [open, convertible, home, currency]);
+  useEffect(() => {
+    if (!open || !convertible || payIn === currency) return setQuote("none");
+    let live = true;
+    setQuote("loading");
+    fetch(`/api/fx?from=${payIn}&to=${currency}&amount=${amount}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((q) => live && setQuote({ send: q.send, rate: q.rate }))
+      .catch(() => {
+        // no rate, no conversion: fall back to paying in the deal's own currency
+        if (live) { setQuote("none"); setPayIn(currency); }
+      });
+    return () => { live = false; };
+  }, [open, convertible, payIn, currency, amount]);
+  const methods = methodsFor(country, payIn);
+  const converting = payIn !== currency;
+  const fmt = (n: number, c: CurrencyCode) => formatMoney(Math.ceil(n * 100) / 100, c, locale);
 
   const pick = (id: MethodId) => {
-    if (picked) return;
+    if (picked || quote === "loading") return;
     setPicked(id);
     haptic.success();
     sfx.tap();
     // long enough to see the choice land, short enough to never feel like waiting
-    setTimeout(() => onPay(NAMES[id]), reduce ? 0 : 420);
+    setTimeout(() => onPay(NAMES[id], payIn), reduce ? 0 : 420);
   };
 
   return (
@@ -96,6 +124,54 @@ export function PaySheet({ open, onClose, onPay, title, money, currency, country
       <div className="flex flex-col pb-5">
         <div className="eyebrow">Choose how to pay</div>
         <h2 className="display mt-2 text-[32px] leading-none lg:text-[36px]">{title}</h2>
+        {convertible && (
+          <div className="mt-5">
+            <div role="radiogroup" aria-label="Pay in" className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-[13px] text-mute">Pay in</span>
+              {availableCurrencies().map((c) => {
+                const on = payIn === c.code;
+                return (
+                  <button
+                    key={c.code}
+                    type="button"
+                    role="radio"
+                    aria-checked={on}
+                    aria-label={c.name}
+                    disabled={!!picked}
+                    onClick={() => { if (!on) { haptic.tick(); setPayIn(c.code); } }}
+                    className={`h-9 min-w-12 rounded-full border px-3 font-mono text-[14px] transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-safe ${on ? "border-safe/60 bg-safe/10 text-safe" : "border-white/8 bg-white/[0.035] text-ink-2 hover:border-white/20"}`}
+                  >
+                    {moneyParts(1, c.code, locale).symbol}
+                  </button>
+                );
+              })}
+            </div>
+            <AnimatePresence initial={false}>
+              {converting && (
+                <motion.p
+                  key="fx"
+                  aria-live="polite"
+                  className="mt-3 text-[14px] leading-snug text-ink-2"
+                  initial={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={reduce ? { opacity: 0 } : { opacity: 0, height: 0 }}
+                  transition={springs.snappy}
+                >
+                  {typeof quote === "object" ? (
+                    <>
+                      You pay <span className="text-ink">{fmt(quote.send, payIn)}</span>. Stellar converts it to <span className="text-ink">{money}</span> on the way in.
+                      <span className="mt-1 block font-mono text-[11px] tracking-[0.04em] text-mute">
+                        Reflector rate: {formatMoney(1, currency, locale)} = {fmt(quote.rate, payIn)}
+                      </span>
+                    </>
+                  ) : (
+                    "Getting the rate from Stellar…"
+                  )}
+                </motion.p>
+              )}
+            </AnimatePresence>
+          </div>
+        )}
         <div className="mt-6 grid grid-cols-2 gap-2.5 sm:grid-cols-3">
           {methods.map((id, i) => {
             const on = picked === id;
@@ -137,7 +213,7 @@ export function PaySheet({ open, onClose, onPay, title, money, currency, country
             <span className="pulse-dot !size-1.5" aria-hidden />Test mode
           </span>
           <p className="text-[14px] leading-snug text-ink-2">
-            Nothing is charged. Pick any: {money} of test money comes in instead. <span className="text-ink">Every step after this is real, on Stellar.</span>
+            Nothing is charged. Pick any: {converting && typeof quote === "object" ? fmt(quote.send, payIn) : money} of test money comes in instead. <span className="text-ink">Every step after this is real, on Stellar.</span>
           </p>
         </div>
       </div>

@@ -796,33 +796,21 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 [data-n="Ship"] .pst{font-family:var(--display);font-size:calc(var(--u)*1.55)}
 [data-n="Ship"] .wl{font-size:calc(var(--u)*.95)}
 /* slide 9: a bigger contract diagram */
-/* trust: the money in the middle, exactly two ways out */
-[data-n="Trust"] h2{font-size:calc(var(--u)*5)}
+/* trust: our contract first, then every other Stellar piece, one line each */
+[data-n="Trust"] h2{font-size:calc(var(--u)*4.2)}
 [data-n="Trust"] > .eyebrow{align-self:flex-start;color:var(--ice)}
-.tvault{display:grid;grid-template-columns:minmax(0,1fr) calc(var(--u)*8) auto calc(var(--u)*8) minmax(0,1fr);align-items:center;width:min(calc(var(--u)*96),100%);margin-top:calc(var(--u)*4)}
-.tcore{display:flex;flex-direction:column;align-items:center;padding:calc(var(--u)*2.2) calc(var(--u)*3.4);border-radius:calc(var(--u)*2.4);border-color:rgba(140,207,255,.55);background:linear-gradient(180deg,rgba(140,207,255,.16),rgba(255,255,255,.02) 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 30px 60px -30px #000,0 0 90px -20px var(--ice)}
-.tcore .cm{width:calc(var(--u)*4.4);height:calc(var(--u)*4.4)}
-.tcore b{font-family:var(--display);font-weight:700;font-size:calc(var(--u)*4.6);letter-spacing:-.05em;line-height:1;margin-top:calc(var(--u)*1)}
-.tcore span{font-family:var(--mono);font-size:calc(var(--u)*.8);letter-spacing:.1em;color:var(--ice);margin-top:calc(var(--u)*.7);white-space:nowrap}
-.tout{padding:calc(var(--u)*2) calc(var(--u)*2.2);text-align:center;opacity:.7;transition:opacity .5s,border-color .5s,box-shadow .5s,transform .7s var(--spring)}
-.tout .k{font-family:var(--mono);font-size:calc(var(--u)*.78);letter-spacing:.16em;text-transform:uppercase;color:var(--dim);transition:color .4s}
-.tout h4{font-family:var(--display);font-size:calc(var(--u)*2.2);font-weight:700;letter-spacing:-.035em;margin-top:calc(var(--u)*.5)}
-.tout p:last-child{font-size:calc(var(--u)*1.2);color:var(--mute);margin-top:calc(var(--u)*.45)}
-.tout.x{opacity:1;transform:translateY(-6px);border-color:rgba(140,207,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 30px 60px -30px #000,0 0 60px -18px var(--ice)}
-.tout.x .k{color:var(--ice)}
-.tarr{display:block;position:relative;height:2px;margin:0 calc(var(--u)*.8);background:rgba(255,255,255,.12)}
-.tarr::after{content:"";position:absolute;inset:0;background:var(--ice);box-shadow:0 0 12px var(--ice);transform:scaleX(0);transition:transform .7s var(--ease)}
-.tarr.l::after{transform-origin:right}.tarr.rr::after{transform-origin:left}
-.tarr::before{content:"";position:absolute;top:-5px;border-top:6px solid transparent;border-bottom:6px solid transparent;transition:border-color .4s}
-.tarr.l::before{left:-4px;border-right:9px solid rgba(255,255,255,.2)}
-.tarr.rr::before{right:-4px;border-left:9px solid rgba(255,255,255,.2)}
-.tarr.x::after{transform:scaleX(1)}
-.tarr.l.x::before{border-right-color:var(--ice)}.tarr.rr.x::before{border-left-color:var(--ice)}
-.tonly{margin-top:calc(var(--u)*3.4);font-family:var(--display);font-weight:700;font-size:calc(var(--u)*2.1);letter-spacing:-.03em}
-.tonly span{color:var(--ice)}
-.tfacts{display:flex;justify-content:center;flex-wrap:wrap;gap:calc(var(--u)*.8);margin-top:calc(var(--u)*1.8);list-style:none}
-.tfacts li{display:flex;align-items:center;gap:calc(var(--u)*.6);font-size:calc(var(--u)*1.1);color:var(--ink);padding:calc(var(--u)*.6) calc(var(--u)*1.3);border-radius:99px;border:1px solid var(--line);background:rgba(255,255,255,.03)}
-.tfacts li::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--ice);box-shadow:0 0 8px var(--ice)}
+.stk{list-style:none;display:grid;grid-template-columns:1.25fr 1fr 1fr 1fr 1fr;grid-auto-rows:1fr;gap:calc(var(--u)*1);width:min(calc(var(--u)*100),100%);margin-top:calc(var(--u)*3.4);text-align:left}
+.sti{display:flex;flex-direction:column;justify-content:center;padding:calc(var(--u)*1.6) calc(var(--u)*1.8);border-radius:calc(var(--u)*1.3);opacity:.75;transition:opacity .5s,border-color .5s,box-shadow .5s,transform .6s var(--spring)}
+.stk h4{font-family:var(--display);font-size:calc(var(--u)*1.55);font-weight:700;letter-spacing:-.03em;line-height:1.1}
+.stk p{font-size:calc(var(--u)*1.15);color:var(--mute);margin-top:calc(var(--u)*.5);line-height:1.35}
+.sti.x{opacity:1;transform:translateY(-4px);border-color:rgba(140,207,255,.6);box-shadow:inset 0 1px 0 rgba(255,255,255,.18),0 24px 50px -28px #000,0 0 46px -18px var(--ice)}
+.tcore{grid-row:span 2;display:flex;flex-direction:column;justify-content:center;padding:calc(var(--u)*2) calc(var(--u)*2.2);border-radius:calc(var(--u)*1.6);border-color:rgba(140,207,255,.55);background:linear-gradient(180deg,rgba(140,207,255,.16),rgba(255,255,255,.02) 70%);box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 30px 60px -30px #000,0 0 90px -20px var(--ice)}
+.sti .k{font-family:var(--mono);font-size:calc(var(--u)*.62);letter-spacing:.12em;text-transform:uppercase;color:var(--ice);margin:0 0 calc(var(--u)*.55);opacity:.85}
+.tcore .k{font-family:var(--mono);font-size:calc(var(--u)*.72);letter-spacing:.14em;text-transform:uppercase;color:var(--ice)}
+.tcore .cm{width:calc(var(--u)*3.4);height:calc(var(--u)*3.4);margin:calc(var(--u)*1.4) 0 calc(var(--u)*1)}
+.tcore h4{font-size:calc(var(--u)*2.3)}
+.tcore span{font-family:var(--mono);font-size:calc(var(--u)*.8);letter-spacing:.1em;color:var(--ice);margin-top:calc(var(--u)*.5)}
+.tcore p{color:var(--ink);margin-top:calc(var(--u)*1.2)}
 /* slide 8: bigger, fewer words on the card */
 .again{margin-top:calc(var(--u)*1.2);font-size:max(13px,calc(var(--u)*1.05));color:var(--ice);border-bottom:1px solid rgba(143,211,255,.4);padding-bottom:2px}
 .again:hover{color:var(--ink);border-color:var(--ink)}
@@ -1206,17 +1194,19 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 </section>
 
 <section class="slide center" data-n="Trust">
- <p class="eyebrow r">Why Stellar</p>
- <h2 class="r" style="--d:1">We never hold your money.<br><span>A public contract does.</span></h2>
- <div class="tvault r" style="--d:2">
-  <div class="tout glass" id="toutl"><p class="k">To the seller</p><h4>When you approve</h4><p>Inspect the item, then confirm the payment.</p></div>
-  <i class="tarr l"></i>
-  <div class="tcore glass"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><b>10€</b><span id="tcores">locked on Stellar</span></div>
-  <i class="tarr rr"></i>
-  <div class="tout glass" id="toutr"><p class="k">Back to the buyer</p><h4>If it falls through</h4><p>Get your money back under the deal’s rules.</p></div>
- </div>
- <p class="tonly r" style="--d:4">The seller sees the funds. <span>You control the handover.</span></p>
- <ul class="tfacts r" style="--d:5"><li>Funds held by the contract</li><li>Fees sponsored in test mode</li><li>Anyone can check the proof</li></ul>
+ <p class="eyebrow r">Why Stellar · Stellar Composed</p>
+ <h2 class="r" style="--d:1">We never hold your money.<br><span>A public contract on Stellar does.</span></h2>
+ <ul class="stk r" style="--d:2">
+  <li class="tcore glass"><p class="k">The core · we wrote it</p><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg><h4>Soroban smart contract</h4><span id="tcores">locked on Stellar</span><p>Pays the seller only with the code in their one-time QR. Refunds the buyer if it falls through.</p></li>
+  <li class="sti glass"><p class="k">OpenZeppelin · Nido</p><h4>Smart Accounts with passkeys</h4><p>The buyer pays with Face ID. Nothing to write down.</p></li>
+  <li class="sti glass"><p class="k">Stellar protocol</p><h4>Stellar Asset Contracts</h4><p>tEUR, tUSD, tGBP, tBRL as Soroban tokens.</p></li>
+  <li class="sti glass"><p class="k">Stellar protocol · SDEX</p><h4>Path Payments + Liquidity Pools</h4><p>Pay in reais. She gets euros.</p></li>
+  <li class="sti glass"><p class="k">Reflector · SEP-40</p><h4>Reflector FX Oracle</h4><p>Live €, $, £, R$ rates, read on-chain.</p></li>
+  <li class="sti glass"><p class="k">OpenZeppelin</p><h4>OpenZeppelin Channels</h4><p>Every fee paid for you. No XLM.</p></li>
+  <li class="sti glass"><p class="k">Stellar protocol</p><h4>Sponsored Reserves</h4><p>Account and trustlines opened in one tap.</p></li>
+  <li class="sti glass"><p class="k">SEP-1 · SEP-10 · SEP-24</p><h4>Stellar Anchor</h4><p>Cash out to a bank.</p></li>
+  <li class="sti glass"><p class="k">Stellar infrastructure</p><h4>Stellar RPC + Horizon</h4><p>Every step public on Stellar Expert.</p></li>
+ </ul>
 </section>
 
 <section class="slide" data-n="Passkeys">
@@ -1410,7 +1400,7 @@ const CAPTIONS={
  Offline:"Neither phone has any signal. The buyer scans the seller's QR and holds; their phone then shows its own QR, and the seller scans it back. The two halves of the key meet and the seller is paid. Back online, it lands on Stellar by itself.",
  Ship:"For shipped deals, the seller packs a one-time QR in the box. Tap the three outcomes: whatever happens, nobody keeps both the item and the money.",
  Ways:"Buying? Use the extension. Selling? Ask your AI for a SHAKE payment link and send it to the buyer.",
- Trust:"The buyer locks the money in a public contract on Stellar. The seller can verify it. After inspecting the item, the buyer approves payment; if the deal falls through, the buyer can recover funds under the contract’s rules.",
+ Trust:"Nine Stellar pieces, one payment. Our own Soroban contract holds the money; the other eight get the buyer in with Face ID and no XLM, let them pay in their own currency, prove the lock to the seller, and cash it out.",
  Passkeys:"Open SHAKE, confirm with your passkey, and you’re ready.",
  Workflow:"The deal starts on Vinted, OLX or WhatsApp. The buyer locks the money in a public contract. It pays only when the seller’s one-time code is scanned, phone to phone. Otherwise it comes back. A screenshot cannot do that.",
  First:"Who we start with, and why the two strangers would use it. Five pairs outside the team still have to try it, so this is a hypothesis, not product-market fit. The extension and a shared link are how we reach them.",
@@ -1568,9 +1558,9 @@ const P={
    push(ms[0]);await S(850);push(ms[1]);await S(420);push(ms[2]);await S(1000);add(ms[2],"ok");add(wr,"go");await S(450);pulse();await S(1500);
    push(ms[3]);await S(1100);push(ms[4]);await S(900);push(ms[5]);pulse();
    return}},
- Trust:async(s,S)=>{$("#tcores").textContent=deal.status==="locked"?"yours, locked right now":"locked on Stellar";
-  const side=k=>[[$("#toutl"),$(".tarr.l",s)],[$("#toutr"),$(".tarr.rr",s)]][k];await S(1300);
-  for(let k=0;;k^=1){const[c,a]=side(k);add(a);await S(450);add(c);ripple(c,"140,207,255");await S(2400);c.classList.remove("x");a.classList.remove("x");await S(400)}},
+ Trust:async(s,S)=>{$("#tcores").textContent=deal.status==="locked"?"your 10€, locked right now":"locked on Stellar";
+  const tiles=$$(".sti",s);await S(900);ripple($(".tcore",s),"140,207,255");
+  for(let k=0;;k=(k+1)%tiles.length){add(tiles[k]);await S(1300);tiles[k].classList.remove("x");await S(150)}},
  Passkeys:async(s,S)=>{const popup=$("#passkey-popup"),label=$("#passkey-label"),detail=$("#passkey-detail"),steps=$$("[data-pk-step]",s),results=$$(".passkey-results>span",s);const step=n=>steps.forEach((el,i)=>el.classList.toggle("x",i<=n));popup.classList.remove("scanning","confirmed");results.forEach(el=>el.classList.remove("x"));step(0);label.textContent="Confirm with Face ID";detail.textContent="Your passkey. Your approval.";await S(1100);step(1);popup.classList.add("scanning");await S(2600);popup.classList.remove("scanning");popup.classList.add("confirmed");label.textContent="You’re ready.";detail.textContent="Approved in SHAKE.";await S(650);for(const result of results){result.classList.add("x");await S(650)}step(2);},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
  Built:async()=>{},

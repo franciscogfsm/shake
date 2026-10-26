@@ -2,7 +2,7 @@
 
 The living tracker. **Update the checkboxes and the "Now" line as work lands**, so the next session knows exactly where we are.
 
-**Now:** everything below is live: meet, ship, hold (deposits), jobs, made-to-order, payment request links for businesses, a clean hero: a 4-beat film (Lock / Verify / Meet / Shake) with story-style progress bars, and a live line that alternates the counter with real released/refunded deals (each links its tx), and the "Who can move this money?" safety promise on every deal. Next: visual QA of the new hero and sheets at 393×852 / 1440×900, re-run `scripts/e2e.mjs` against production when testnet is calm, README update.
+**Now:** pay in your own currency is in (26 Oct: Reflector FX oracle + path payments through Stellar DEX liquidity pools, `scripts/fx.mjs`, `/api/fx`, the PaySheet "Pay in" picker; browser-key wallet only). Everything below is live: meet, ship, hold (deposits), jobs, made-to-order, payment request links for businesses, a clean hero: a 4-beat film (Lock / Verify / Meet / Shake) with story-style progress bars, and a live line that alternates the counter with real released/refunded deals (each links its tx), and the "Who can move this money?" safety promise on every deal. Next: visual QA of the new hero and sheets at 393×852 / 1440×900, re-run `scripts/e2e.mjs` against production when testnet is calm, README update.
 
 **Testnet deployment (25 Oct 2026, `scripts/deploy.sh`):**
 - Deal contract: `CAQ6KAVIUSXSO2A6T44TC6USH3WP67R7YYORMLMLVTRG6ZDBHGQIZ2JW` (offline `settle`; previous: `CCHCT7HSKEOCFVOUPYHDAK4AOBIDIOVBXZDTL2XW7RTJJNGZGPDYYUKY`, whose events still count on the live counter)

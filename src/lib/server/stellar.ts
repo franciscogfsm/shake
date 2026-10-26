@@ -98,13 +98,64 @@ async function missingTrustlines(pk: string) {
   return ALL_ASSETS().filter((a) => !have.has(a.code));
 }
 
+/* ---------------- pay in another currency: Reflector rate, Stellar DEX conversion ---------------- */
+
+/** Reflector's "Fiat exchange rates" oracle on testnet (SEP-40): every currency quoted in USD, 14 decimals. */
+export const REFLECTOR_FX = "CCSSOHTBL3LEWUCBBEB5NJFC2OKFRC74OWEIJIZLRJBGAAU4VMU5NV4W";
+
+async function usdPrice(c: CurrencyCode) {
+  if (c === "USD") return 1;
+  const op = new Contract(REFLECTOR_FX).call("lastprice", xdr.ScVal.scvVec([xdr.ScVal.scvSymbol("Other"), xdr.ScVal.scvSymbol(c)]));
+  const sim = await server.simulateTransaction(new TransactionBuilder(simSource(), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE }).addOperation(op).setTimeout(30).build());
+  if (rpc.Api.isSimulationError(sim) || !sim.result) throw new Error(`Reflector has no ${c} rate`);
+  const p = scValToNative(sim.result.retval) as { price: bigint } | undefined;
+  if (!p) throw new Error(`Reflector has no ${c} rate`);
+  return Number(p.price) / 1e14;
+}
+
+/**
+ * What it costs in `from` to deliver `amount` of `to`: Horizon finds the path through our liquidity pools
+ * (scripts/fx.mjs keeps them on Reflector's rate), and Reflector's own rate is returned alongside to compare.
+ */
+export async function quoteFx(from: CurrencyCode, to: CurrencyCode, amount: number) {
+  const dest = assetOf(to);
+  const q = new URLSearchParams({ source_assets: `${assetOf(from).code}:${TOKEN_ISSUER}`, destination_asset_type: "credit_alphanum4", destination_asset_code: dest.code, destination_asset_issuer: TOKEN_ISSUER, destination_amount: amount.toFixed(2) });
+  const [res, rate] = await Promise.all([
+    fetch(`https://horizon-testnet.stellar.org/paths/strict-receive?${q}`, { cache: "no-store" }).then((r) => r.json()),
+    Promise.all([usdPrice(from), usdPrice(to)]).then(([f, t]) => t / f),
+  ]);
+  const best = (res?._embedded?.records ?? []).sort((a: { source_amount: string }, b: { source_amount: string }) => Number(a.source_amount) - Number(b.source_amount))[0];
+  if (!best) throw new UserError("No conversion available right now. Pay in the deal's currency.", 409);
+  return {
+    send: Number(best.source_amount),
+    path: (best.path as { asset_code: string }[]).map((p) => new Asset(p.asset_code, TOKEN_ISSUER)),
+    /** units of `from` per one `to`, from Reflector */
+    rate,
+  };
+}
+
+/** The test money's way in: a plain payment, or a path payment that converts on the Stellar DEX. */
+async function payInOp(userPk: string, amount: number, currency: CurrencyCode, payIn: CurrencyCode) {
+  if (payIn === currency) return Operation.payment({ destination: userPk, asset: assetOf(currency), amount: amount.toFixed(2), source: issuer().publicKey() });
+  const q = await quoteFx(payIn, currency, amount);
+  return Operation.pathPaymentStrictReceive({
+    source: issuer().publicKey(),
+    sendAsset: assetOf(payIn),
+    sendMax: (q.send * 1.01).toFixed(7), // 1% slippage
+    destination: userPk,
+    destAsset: assetOf(currency),
+    destAmount: amount.toFixed(2),
+    path: q.path,
+  });
+}
+
 /**
  * One transaction opens (or completes) a user's account with zero XLM: our sponsor pays the reserves
  * for the account and a trustline per currency, a channel account pays the fee, the issuer sends test money.
  * The user co-signs (their key must approve the trustlines), then we add our signatures.
  * Returns null when nothing needs the user's signature (existing account, just topped up).
  */
-export async function buildOnboardTx(userPk: string, amount: number, currency: CurrencyCode) {
+export async function buildOnboardTx(userPk: string, amount: number, currency: CurrencyCode, payIn: CurrencyCode = currency) {
   const exists = await accountExists(userPk);
   const missing = exists ? await missingTrustlines(userPk) : ALL_ASSETS();
   if (exists && missing.length === 0) return null;
@@ -117,7 +168,7 @@ export async function buildOnboardTx(userPk: string, amount: number, currency: C
   if (!exists) b.addOperation(Operation.createAccount({ destination: userPk, startingBalance: "0", source: s.publicKey() }));
   for (const asset of missing) b.addOperation(Operation.changeTrust({ asset, source: userPk }));
   b.addOperation(Operation.endSponsoringFutureReserves({ source: userPk }));
-  if (amount > 0) b.addOperation(Operation.payment({ destination: userPk, asset: assetOf(currency), amount: amount.toFixed(2), source: issuer().publicKey() }));
+  if (amount > 0) b.addOperation(await payInOp(userPk, amount, currency, payIn));
   return b.setTimeout(120).build();
 }
 
@@ -133,12 +184,15 @@ export async function submitOnboardTx(signedXdr: string, userPk: string) {
       (op.type === "createAccount" && op.destination === userPk && op.source === sponsor().publicKey()) ||
       (op.type === "changeTrust" && op.source === userPk && "code" in op.line && ourAssets.has(op.line.code) && op.line.issuer === TOKEN_ISSUER) ||
       (op.type === "endSponsoringFutureReserves" && op.source === userPk) ||
-      (op.type === "payment" && op.destination === userPk && op.source === issuer().publicKey() && Number(op.amount) <= 2000);
+      (op.type === "payment" && op.destination === userPk && op.source === issuer().publicKey() && Number(op.amount) <= 2000) ||
+      // the conversion: our assets only, at most 2 000 delivered; sendMax is capped by the pools' depth, not trusted
+      (op.type === "pathPaymentStrictReceive" && op.destination === userPk && op.source === issuer().publicKey() && Number(op.destAmount) <= 2000 &&
+        [op.sendAsset, op.destAsset, ...op.path].every((a) => ourAssets.has(a.code) && a.issuer === TOKEN_ISSUER) && Number(op.sendMax) <= 20_000);
     if (!ok) throw new UserError("Unexpected transaction shape");
   }
   const ch = Array.from({ length: CHANNEL_COUNT }, (_, i) => channel(i)).find((k) => k.publicKey() === tx.source)!;
   tx.sign(ch, sponsor());
-  if (ops.some((o) => o.type === "payment")) tx.sign(issuer());
+  if (ops.some((o) => o.type === "payment" || o.type === "pathPaymentStrictReceive")) tx.sign(issuer());
   try {
     return await sendClassic(tx);
   } catch (e) {
@@ -148,13 +202,14 @@ export async function submitOnboardTx(signedXdr: string, userPk: string) {
 }
 
 /** Top up an existing account with test euros (used for deals above the starter amount). */
-export async function fund(userPk: string, amount: number, currency: CurrencyCode = "EUR") {
+export async function fund(userPk: string, amount: number, currency: CurrencyCode = "EUR", payIn: CurrencyCode = currency) {
   const i = issuer();
+  const op = await payInOp(userPk, amount, currency, payIn);
   for (let attempt = 0; ; attempt++) {
     const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
     const account = await server.getAccount(ch.publicKey());
     const tx = new TransactionBuilder(account, { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE })
-      .addOperation(Operation.payment({ destination: userPk, asset: assetOf(currency), amount: amount.toFixed(2), source: i.publicKey() }))
+      .addOperation(op)
       .setTimeout(120)
       .build();
     tx.sign(ch, i);

@@ -41,12 +41,13 @@ async function post<T>(url: string, body: unknown): Promise<T> {
 }
 
 /** Opens the account (sponsored, zero XLM, a trustline per currency) or tops it up with test money. */
-export async function ensureAccount(kp: Keypair, amount: number, currency: CurrencyCode = "EUR") {
+export async function ensureAccount(kp: Keypair, amount: number, currency: CurrencyCode = "EUR", payIn: CurrencyCode = currency) {
   const prep = await post<{ ready: boolean; xdr?: string; hash?: string | null }>("/api/wallet", {
     action: "prepare",
     publicKey: kp.publicKey(),
     amount,
     currency,
+    payIn,
   });
   if (prep.ready) return prep.hash ?? null;
   const tx = TransactionBuilder.fromXDR(prep.xdr!, NETWORK_PASSPHRASE);

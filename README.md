@@ -6,11 +6,11 @@
 
 Built for HackMeridian 2026 · Genesis · Stellar Composed
 
-Implementation reviewed against the local source on **25 October 2026**. Hosted features depend on deployment configuration.
+Implementation reviewed against the local source on **26 October 2026**. Hosted features depend on deployment configuration.
 
 ![Composed with Stellar, OpenZeppelin, passkeys, test assets, SEP-24, and on-chain receipts](docs/assets/integrations.svg)
 
-[Launch SHAKE](https://shake-lake.vercel.app/) · [Judge walkthrough](#try-shake) · [Marketplace extension](#shake-on-marketplace-listings) · [Features](#features) · [Safety](#safety) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
+[Launch SHAKE](https://shake-lake.vercel.app/) · [Built on Stellar](#built-on-stellar-nine-pieces-one-payment) · [Judge walkthrough](#try-shake) · [Marketplace extension](#shake-on-marketplace-listings) · [Features](#features) · [Safety](#safety) · [Architecture](#architecture) · [Run locally](#run-locally) · [On-chain proof](#on-chain-proof)
 
 </div>
 
@@ -24,7 +24,39 @@ You find a second-hand phone, agree on a price, and arrange to meet. Then comes 
 
 SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketplace, WhatsApp, or any other channel. A shareable link connects the conversation to the payment; no marketplace integration is required. Buyers can meet in person or choose shipping, with a QR inside the package and a dispute window after delivery. Before committing, either person can check suspicious messages, inspect public deal activity, and find nearby public meetup places.
 
-> **Live on Stellar Testnet · Test mode.** Wallet creation, escrow, settlement, refunds, and transaction proofs run against the live test network. Test assets have no cash value. The bank withdrawal integration submits a real testnet transfer to the anchor; its final bank payout runs in a sandbox and does not credit a bank account.
+> **Live on Stellar Testnet · Test mode.** Wallet creation, currency conversion, locking, settlement, refunds, and transaction proofs run against the live test network. Test assets have no cash value. The bank withdrawal integration submits a real testnet transfer to the anchor; its final bank payout runs in a sandbox and does not credit a bank account.
+
+## Built on Stellar: nine pieces, one payment
+
+SHAKE is a **Stellar Composed** project. One payment runs through our own Soroban contract and eight other parts of the Stellar ecosystem. Each one does a job the user can feel; none is there just to be listed.
+
+| # | Stellar piece (official name) | Kind | What it does in SHAKE | Where |
+| --- | --- | --- | --- | --- |
+| 1 | **Soroban smart contract**, written by us | Stellar protocol | Holds the money. Pays the seller only with the secret from their one-time QR (a hash-lock), or with both halves of the key when there is no signal. Refunds the buyer otherwise. | [`contracts/escrow`](contracts/escrow/src/lib.rs) |
+| 2 | **OpenZeppelin Smart Accounts** with passkeys, through **Nido** | OpenZeppelin · ecosystem wallet | The buyer locks and releases with Face ID or Touch ID. Nothing to write down, no app to install. | [`nido.ts`](src/lib/client/nido.ts), [`passkey.ts`](src/lib/client/passkey.ts) |
+| 3 | **Stellar Asset Contracts (SAC)** | Stellar protocol | tEUR, tUSD, tGBP and tBRL are classic Stellar assets, wrapped so the contract moves them as Soroban tokens. | [`scripts/setup.mjs`](scripts/setup.mjs) |
+| 4 | **Path Payments** + **Liquidity Pools** on the **Stellar DEX** | Stellar protocol | Pay in your own currency. A Brazilian buyer pays in reais and the deal locks euros: one `pathPaymentStrictReceive` converts on the way in. | `payInOp` in [`stellar.ts`](src/lib/server/stellar.ts), [`scripts/fx.mjs`](scripts/fx.mjs) |
+| 5 | **Reflector FX oracle** (SEP-40) | Ecosystem oracle | Live fiat exchange rates for €, $, £ and R$, read on-chain. The pay sheet shows the rate, and the pools are pegged to it. | `quoteFx` in [`stellar.ts`](src/lib/server/stellar.ts), [`/api/fx`](src/app/api/fx/route.ts) |
+| 6 | **OpenZeppelin Channels** (OpenZeppelin Relayer) | OpenZeppelin | Submits every Soroban call and pays its fee. Users never hold XLM. | `submitCall` in [`stellar.ts`](src/lib/server/stellar.ts) |
+| 7 | **Sponsored Reserves** | Stellar protocol | One transaction opens the buyer's account and every trustline, paid for by SHAKE. A wallet in one tap. | `buildOnboardTx` in [`stellar.ts`](src/lib/server/stellar.ts) |
+| 8 | **Stellar Anchor**: **SEP-1**, **SEP-10**, **SEP-24** | Stellar standards | Shake to Bank: the seller cashes out through an interactive withdrawal (testnet, simulated bank payout). | [`src/app/api/anchor`](src/app/api/anchor), [`stellar.toml`](src/app/.well-known/stellar.toml/route.ts) |
+| 9 | **Stellar RPC** + **Horizon**, proof on **Stellar Expert** | Stellar infrastructure | Live contract reads and events keep both phones in sync. Horizon finds conversion paths. Every receipt links each step on Stellar Expert. | [`ledger.ts`](src/lib/server/ledger.ts), [`/r/[id]`](src/app/r) |
+
+Around them: an **MCP server**, so Claude, ChatGPT or Cursor can prepare and verify SHAKE payments but never move money, and a **browser extension** for 16 marketplaces.
+
+### Pay in your own currency
+
+A deal locks in one currency, but the buyer doesn't need to hold it. In the pay sheet, the buyer picks **Pay in € · $ · £ · R$**:
+
+1. SHAKE reads **Reflector's FX oracle** on testnet ([`CCSSOHTB…NV4W`](https://stellar.expert/explorer/testnet/contract/CCSSOHTBL3LEWUCBBEB5NJFC2OKFRC74OWEIJIZLRJBGAAU4VMU5NV4W)) and asks **Horizon** for the cheapest path: *"You pay 1 133,14 R$. Stellar converts it to 200 € on the way in."*
+2. The test money arrives through a **path payment** across a **Stellar DEX liquidity pool** (tBRL → tEUR), protected by a 1% slippage limit.
+3. The deal locks euros as usual. The seller sees euros, and the conversion is one public transaction.
+
+On testnet: [a new account pays in reais and receives exactly 200 €](https://stellar.expert/explorer/testnet/tx/582b5f352b88e6ad83dad8f2e29a1cfbcbdd9b1b71e587ec9962b6db44ba45d9), at Reflector's rate plus the pool's 0.3% fee. Two-hop paths work too: reais to dollars route through euros.
+
+[`scripts/fx.mjs`](scripts/fx.mjs) opens three pools (tEUR against tUSD, tGBP and tBRL) at Reflector's rate. Each is 5 million euros deep, so a 2 000 € deal moves the rate by about 0.04%. Run it again at any time to re-peg the pools to the latest rate.
+
+Limits: conversion is offered on the browser-key wallet. Face ID (Nido) smart accounts pay in the deal's currency, because classic path payments can't credit a contract address. The rates are real; the liquidity is our own test liquidity.
 
 ## SHAKE on marketplace listings
 
@@ -34,7 +66,7 @@ SHAKE is a payment companion for deals arranged on OLX, Vinted, Facebook Marketp
 
 For the judge walkthrough, load the repository's `extension` folder through **chrome://extensions → Developer mode → Load unpacked**, refresh a supported listing, select **Pay safely with SHAKE**, and continue into the payment form. For other shops, the pinned toolbar action reads the current product page on demand. No money moves until the buyer explicitly locks funds in SHAKE. The seller still needs to agree to use SHAKE and join the shared deal.
 
-Extraction uses Product JSON-LD, Open Graph metadata, and visible listing fields. Marketplace layouts, regional domains, and prices vary; users confirm imported details. EUR, USD, GBP, and BRL test settlement assets are supported. Unsupported currencies require an explicit agreed amount; there is no FX conversion. The extension is independent of these marketplaces and does not verify sellers or inherit their buyer protection. Local unpacked installation is required; there is no Web Store release yet. Chromium fixtures verify the implementation; fixture coverage does not guarantee every live listing.
+Extraction uses Product JSON-LD, Open Graph metadata, and visible listing fields. Marketplace layouts, regional domains, and prices vary; users confirm imported details. EUR, USD, GBP, and BRL test settlement assets are supported, and the buyer can pay in any of the four (see [Pay in your own currency](#pay-in-your-own-currency)). Other currencies require an explicit agreed amount. The extension is independent of these marketplaces and does not verify sellers or inherit their buyer protection. Local unpacked installation is required; there is no Web Store release yet. Chromium fixtures verify the implementation; fixture coverage does not guarantee every live listing.
 
 ## How it works
 
@@ -131,7 +163,8 @@ SHAKE is an MCP server at `https://shake-lake.vercel.app/api/mcp` (Streamable HT
 - **Optional passkey accounts:** compatible browsers can create an OpenZeppelin smart account through `smart-account-kit` and authorize with a passkey, including Face ID or Touch ID where supported.
 - **Sponsored fees:** OpenZeppelin Channels handles Soroban submissions, with an application-funded channel pool as a fallback. Users do not need to obtain XLM.
 - **Worldwide region preferences:** 249 countries and territories, browser locale detection, and separate region, number-format, and payment-currency controls. Preferences are remembered across pages and tabs.
-- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through testnet funding, escrow, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset. These are independently issued test assets; no foreign-exchange conversion is implemented.
+- **Four test currencies:** tEUR, tUSD, tGBP, and tBRL, carried through testnet funding, locking, and receipts. Locale-aware entry supports decimal commas, grouping, and Arabic, Persian, Indian, and full-width numerals. Invalid precision is rejected before funding. Totals remain separate for each asset.
+- **Pay in another currency:** the buyer can pay in any of the four. A Stellar path payment through DEX liquidity pools converts it at Reflector's live FX rate before the lock. See [Pay in your own currency](#pay-in-your-own-currency).
 - **Pay-in methods (test mode):** before every lock, one tap picks how to pay: Apple Pay, Google Pay, Visa, Mastercard and PayPal, plus the local favourite (MB WAY in Portugal, Pix for tBRL, SEPA for tEUR, Revolut Pay elsewhere). No card processor is connected and nothing is charged: the sheet says so, and our test issuer sends the test money instead. Everything after it (lock, shake, refund) is a real testnet transaction. Production would put a card/MB WAY processor or an on-ramp anchor (SEP-24 deposit) at this step.
 - **Shake to Bank:** built-in SEP-1 discovery, SEP-10 authentication, and SEP-24 interactive withdrawals, including IBAN checksum validation, a signed testnet payment, and a simulated bank payout. The current cash-out client uses the seller's browser keypair. Worldwide region selection does not imply local fiat or bank payout coverage; real payouts need an anchor supporting the destination and currency.
 
@@ -152,9 +185,9 @@ Public track records describe recent address activity, not a verified person's i
 
 ## Current scope and roadmap
 
-Meetup payments, shipping/disputes, public activity, listing-title import, nearby-place lookup, four test currencies, passkey accounts, and the test anchor are implemented in this repository.
+Meetup payments, shipping/disputes, public activity, listing-title import, nearby-place lookup, four test currencies with cross-currency pay-in (Reflector and path payments), passkey accounts, and the test anchor are implemented in this repository.
 
-Planned work includes Reflector price feeds, path-payment currency conversion, confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The offline shake needs the deal page opened online once; the app has no service worker for loading pages without signal. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
+Planned work includes conversion for Face ID smart accounts (through a Soroban DEX such as Soroswap), confidential tokens, Circle USDC/EURC, PWA push notifications, and a Portuguese/English interface switch. The current region picker changes monetary formatting and payment currency; it does not translate the interface. The offline shake needs the deal page opened online once; the app has no service worker for loading pages without signal. Carrier-confirmed delivery and automated refund/claim scheduling are not implemented.
 
 ### Deal kinds and deposits
 
@@ -179,7 +212,7 @@ Expiry makes a deposit refund callable; it does not submit a transaction by itse
 
 **Distribution starts with a link.** People keep their existing listings and conversations. The proposed commercial model is a fee on protected deals; the MVP does not implement a production fee model or claim marketplace partnerships.
 
-**Stellar components serve one user journey.** Soroban controls settlement, Stellar Asset Contracts carry test currencies, passkeys authorize smart accounts, sponsorship removes manual network funding, and an anchor flow demonstrates withdrawal.
+**Stellar components serve one user journey.** Soroban controls settlement, Stellar Asset Contracts carry test currencies, path payments and Reflector let buyers pay in their own currency, passkeys authorize smart accounts, sponsorship removes manual network funding, and an anchor flow demonstrates withdrawal.
 
 ## Architecture
 
@@ -197,6 +230,10 @@ flowchart TD
     Channels --> Contract[Soroban deal contract]
     Pool --> Contract
     Contract --> Assets[Stellar Asset Contracts]
+    API -->|FX rate| Reflector[Reflector FX oracle, SEP-40]
+    API -->|Find path| Horizon[Horizon path finding]
+    API -->|Pay in another currency| DEX[Path payment through Stellar DEX liquidity pools]
+    DEX --> Assets
     Buyer -->|Open shipping dispute| App
     Resolver[Assigned resolver] -->|Authorize buyer/seller split| Contract
     App -->|Read state and events| RPC[Stellar Testnet RPC]
@@ -218,11 +255,12 @@ flowchart TD
 | Settlement | Rust; `soroban-sdk` 29.0.1 | Hold tokens, bind the seller, verify the secret, enforce shipping/dispute windows, and settle release/refund/resolution. |
 | Assets | Classic test assets wrapped as Stellar Asset Contracts | Transfer test currency through the contract's token interface. |
 | Sponsorship | OpenZeppelin Channels; 24 derived channel accounts | Submit transactions and pay fees without user-held XLM. |
+| Currency conversion | Reflector FX oracle (SEP-40); Horizon path finding; `pathPaymentStrictReceive`; three constant-product liquidity pools | Quote and convert the buyer's currency into the deal's currency before the lock. |
 | Test anchor | Application-owned SEP endpoints | Discover services, authenticate a classic account, and demonstrate withdrawals. |
 | Deal preparation | Listing metadata fetch; OpenStreetMap Overpass | Import item titles and suggest nearby public meeting places. |
 | Activity | RPC contract-event index with a short-lived memory cache | Per-asset totals, recent activity, and three-day address track records. |
 
-The MVP uses on-chain deal storage, browser-local wallet/session data, signed withdrawal tokens, and an in-memory event cache. It requires no external application database. Stellar Testnet RPC serves contract reads and submissions; Horizon supports the anchor's transaction lookup.
+The MVP uses on-chain deal storage, browser-local wallet/session data, signed withdrawal tokens, and an in-memory event cache. It requires no external application database. Stellar Testnet RPC serves contract reads, oracle reads, and submissions; Horizon supports path finding and the anchor's transaction lookup.
 
 ### Screens and API entry points
 
@@ -239,6 +277,7 @@ The MVP uses on-chain deal storage, browser-local wallet/session data, signed wi
 | `GET /api/deal/[id]` | Contract state and available deal events. |
 | `POST /api/call` | Prepare a contract call or submit its signed authorizations. |
 | `POST /api/wallet`, `/api/passkey`, `/api/pitch` | Sponsored onboarding/funding, passkey funding, and team seller operations for the guided payment flow. |
+| `GET /api/fx?from=BRL&to=EUR&amount=200` | What the buyer pays in their own currency (Stellar DEX path), with Reflector's rate. |
 | `GET /api/listing?url=…` | Supported marketplace title and available price extraction. |
 | `POST /api/mcp` | MCP server for AI assistants: deal links, message check, on-chain verification, safe spots. No signing. |
 | `GET /api/stats`, `/api/reputation/[address]` | Recent contract activity, per-currency totals, and address counts. |
@@ -307,10 +346,19 @@ Public deployment identifiers from the repository's local configuration at the t
 | tBRL contract | [`CD7MJRLVFP3HOUX2YNI2DYOWU4QFZJ3ON5JVLFE3C3LOZVIGCOH7PGBT`](https://stellar.expert/explorer/testnet/contract/CD7MJRLVFP3HOUX2YNI2DYOWU4QFZJ3ON5JVLFE3C3LOZVIGCOH7PGBT) |
 | Test asset issuer | [`GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ`](https://stellar.expert/explorer/testnet/account/GD2U4G7UTP2356O4HAVWMICIOHJZYNBKPLQNXJ4HUBRBDYRXWSR552QJ) |
 | Pitch seller | [`GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX`](https://stellar.expert/explorer/testnet/account/GANMRJYUDGU4UJBDPV2JOMEOIXFG2TIM2WC7EV5ZDQFWBLQZ5OVULLQX) |
+| Reflector FX oracle (run by Reflector) | [`CCSSOHTBL3LEWUCBBEB5NJFC2OKFRC74OWEIJIZLRJBGAAU4VMU5NV4W`](https://stellar.expert/explorer/testnet/contract/CCSSOHTBL3LEWUCBBEB5NJFC2OKFRC74OWEIJIZLRJBGAAU4VMU5NV4W) |
+| tEUR/tUSD liquidity pool | [`2af4d4b9…f6dd6d39`](https://stellar.expert/explorer/testnet/liquidity-pool/2af4d4b9dab8a1373c03ccd862a6a41699cfd599d1866b9c48e708c4f6dd6d39) |
+| tEUR/tGBP liquidity pool | [`9b3deaef…9ee807db0`](https://stellar.expert/explorer/testnet/liquidity-pool/9b3deaefec5535a28e716f0158d66ab3b30327eb81700013b79db059ee807db0) |
+| tBRL/tEUR liquidity pool | [`3d9d1ed8…866427172`](https://stellar.expert/explorer/testnet/liquidity-pool/3d9d1ed8cefb53ff9d9f892fd475ab7fd0d1512cd544398953672dd866427172) |
+| FX desk (pool liquidity provider) | [`GBP2MWN6UROZB3L22MVK6BQ6WYE4GC42YMC5LEMDBHOJZDNFNENDDCFL`](https://stellar.expert/explorer/testnet/account/GBP2MWN6UROZB3L22MVK6BQ6WYE4GC42YMC5LEMDBHOJZDNFNENDDCFL) |
 
 The [build log](docs/plan.md) records an earlier deployment's smoke-test sequence: [lock](https://stellar.expert/explorer/testnet/tx/f0e4a08c9bec79c6273bea16458bccd0fcfa0c0d7839c931d1dfd0ec309f8abc), [seller acceptance](https://stellar.expert/explorer/testnet/tx/b95ffd9a34ac3c248dc3c140c9b9084ae45f3eff3a362f00cffadc1eac5cf3d5), and [release](https://stellar.expert/explorer/testnet/tx/a1e47d96dea9ec1a87d1e0a5cb695cf39645079afd25f2756f0cf61f6db48956). These are historical evidence, not a fresh verification against the current contract.
 
-No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.mjs`): [lock with the buyer's half committed](https://stellar.expert/explorer/testnet/tx/9278ddfda63cc42060a28212abd180ade1a62da1f16c3083ed4e871688fde68e) → [seller joins](https://stellar.expert/explorer/testnet/tx/97b16753c71b7d254904b48c066b2c7cb4cb11549c71f18b94021d4bdecb4aca) → [`settle` through OpenZeppelin Channels with zero signatures](https://stellar.expert/explorer/testnet/tx/8f4ac9af17ca2f98e243d50556c057aafd46fd903ebe43a335df39375899bde1). A CLI run also showed a stranger's account submitting a [settle](https://stellar.expert/explorer/testnet/tx/8e338ded03a63eb9a5b064370eed4c6fdae8913d62c1073778d7a5aa97dba5f7) that could only pay the seller, and a wrong half rejected with contract error #18. For a new run, follow the transaction links in its live receipt. Testnet resets and redeployments can invalidate older identifiers.
+No-signal shake on the current contract (25 Oct 2026, `node scripts/offline-e2e.mjs`): [lock with the buyer's half committed](https://stellar.expert/explorer/testnet/tx/9278ddfda63cc42060a28212abd180ade1a62da1f16c3083ed4e871688fde68e) → [seller joins](https://stellar.expert/explorer/testnet/tx/97b16753c71b7d254904b48c066b2c7cb4cb11549c71f18b94021d4bdecb4aca) → [`settle` through OpenZeppelin Channels with zero signatures](https://stellar.expert/explorer/testnet/tx/8f4ac9af17ca2f98e243d50556c057aafd46fd903ebe43a335df39375899bde1). A CLI run also showed a stranger's account submitting a [settle](https://stellar.expert/explorer/testnet/tx/8e338ded03a63eb9a5b064370eed4c6fdae8913d62c1073778d7a5aa97dba5f7) that could only pay the seller, and a wrong half rejected with contract error #18. For a new run, follow the transaction links in its live receipt.
+
+Pay in your own currency (26 Oct 2026, the app's server code against testnet): pools opened at Reflector's rate ([tEUR/tUSD](https://stellar.expert/explorer/testnet/tx/2bfb8474196d479f1d6b859e646ec6571140319a6c97fac750aaa9151178fe36), [tEUR/tGBP](https://stellar.expert/explorer/testnet/tx/a066dda57e191ec1c0ba67edf0ff71476eaf6aa8b732749e3ea1059e6c27c098), [tBRL/tEUR](https://stellar.expert/explorer/testnet/tx/77aced0361b0bbb41d504b17b28888bac39fb1abad20488a10524020f320f295)) → [a new sponsored account pays 1 133,14 R$ and receives 200 €](https://stellar.expert/explorer/testnet/tx/582b5f352b88e6ad83dad8f2e29a1cfbcbdd9b1b71e587ec9962b6db44ba45d9) → [a top-up paid in pounds arrives as 50 €](https://stellar.expert/explorer/testnet/tx/0684617839ac5e95defc37623e76072d79e69628d6e6b1d39ce2ca4c70e0cf94).
+
+Testnet resets and redeployments can invalidate older identifiers.
 
 ## Run locally
 
@@ -354,9 +402,10 @@ rustup target add wasm32v1-none
 bash scripts/deploy.sh
 bash scripts/currencies.sh
 node scripts/channels.mjs
+node scripts/fx.mjs
 ```
 
-Run these in order. The deployment script creates and funds issuer, sponsor, and team accounts, deploys tEUR and the deal contract, and writes IDs and secret keys to `.env.local`. The currency script deploys the other assets and adds the team's trustlines. The final script creates the 24 channel accounts required by onboarding and fallback submissions.
+Run these in order. The deployment script creates and funds issuer, sponsor, and team accounts, deploys tEUR and the deal contract, and writes IDs and secret keys to `.env.local`. The currency script deploys the other assets and adds the team's trustlines. The channels script creates the 24 channel accounts required by onboarding and fallback submissions. The FX script opens the liquidity pools for paying in another currency, priced from Reflector; re-run it before a demo to re-peg them.
 
 Re-running the full deployment creates fresh identities and replaces generated configuration. To redeploy only the deal contract while retaining accounts and assets:
 
@@ -419,6 +468,7 @@ For Vercel, configure the same public IDs and server-only variables before build
 | `node --test scripts/pitch-session.test.cjs` | Saved payment recovery, settlement retries/reconciliation, and currency persistence. |
 | `npm run e2e -- http://localhost:3100` | Testnet onboarding, buyer/seller settlement, wrong-secret rejection, and pitch release. |
 | `node scripts/offline-e2e.mjs` | No-signal shake on the live contract: lock with the buyer's half, seller joins, `settle` through OpenZeppelin Channels with no signatures. Needs `.env.local`, no running app. |
+| `node scripts/fx.mjs` | Opens the tEUR/tUSD, tEUR/tGBP and tBRL/tEUR pools at Reflector's rate, or re-pegs them. Submits testnet transactions. |
 | `node scripts/anchor-e2e.mjs http://localhost:3100` | Anchor discovery, authentication, IBAN validation, payment, and withdrawal completion. |
 | `node scripts/ui-flow.cjs http://localhost:3100 <existing-output-directory>` | Playwright two-browser walkthrough with a virtual passkey authenticator and screenshots. Requires Playwright Chromium. |
 | `node scripts/load.mjs http://localhost:3100 10` | Concurrent test-wallet onboarding; submits testnet transactions. |
@@ -440,7 +490,7 @@ src/lib/amount.ts      Locale-aware amount parsing and cent-precision validation
 src/lib/regions.ts     Worldwide regions, locale detection, and currency preferences
 src/lib/totals.ts      Activity totals kept separate for each test asset
 src/lib/config.ts      Network constants, assets, currencies, and explorer links
-scripts/               Deployment, channels, currencies, and end-to-end checks
+scripts/               Deployment, channels, currencies, FX pools, and end-to-end checks
 docs/                  Build context, design system, research, and integration notes
 design/reference.html  Graphite Glacier visual reference
 ```
@@ -451,7 +501,7 @@ Useful entry points: [design system](docs/design-system.md), [technical research
 
 SHAKE is developed by **Francisco and Pedro** for HackMeridian 2026 in Lisbon, targeting the **Genesis** builder track and **Stellar Composed** thematic track.
 
-The project combines its own Soroban settlement contract with Stellar Asset Contracts, OpenZeppelin sponsorship, passkey smart accounts, and an application-owned test anchor. The goal is to make these components feel like one straightforward payment experience.
+The project combines its own Soroban settlement contract with eight other Stellar pieces: OpenZeppelin Smart Accounts with passkeys (Nido), Stellar Asset Contracts, path payments through Stellar DEX liquidity pools, the Reflector FX oracle, OpenZeppelin Channels, sponsored reserves, a SEP-1/10/24 anchor, and Stellar RPC with Horizon. The goal is to make these components feel like one straightforward payment experience.
 
 **Prior work disclosure:** the team's project context records ideation and planning documents before the event, with implementation intended for the hackathon. Git history is the evidence for implementation timing; `npm run commits` refreshes the in-app history.
 

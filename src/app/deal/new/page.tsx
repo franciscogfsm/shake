@@ -92,6 +92,7 @@ function NewDeal() {
     setPaying("nido");
   }, []);
   const [via, setVia] = useState("");
+  const paidIn = useRef<CurrencyCode | null>(null);
   useEffect(() => setFaceIdOk(passkeySupported()), []);
   const [country, setCountry] = useCountry();
   const currency = country.currency;
@@ -133,7 +134,7 @@ function NewDeal() {
   };
   const money = (n: number) => formatMoney(n, currency, country.locale);
 
-  const lock = async (using = wallet) => {
+  const lock = async (using = wallet, payIn: CurrencyCode = paidIn.current ?? currency) => {
     if (!valid || busy.current) return;
     setWallet(using);
     busy.current = true;
@@ -147,7 +148,7 @@ function NewDeal() {
       if (using === "nido") {
         buyer = nidoAddress()!;
         await fundPasskeyWallet(buyer, amount, currency);
-      } else await ensureAccount(kp, amount, currency);
+      } else await ensureAccount(kp, amount, currency, payIn);
       const dealId = newDealId();
       // deposits end on the chosen day; shipping and jobs need time; refund stays possible until the seller marks it shipped
       const expiry = String(hold ? endsAt : Math.floor(Date.now() / 1000) + k.days * DAY);
@@ -246,7 +247,7 @@ function NewDeal() {
                   />
                   {!sym.before && <span className="amount text-[44px] text-ink-2 [text-shadow:none]">{sym.symbol}</span>}
                 </div>
-                <p id="price-hint" className="mt-1 text-sm text-ink-2">{price && !Number.isFinite(amount) ? "Enter a valid amount with up to two decimal places." : `Test deals: ${money(1)} to ${money(MAX)}. Payment stays in ${currency}; no conversion.`}</p>
+                <p id="price-hint" className="mt-1 text-sm text-ink-2">{price && !Number.isFinite(amount) ? "Enter a valid amount with up to two decimal places." : `Test deals: ${money(1)} to ${money(MAX)}. Locks in ${currency}; you can pay in another currency.`}</p>
               </div>
               </Item>
               <Item className="relative flex flex-col gap-6 lg:gap-7">
@@ -331,11 +332,14 @@ function NewDeal() {
         money={money(amount)}
         currency={currency}
         country={country.code}
-        onPay={(m) => {
+        // Nido pays from a smart account, which classic path payments can't reach: same currency there
+        {...(paying !== "nido" && { amount, locale: country.locale })}
+        onPay={(m, payIn) => {
           const using = paying ?? "key";
           setPaying(null);
-          setVia(m);
-          void lock(using);
+          setVia(payIn === currency ? m : `${m} in ${payIn} · converted on Stellar`);
+          paidIn.current = payIn;
+          void lock(using, payIn);
         }}
       />
       <NidoSheet open={nidoOpen} onClose={() => setNidoOpen(false)} currency={currency} onReady={onNidoReady} />
