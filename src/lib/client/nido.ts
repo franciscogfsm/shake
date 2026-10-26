@@ -9,7 +9,7 @@
 //   3. the owner approves, once in Nido's popup, rules letting that passkey call our deal contract and pay
 //      the test money only to it, capped, for 24h;
 //   4. each lock/release is then signed here with one Face ID prompt and submitted by our own relayer.
-import { Account, Address, Contract, StrKey, TransactionBuilder, hash, nativeToScVal, rpc, scValToNative, xdr } from "@stellar/stellar-sdk";
+import { Account, Address, Contract, Keypair, StrKey, TransactionBuilder, hash, nativeToScVal, rpc, scValToNative, xdr } from "@stellar/stellar-sdk";
 import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, RPC_URL, type CurrencyCode } from "@/lib/config";
 
 export const NIDO_BASE = process.env.NEXT_PUBLIC_NIDO_BASE || "https://test.nido.fyi";
@@ -85,12 +85,43 @@ export async function connectNido() {
   throw new Error(p.get("nido_connect") === "cancelled" ? "You closed Nido without picking an account." : p.get("nido_error") ?? "Nido didn't return an account.");
 }
 
-/** Nido's sign-up, straight to Face ID. It can't hand the address back, so it opens in the window the picker reuses next. */
-export function createNidoAccount() {
-  // the random salt Nido's home page passes; it picks the new account's address
-  const salt = Array.from(crypto.getRandomValues(new Uint8Array(32)), (b) => b.toString(16).padStart(2, "0")).join("");
-  if (!window.open(`${apex()}/new-account/?setup=1#salt=${salt}`, "nido-wallet", "popup,width=460,height=720"))
-    throw new Error("Your browser blocked Nido's window. Allow pop-ups for this site and try again.");
+// Nido's on-chain registry (testnet); its factory derives a new account's address from the sign-up salt
+const NIDO_REGISTRY = "CDBL7MNO7UI5OAAIC67UIWKQ4P3S6RVQSFCQXUHUW6TOFCXSYRPNHY4S";
+
+async function simulate(contract: string, fn: string, ...args: xdr.ScVal[]) {
+  const tx = new TransactionBuilder(new Account(SIM_SOURCE, "0"), { fee: "100", networkPassphrase: NETWORK_PASSPHRASE }).addOperation(new Contract(contract).call(fn, ...args)).setTimeout(30).build();
+  const sim = await server.simulateTransaction(tx);
+  if (!rpc.Api.isSimulationSuccess(sim) || !sim.result) throw new Error("Couldn't reach Nido on Stellar. Try again.");
+  return scValToNative(sim.result.retval) as string;
+}
+
+/**
+ * Nido's sign-up, straight to Face ID. Nido can't hand the address back from sign-up, but its factory derives it
+ * from the salt we pass, so we know it up front: once that account is live on Stellar, we close Nido's window.
+ * Call before any await in a click (it opens the window).
+ */
+export function createNidoAccount(): Promise<string> {
+  const seed = crypto.getRandomValues(new Uint8Array(32));
+  const salt = Array.from(seed, (b) => b.toString(16).padStart(2, "0")).join("");
+  const w = window.open(`${apex()}/new-account/?setup=1#salt=${salt}`, "nido-wallet", "popup,width=460,height=720");
+  if (!w) return Promise.reject(new Error("Your browser blocked Nido's window. Allow pop-ups for this site and try again."));
+  return (async () => {
+    const factory = await simulate(NIDO_REGISTRY, "fetch_contract_id", nativeToScVal("factory", { type: "string" }));
+    const address = await simulate(factory, "get_c_address", xdr.ScVal.scvBytes(Buffer.from(Keypair.fromRawEd25519Seed(Buffer.from(seed)).rawPublicKey())));
+    const live = () => server.getContractData(address, xdr.ScVal.scvLedgerKeyContractInstance(), rpc.Durability.Persistent).then(() => true, () => false);
+    for (const started = Date.now(); Date.now() - started < 10 * 60_000; ) {
+      if (await live()) {
+        // let Nido finish its own last step (it shows "done" for a few seconds), then close it for the user
+        await new Promise((r) => setTimeout(r, 2_500));
+        try { w.close(); } catch {}
+        localStorage.setItem(ADDRESS_KEY, address);
+        return address;
+      }
+      if (w.closed) throw new Error("Nido's window was closed before your account was made.");
+      await new Promise((r) => setTimeout(r, 1_500));
+    }
+    throw new Error("Nido took too long. Try again.");
+  })();
 }
 
 export function disconnectNido() {

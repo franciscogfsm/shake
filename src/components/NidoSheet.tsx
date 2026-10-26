@@ -48,7 +48,6 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [account, setAccount] = useState<string | null>(null);
-  const [made, setMade] = useState(false); // sign-up window opened: next tap picks the new account
 
   useEffect(() => {
     if (!open) return;
@@ -71,7 +70,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
       else setStatus(s);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Something went wrong. Try again.";
-      setError(status === "connect" && /closed/.test(msg) ? "Nido's window closed. Tap again to pick your Nido." : msg);
+      setError(status === "connect" && /closed/.test(msg) ? "Nido's window closed. Tap again to continue." : msg);
     } finally {
       setBusy(false);
     }
@@ -121,30 +120,20 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
               </button>
             </div>
           )}
-          {status === "connect" && made && <p className="mt-5 text-[15px] text-ink-2">Finish with Face ID in Nido’s window, then come back here.</p>}
+          {status === "connect" && busy && <p className="mt-5 text-[15px] text-ink-2" aria-live="polite">Finish with Face ID in Nido’s window. It closes by itself when your Nido is ready.</p>}
           <Button
             full
             className="mt-6"
             loading={busy}
-            onClick={() => {
-              if (status === "connect" && !made) {
-                try {
-                  createNidoAccount();
-                  setMade(true);
-                  setError("");
-                } catch (e) {
-                  setError((e as Error).message);
-                }
-              } else run(status === "connect" ? connectNido : status === "passkey" ? createNidoPasskey : () => approveNido(currency));
-            }}
+            onClick={() => run(status === "connect" ? createNidoAccount : status === "passkey" ? createNidoPasskey : () => approveNido(currency))}
           >
-            {status === "connect" && made ? "Connect my new Nido" : c.cta}
+            {c.cta}
           </Button>
           {error && <p role="alert" className="mt-3 text-center text-sm text-danger">{error}</p>}
           <p className="mt-3 text-center text-xs text-mute">{c.note}</p>
           {status === "connect" && (
-            <button type="button" disabled={busy} className="mt-2 text-sm text-mute underline-offset-4 hover:underline" onClick={() => run(made ? async () => createNidoAccount() : connectNido)}>
-              {made ? "Open Nido's sign-up again" : "I already have a Nido"}
+            <button type="button" disabled={busy} className="mt-2 text-sm text-mute underline-offset-4 hover:underline" onClick={() => run(connectNido)}>
+              I already have a Nido
             </button>
           )}
           {status === "approve" && (
