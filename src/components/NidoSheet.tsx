@@ -1,11 +1,11 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Button } from "./Button";
 import { GlassSheet } from "./GlassSheet";
 import { springs } from "./Mark";
 import { CURRENCIES, explorer, type CurrencyCode } from "@/lib/config";
-import { NIDO_BASE, approveNido, checkNido, connectNido, createNidoAccount, createNidoPasskey, disconnectNido, nidoAddress, nidoStatus, type NidoStatus } from "@/lib/client/nido";
+import { NIDO_BASE, NIDO_DAILY_CAP, approveNido, checkNido, connectNido, createNidoAccount, createNidoDeviceKey, createNidoPasskey, disconnectNido, nidoAddress, nidoSignsSilently, nidoStatus, type NidoStatus } from "@/lib/client/nido";
 import { haptic } from "@/lib/client/sfx";
 
 /** Nido's nest-ring mark, as its wallet module ships it (Apache-2.0). */
@@ -20,7 +20,6 @@ export function NidoMark({ size = 22 }: { size?: number }) {
   );
 }
 
-const STEPS: Exclude<NidoStatus, "ready">[] = ["connect", "passkey", "approve"];
 const COPY: Record<Exclude<NidoStatus, "ready">, { title: string; body: string; cta: string; note: string }> = {
   connect: {
     title: "Set up Face ID payments",
@@ -38,33 +37,69 @@ const COPY: Record<Exclude<NidoStatus, "ready">, { title: string; body: string; 
     title: "Set SHAKE's limits",
     body: "",
     cta: "Approve in Nido",
-    note: "In Nido, review the two rules and confirm with Face ID. Your spending cap is on the second one.",
+    note: "In Nido, review SHAKE's rules and confirm with Face ID. The daily caps are on the currency rules.",
   },
 };
 
-/** Pay from a real Nido smart account: connect → SHAKE's passkey → the owner approves the rules once. Each step is its own tap, so no popup is blocked. */
+/**
+ * Pay from a real Nido smart account: connect → SHAKE's key (made here without a prompt; a Face ID passkey only
+ * if this browser can't keep one) → the owner approves the rules once. Each Nido step is its own tap, so no popup is blocked.
+ */
 export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean; onClose: () => void; onReady: () => void; currency: CurrencyCode }) {
   const [status, setStatus] = useState<NidoStatus>("connect");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [account, setAccount] = useState<string | null>(null);
+  /** This browser couldn't keep a key, so SHAKE's key is a passkey: one more step, and Face ID on each payment. */
+  const [passkeyOnly, setPasskeyOnly] = useState(false);
+  const steps: Exclude<NidoStatus, "ready">[] = passkeyOnly ? ["connect", "passkey", "approve"] : ["connect", "approve"];
+
+  /** Take every step that needs no tap: make SHAKE's browser key, and read approvals that are already on chain. */
+  const advance = useCallback(async () => {
+    let s = nidoStatus(currency);
+    if (s === "passkey") {
+      try {
+        await createNidoDeviceKey();
+        s = nidoStatus(currency);
+      } catch {
+        setPasskeyOnly(true);
+      }
+    }
+    if (s === "approve" && (await checkNido(currency).catch(() => false))) s = "ready";
+    // a Face ID passkey from before needs approving again anyway: swap it for a browser key while we're at it
+    if (s === "approve" && !nidoSignsSilently()) await createNidoDeviceKey().catch(() => setPasskeyOnly(true));
+    setAccount(nidoAddress());
+    return s;
+  }, [currency]);
 
   useEffect(() => {
     if (!open) return;
+    let live = true;
     setError("");
     setAccount(nidoAddress());
-    const s = nidoStatus(currency);
-    if (s === "ready") onReady();
-    else setStatus(s);
-  }, [open, currency, onReady]);
+    const now = nidoStatus(currency);
+    if (now === "ready") return onReady();
+    setStatus(now);
+    if (now === "connect") return;
+    setBusy(true);
+    advance()
+      .then((s) => {
+        if (!live) return;
+        if (s === "ready") onReady();
+        else setStatus(s);
+      })
+      .finally(() => live && setBusy(false));
+    return () => {
+      live = false;
+    };
+  }, [open, currency, onReady, advance]);
 
   const run = async (step: () => Promise<unknown>) => {
     setBusy(true);
     setError("");
     try {
       await step();
-      setAccount(nidoAddress());
-      const s = nidoStatus(currency);
+      const s = await advance();
       haptic.success();
       if (s === "ready") onReady();
       else setStatus(s);
@@ -78,7 +113,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
   };
 
   const c = status === "ready" ? null : COPY[status];
-  const at = STEPS.indexOf(status as (typeof STEPS)[number]);
+  const at = Math.max(0, steps.indexOf(status as (typeof steps)[number]));
   const asset = CURRENCIES[currency].asset;
   return (
     <GlassSheet open={open} onClose={onClose} label="Set up Face ID payments">
@@ -88,8 +123,8 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
             <NidoMark />
             <span className="eyebrow">Nido × SHAKE · on Stellar</span>
           </div>
-          <div className="mt-4 flex gap-1.5" aria-label={`Step ${at + 1} of 3`}>
-            {STEPS.map((s, i) => (
+          <div className="mt-4 flex gap-1.5" aria-label={`Step ${at + 1} of ${steps.length}`}>
+            {steps.map((s, i) => (
               <span key={s} className="h-1 flex-1 overflow-hidden rounded-full bg-white/10">
                 <motion.span className="block h-full origin-left rounded-full bg-safe" initial={false} animate={{ scaleX: i <= at ? 1 : 0 }} transition={springs.smooth} />
               </span>
@@ -99,12 +134,15 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
             <motion.div key={status} initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -16 }} transition={springs.snappy}>
               <h2 className="display mt-5 text-[30px] leading-none lg:text-[34px]">{c.title}</h2>
               {status === "approve" ? (
-                <ul className="mt-4 flex flex-col gap-2 text-[15px] text-ink-2">
-                  <li className="flex gap-2.5"><span className="text-safe">✓</span>Lock, release or refund your SHAKE payments</li>
-                  <li className="flex gap-2.5"><span className="text-safe">✓</span>Move up to 2,000 {asset} a day, only into the SHAKE contract</li>
-                  <li className="flex gap-2.5"><span className="text-safe">✓</span>Ends by itself in 24 hours</li>
-                  <li className="flex gap-2.5"><span className="text-mute">✕</span><span className="text-mute">Pay anyone else. Your account refuses it on chain.</span></li>
-                </ul>
+                <>
+                  <ul className="mt-4 flex flex-col gap-2 text-[15px] text-ink-2">
+                    <li className="flex gap-2.5"><span className="text-safe">✓</span>Lock, release or refund your SHAKE payments</li>
+                    <li className="flex gap-2.5"><span className="text-safe">✓</span>Move up to {NIDO_DAILY_CAP.toLocaleString("en")} {asset} a day (the same in each currency), only into the SHAKE contract</li>
+                    <li className="flex gap-2.5"><span className="text-safe">✓</span>Ends by itself in 7 days</li>
+                    <li className="flex gap-2.5"><span className="text-mute">✕</span><span className="text-mute">Pay anyone else. Your account refuses it on chain.</span></li>
+                  </ul>
+                  {!passkeyOnly && <p className="mt-4 text-[15px] text-ink-2">One Face ID in Nido now. Then this browser pays within these limits, with no more Face ID.</p>}
+                </>
               ) : (
                 <p className="mt-3 text-[15px] text-ink-2">{c.body}</p>
               )}

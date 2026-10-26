@@ -16,7 +16,7 @@ import { ApiError, callDeal, ensureAccount, getKeypair } from "@/lib/client/wall
 import { dealMeta } from "@/lib/client/handshake";
 import { buyerKey } from "@/lib/client/offline";
 import { fundPasskeyWallet, passkeySupported } from "@/lib/client/passkey";
-import { nidoAddress, nidoStatus } from "@/lib/client/nido";
+import { nidoAddress, nidoReadyUntil, nidoSignsSilently, nidoStatus } from "@/lib/client/nido";
 import { NidoSheet } from "@/components/NidoSheet";
 import { KIND_ORDER, KINDS, type Kind } from "@/lib/kinds";
 import { haptic, sfx } from "@/lib/client/sfx";
@@ -25,12 +25,18 @@ const MAX = 2000;
 const DAY = 24 * 60 * 60;
 type Phase = "form" | "locking" | "failed";
 type Wallet = "key" | "nido";
-const steps = (wallet: Wallet, via: string) => [
+const steps = (wallet: Wallet, via: string, silent: boolean) => [
   { key: "account", label: wallet === "nido" ? `Nido wallet · paying with ${via || "test money"}` : via ? `Paying with ${via} · test money` : "Setting up your money" },
   { key: "preparing", label: "Preparing the lock" },
-  { key: "signing", label: wallet === "nido" ? "Face ID signs for your Nido account" : "Signing on this phone" },
+  { key: "signing", label: wallet === "nido" ? (silent ? "Your Nido signs, within the limits you set" : "Face ID signs for your Nido account") : "Signing on this phone" },
   { key: "confirming", label: "Confirming on the network" },
 ];
+
+/** "6 more days", "5 more hours" */
+const left = (until: number) => {
+  const h = Math.max(1, Math.floor((until - Date.now()) / 3_600_000));
+  return h >= 48 ? `${Math.floor(h / 24)} more days` : `${h} more hour${h === 1 ? "" : "s"}`;
+};
 
 const dayInput = (days: number) => new Date(Date.now() + days * DAY * 1000).toISOString().slice(0, 10);
 
@@ -96,6 +102,13 @@ function NewDeal() {
   useEffect(() => setFaceIdOk(passkeySupported()), []);
   const [country, setCountry] = useCountry();
   const currency = country.currency;
+  /** Nido is set up for this currency: until when, and whether payments then need no Face ID. */
+  const [nido, setNido] = useState<{ until: number; silent: boolean } | null>(null);
+  useEffect(() => {
+    const until = nidoReadyUntil(currency);
+    setNido(until ? { until, silent: nidoSignsSilently() } : null);
+  }, [currency, nidoOpen, phase]);
+  const faceIdLabel = faceIdOk && !nido?.silent;
   const sym = moneyParts(1, currency, country.locale);
   // the request is in the payee's currency: switch to it rather than reinterpret the amount
   const asked = { p: q.get("p") ?? "", c: q.get("c") as CurrencyCode };
@@ -162,7 +175,11 @@ function NewDeal() {
       const link = new URLSearchParams({ i: item.trim(), k: kind, ...(seller.trim() ? { s: seller.trim() } : {}) });
       router.replace(`/deal/${dealId}?${link}&new=1`);
     } catch (e) {
-      setError(e instanceof ApiError ? e.message : "The network didn't answer in time. Your money is safe; nothing was locked.");
+      setError(
+        e instanceof ApiError ? e.message
+        : e instanceof DOMException && e.name === "NotAllowedError" ? "Face ID didn't finish. Nothing was locked."
+        : "The network didn't answer in time. Your money is safe; nothing was locked.",
+      );
       setPhase("failed");
     } finally {
       busy.current = false;
@@ -282,13 +299,19 @@ function NewDeal() {
                 <p className="text-center text-[15px] text-ink-2 lg:text-left">{k.blurb}</p>
                 <SafetyPromise kind={kind} payer={!asking} expiry={hold ? endsAt : Math.floor(Date.now() / 1000) + k.days * DAY} locale={country.locale} className="justify-center lg:justify-start" />
                 <Button type="submit" full disabled={!valid}>
-                  {faceIdOk && !asking && <FaceIdIcon />}
-                  {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdOk ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
+                  {faceIdLabel && !asking && <FaceIdIcon />}
+                  {asking ? (valid ? `Share a ${money(amount)} payment link` : "Add the details and your name") : valid ? `${hold ? "Hold" : "Lock"} ${money(amount)}${faceIdLabel ? " with Face ID" : ""}` : hold ? "Hold deposit" : "Lock"}
                 </Button>
                 {faceIdOk && valid && !asking && (
-                  <a href="https://test.nido.fyi" target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-mute hover:text-ink lg:text-left">
-                    With Nido
-                  </a>
+                  nido ? (
+                    <p className="text-center text-xs text-mute lg:text-left" role="status">
+                      From your Nido · {nido.silent ? "no Face ID needed" : "Face ID"} · set up for {left(nido.until)}
+                    </p>
+                  ) : (
+                    <a href="https://test.nido.fyi" target="_blank" rel="noopener noreferrer" className="block text-center text-xs text-mute hover:text-ink lg:text-left">
+                      With Nido
+                    </a>
+                  )
                 )}
                 {linkState && <p className="break-all text-center text-sm text-safe lg:text-left" role="status">{linkState}</p>}
                 {!request && (
@@ -298,7 +321,7 @@ function NewDeal() {
                 )}
                 {faceIdOk && valid && !asking && (
                   <button type="button" onClick={() => setPaying("key")} className="text-sm text-mute underline-offset-4 hover:underline">
-                    Lock without Face ID
+                    {nido?.silent ? "Pay without Nido" : "Lock without Face ID"}
                   </button>
                 )}
                 <TestnetNote className="lg:text-left" />
@@ -365,7 +388,7 @@ function LockMoment({
   const reduce = useReducedMotion();
   const sym = moneyParts(amount || 0, currency, locale);
   const failed = phase === "failed";
-  const list = steps(wallet, via);
+  const list = steps(wallet, via, wallet === "nido" && nidoSignsSilently());
   const active = list.find((s) => s.key === step);
 
   return (

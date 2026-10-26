@@ -1,7 +1,7 @@
 "use client";
 import { Address, Keypair, TransactionBuilder, authorizeEntry, xdr } from "@stellar/stellar-sdk";
 import { NETWORK_PASSPHRASE, type CurrencyCode } from "@/lib/config";
-import { nidoAddress, signWithNido } from "./nido";
+import { NidoError, nidoAddress, signWithNido } from "./nido";
 import { passkeyAddress, signWithPasskey } from "./passkey";
 
 const KEY = "shake.key.v1";
@@ -58,7 +58,7 @@ export async function ensureAccount(kp: Keypair, amount: number, currency: Curre
 
 export type CallStep = "preparing" | "signing" | "confirming";
 
-/** Prepare → sign only our own authorizations (key or Face ID) → OpenZeppelin Channels submits and pays the fee. */
+/** Prepare → sign only our own authorizations (key, Face ID or the Nido session key) → OpenZeppelin Channels submits and pays the fee. */
 export async function callDeal(
   kp: Keypair,
   fn: "lock" | "lock_ship" | "lock_hold" | "accept" | "release" | "settle" | "refund" | "mark_shipped" | "mark_delivered" | "dispute" | "claim" | "approve" | "claim_damage" | "agree",
@@ -78,7 +78,13 @@ export async function callDeal(
       if (cred.switch().name !== "sorobanCredentialsAddress") return b64;
       const who = Address.fromScAddress(cred.address().address()).toString();
       if (who === pk) return (await signWithPasskey(entry, prep.latestLedger + 100)).toXDR("base64");
-      if (who === nido) return (await signWithNido(entry, prep.latestLedger + 100)).toXDR("base64");
+      if (who === nido)
+        return (
+          await signWithNido(entry, prep.latestLedger + 100).catch((e) => {
+            // the screens show an ApiError's words as they are
+            throw e instanceof NidoError ? new ApiError(e.message) : e;
+          })
+        ).toXDR("base64");
       if (who !== me) return b64;
       const signed = await authorizeEntry(entry, kp, prep.latestLedger + 100, NETWORK_PASSPHRASE);
       return signed.toXDR("base64");

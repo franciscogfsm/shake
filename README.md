@@ -33,7 +33,7 @@ SHAKE is a **Stellar Composed** project. One payment runs through our own Soroba
 | # | Stellar piece (official name) | Kind | What it does in SHAKE | Where |
 | --- | --- | --- | --- | --- |
 | 1 | **Soroban smart contract**, written by us | Stellar protocol | Holds the money. Pays the seller only with the secret from their one-time QR (a hash-lock), or with both halves of the key when there is no signal. Refunds the buyer otherwise. | [`contracts/escrow`](contracts/escrow/src/lib.rs) |
-| 2 | **OpenZeppelin Smart Accounts** with passkeys, through **Nido** | OpenZeppelin · ecosystem wallet | The buyer locks and releases with Face ID or Touch ID. Nothing to write down, no app to install. | [`nido.ts`](src/lib/client/nido.ts), [`passkey.ts`](src/lib/client/passkey.ts) |
+| 2 | **OpenZeppelin Smart Accounts** with passkeys, through **Nido** | OpenZeppelin · ecosystem wallet | The buyer approves SHAKE once with Face ID or Touch ID in Nido; after that, locks and releases need no prompt, within on-chain limits. Nothing to write down, no app to install. | [`nido.ts`](src/lib/client/nido.ts), [`passkey.ts`](src/lib/client/passkey.ts) |
 | 3 | **Stellar Asset Contracts (SAC)** | Stellar protocol | tEUR, tUSD, tGBP and tBRL are classic Stellar assets, wrapped so the contract moves them as Soroban tokens. | [`scripts/setup.mjs`](scripts/setup.mjs) |
 | 4 | **Path Payments** + **Liquidity Pools** on the **Stellar DEX** | Stellar protocol | Pay in your own currency. A Brazilian buyer pays in reais and the deal locks euros: one `pathPaymentStrictReceive` converts on the way in. | `payInOp` in [`stellar.ts`](src/lib/server/stellar.ts), [`scripts/fx.mjs`](scripts/fx.mjs) |
 | 5 | **Reflector FX oracle** (SEP-40) | Ecosystem oracle | Live fiat exchange rates for €, $, £ and R$, read on-chain. The pay sheet shows the rate, and the pools are pegged to it. | `quoteFx` in [`stellar.ts`](src/lib/server/stellar.ts), [`/api/fx`](src/app/api/fx/route.ts) |
@@ -377,7 +377,7 @@ Open [localhost:3000](http://localhost:3000). Use `localhost`, not `127.0.0.1`: 
 
 The first `npm run dev` runs [`scripts/setup.mjs`](scripts/setup.mjs), which makes your own private testnet setup and writes it to `.env.local` (git-ignored): three Friendbot-funded accounts, tEUR/tUSD/tGBP/tBRL issued by you, and 24 channel accounts that pay fees. It uses the public SHAKE deal contract, which has no admin. No Rust, no Stellar CLI, no API keys. Later runs start immediately.
 
-To pay with Face ID, SHAKE uses a [Nido](https://test.nido.fyi) passkey smart account: tap **Lock with Face ID**, create or pick your Nido, let SHAKE make its own passkey, and approve SHAKE's limits once in Nido's window (lock and release SHAKE payments, and move test money only into the SHAKE contract, for 24 hours). Allow pop-ups for the site.
+To pay with Face ID, SHAKE uses a [Nido](https://test.nido.fyi) passkey smart account: tap **Lock with Face ID**, create or pick your Nido, and approve SHAKE's limits once in Nido's window (lock and release SHAKE payments, and move up to 2,000 a day of each test currency only into the SHAKE contract, for 7 days). Allow pop-ups for the site. SHAKE signs for the account with its own P-256 key, a non-extractable WebCrypto key kept in the browser, which the account checks with OpenZeppelin's WebAuthn verifier under those rules, so later payments need no Face ID. Set `NEXT_PUBLIC_NIDO_SIGNER=passkey` to use a passkey instead (Face ID on every payment).
 
 The steps below deploy everything yourself, including the contract.
 
@@ -444,6 +444,7 @@ Public variables are embedded in the client bundle by Next.js. Set them before b
 | `CHANNELS_API_KEY` | Optional OpenZeppelin Channels sponsorship key. | Developer configuration |
 | `NEXT_PUBLIC_SITE_URL` | Optional canonical origin for metadata and social previews. | Developer configuration |
 | `NEXT_PUBLIC_NIDO_BASE` | Optional Nido wallet origin for Face ID payments; defaults to `https://test.nido.fyi`. | Developer configuration |
+| `NEXT_PUBLIC_NIDO_SIGNER` | Optional. `passkey` makes SHAKE's Nido session key a passkey (Face ID on every payment); by default it is a browser key (Face ID only when approving in Nido). | Developer configuration |
 
 Keep `.env.local` private. The passkey account WASM hash and WebAuthn verifier address are public constants in [`src/lib/config.ts`](src/lib/config.ts). Changing `NEXT_PUBLIC_NETWORK` alone does not switch networks.
 

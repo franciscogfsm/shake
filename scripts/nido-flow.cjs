@@ -1,6 +1,6 @@
 // The real Face ID flow with Nido, end to end on testnet, in two phones:
-// the buyer creates a Nido account (test.nido.fyi), connects it, lets SHAKE make its passkey, approves SHAKE's
-// rules in Nido, locks; the seller joins and shows the QR; the buyer enters its code and holds to shake.
+// the buyer creates a Nido account (test.nido.fyi), connects it (SHAKE makes its browser key, no prompt), approves
+// SHAKE's rules in Nido once, locks with no Face ID; the seller joins and shows the QR; the buyer enters its code and holds to shake.
 // Virtual passkeys stand in for Face ID (shared across the buyer's tabs and Nido's popups).
 //   node scripts/nido-flow.cjs [baseUrl] [screenshotDir]      (needs `playwright`)
 const { chromium } = require('playwright');
@@ -43,7 +43,7 @@ const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).ca
   };
   const visibleText = (w, text) => w.locator(`text=${text}`).locator('visible=true').first();
 
-  // 1. lock with Face ID, as a new person: Create my Nido (Nido's sign-up, in a popup) → connect it → SHAKE's passkey → approve → pay
+  // 1. lock from Nido, as a new person: Create my Nido (Nido's sign-up, in a popup) → connect it → approve → pay
   await buyer.goto(B + '/deal/new', { timeout: 180000 });
   await buyer.fill('#item', 'Nido test bike');
   await buyer.fill('#price', '12');
@@ -62,11 +62,8 @@ const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).ca
   await buyer.getByRole('button', { name: 'Connect my new Nido' }).click();
   await nido.waitForURL(/\/connect\//, { timeout: 30000 });
   await nido.getByText(account).click({ timeout: 60000 });
-  await buyer.getByRole('button', { name: 'Create with Face ID' }).waitFor({ timeout: 30000 });
-  lap('connected');
-  await shot(buyer, 'n3-passkey');
-  await buyer.getByRole('button', { name: 'Create with Face ID' }).click();
   await buyer.getByRole('button', { name: 'Approve in Nido' }).waitFor({ timeout: 30000 });
+  lap('connected');
   await buyer.waitForTimeout(900);
   await shot(buyer, 'n4-approve');
   const grant = await popup(() => buyer.getByRole('button', { name: 'Approve in Nido' }).click());
@@ -94,7 +91,7 @@ const shot = (p, name) => (OUT ? p.screenshot({ path: `${OUT}/${name}.png` }).ca
   const code = await seller.evaluate((id) => localStorage.getItem('shake.code.' + id), id);
   lap('seller joined, code ' + code);
 
-  // 4. the shake: the release is signed by SHAKE's passkey under the Nido rules
+  // 4. the shake: the release is signed by SHAKE's browser key under the Nido rules
   await buyer.goto(`${B}/scan/${id}`, { timeout: 180000 });
   await buyer.fill('#code', code);
   await buyer.getByRole('button', { name: 'Go' }).click();
