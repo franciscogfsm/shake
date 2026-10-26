@@ -111,6 +111,11 @@ h2 span{color:var(--dim)}
 .titleline{display:none}
 [data-n="Start"] .titleline{width:100%;margin:0 auto;padding-inline-end:.055em;text-align:center}
 .opener{display:flex;flex-direction:column;align-items:center}
+/* full-screen toggle on the first slide; Esc (or F) leaves full screen */
+.fsbtn{position:absolute;left:50%;bottom:calc(var(--u)*4);transform:translateX(-50%);z-index:3;display:flex;align-items:center;gap:calc(var(--u)*.6);padding:calc(var(--u)*.7) calc(var(--u)*1.5);border-radius:99px;font-size:max(13px,calc(var(--u)*1));color:var(--mute);border:1px solid var(--line);background:rgba(255,255,255,.04);-webkit-backdrop-filter:blur(14px);backdrop-filter:blur(14px);transition:color .3s,border-color .3s,background .3s}
+.fsbtn:hover{color:var(--ink);border-color:rgba(143,211,255,.55);background:rgba(143,211,255,.08)}
+.fsbtn svg{width:max(15px,calc(var(--u)*1.15));height:max(15px,calc(var(--u)*1.15));fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.fsbtn:focus{outline:none}.fsbtn:focus-visible{outline:2px solid rgba(143,211,255,.6);outline-offset:3px}
 .said .opener{display:none}
 .said .titleline{display:block;animation:rise .38s var(--ease) both}
 [data-n="Start"] .who,[data-n="Start"] .where{font-family:var(--mono);font-size:calc(var(--u)*.78);letter-spacing:.18em;text-transform:uppercase;color:var(--dim);margin:0}
@@ -1064,6 +1069,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
   <p class="where">HackMeridian 2026</p>
  </div>
  <h1 class="titleline r">Never trust a<br>screenshot again.<br>Shake <span class="ice">on it.</span></h1>
+ <button class="fsbtn" id="fsbtn" type="button" aria-label="Enter full screen"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></svg><span>Full screen</span></button>
 </section>
 
 <section class="slide" data-n="Hook">
@@ -1638,8 +1644,15 @@ function show(i){i=clamp(i,0,slides.length-1);if(i===cur||titling)return;if(cur=
  try{history.replaceState(null,"",i?"#"+(i+1):location.pathname+location.search)}catch{}
  root.style.setProperty("--mx","50%");const fn=P[s.dataset.n];fn&&run(S=>fn(s,S))}
 slides[0].addEventListener("click",()=>go(1));
+/* full screen: the button on slide 1, F to toggle, Esc to leave */
+const fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+function fsToggle(){if(fsEl())(document.exitFullscreen||document.webkitExitFullscreen).call(document);else(root.requestFullscreen||root.webkitRequestFullscreen)?.call(root)}
+function fsLabel(){const on=!!fsEl(),b=$("#fsbtn");if(!b)return;b.setAttribute("aria-label",on?"Exit full screen":"Enter full screen");$("span",b).textContent=on?"Exit full screen":"Full screen"}
+$("#fsbtn")?.addEventListener("click",e=>{e.stopPropagation();fsToggle()});
+document.addEventListener("fullscreenchange",fsLabel);document.addEventListener("webkitfullscreenchange",fsLabel);
 let keyboardHold=null;
 addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;const k=e.key;
+ if(k==="Escape"&&fsEl()){fsToggle();e.preventDefault();return}
  const filmControl=e.target.closest?.("video,.film-sound,.film-play");
  if((slides[cur]?.dataset.n==="Demo"||filmControl)&&["ArrowRight","ArrowDown","PageDown","ArrowLeft","ArrowUp","PageUp"].includes(k)){
   e.preventDefault();e.stopPropagation();if(!e.repeat)go(cur+(["ArrowRight","ArrowDown","PageDown"].includes(k)?1:-1));return;
@@ -1648,7 +1661,7 @@ addEventListener("keydown",e=>{if(e.ctrlKey||e.metaKey||e.altKey)return;const k=
  if(cur===IX("Product")&&(k===" "||k==="Enter")&&e.target.closest?.(".product-step,.product-control"))return;
  if(cur===DECIDE&&["ArrowRight"," ","Enter"].includes(k)){if(!e.repeat&&!keyboardHold){keyboardHold=k;hstart()}e.preventDefault();return}
  if(e.repeat){e.preventDefault();return}
- if(["ArrowRight","ArrowDown"," ","PageDown"].includes(k))go(cur+1);else if(["ArrowLeft","ArrowUp","PageUp"].includes(k))go(cur-1);else if(k==="Home")go(0);else if(k==="End")go(slides.length-1);else if(k==="f"||k==="F"){document.fullscreenElement?document.exitFullscreen():root.requestFullscreen?.()}else return;e.preventDefault()},{capture:true});
+ if(["ArrowRight","ArrowDown"," ","PageDown"].includes(k))go(cur+1);else if(["ArrowLeft","ArrowUp","PageUp"].includes(k))go(cur-1);else if(k==="Home")go(0);else if(k==="End")go(slides.length-1);else if(k==="f"||k==="F"){fsToggle()}else return;e.preventDefault()},{capture:true});
 addEventListener("keyup",e=>{if(e.key===keyboardHold){keyboardHold=null;hstop()}});
 addEventListener("blur",()=>{keyboardHold=null;hstop()});
 document.addEventListener("visibilitychange",()=>{if(document.hidden){keyboardHold=null;hstop()}});
