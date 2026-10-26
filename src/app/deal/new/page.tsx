@@ -147,7 +147,7 @@ function NewDeal() {
       let buyer = kp.publicKey();
       if (using === "nido") {
         buyer = nidoAddress()!;
-        await fundPasskeyWallet(buyer, amount, currency);
+        await fundPasskeyWallet(buyer, amount, currency, payIn);
       } else await ensureAccount(kp, amount, currency, payIn);
       const dealId = newDealId();
       // deposits end on the chosen day; shipping and jobs need time; refund stays possible until the seller marks it shipped
@@ -332,8 +332,8 @@ function NewDeal() {
         money={money(amount)}
         currency={currency}
         country={country.code}
-        // Nido pays from a smart account, which classic path payments can't reach: same currency there
-        {...(paying !== "nido" && { amount, locale: country.locale })}
+        amount={amount}
+        locale={country.locale}
         onPay={(m, payIn) => {
           const using = paying ?? "key";
           setPaying(null);

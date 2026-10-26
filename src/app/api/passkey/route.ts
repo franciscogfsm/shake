@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { errorResponse } from "@/lib/server/http";
-import { UserError, isCurrency, mintTo, submitCall } from "@/lib/server/stellar";
+import { UserError, fundSmartAccount, isCurrency, submitCall } from "@/lib/server/stellar";
 
 export const runtime = "nodejs";
 
@@ -12,8 +12,10 @@ export async function POST(req: Request) {
     const body = await req.json();
     if (body?.action === "fund") {
       const currency = body.currency ?? "EUR";
-      if (!isCurrency(currency)) throw new UserError("Unsupported currency");
-      return NextResponse.json({ hash: (await mintTo(String(body.contractId), Number(body.amount), currency)).hash });
+      // payIn: the buyer pays in another currency, converted on the Stellar DEX before it reaches the account
+      const payIn = body.payIn ?? currency;
+      if (!isCurrency(currency) || !isCurrency(payIn)) throw new UserError("Unsupported currency");
+      return NextResponse.json({ hash: (await fundSmartAccount(String(body.contractId), Number(body.amount), currency, payIn)).hash });
     }
     if (typeof body?.func === "string" && Array.isArray(body.auth)) {
       const r = await submitCall(body.func, body.auth);

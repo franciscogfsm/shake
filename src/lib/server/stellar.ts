@@ -18,7 +18,7 @@ import {
 } from "@stellar/stellar-sdk";
 import { ChannelsClient } from "@openzeppelin/relayer-plugin-channels";
 import { createHash, createHmac } from "node:crypto";
-import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, PASSKEY, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, type CurrencyCode } from "@/lib/config";
+import { CURRENCIES, DEAL_CONTRACT_ID, NETWORK_PASSPHRASE, PASSKEY, RPC_URL, TEAM_ADDRESS, TOKEN_ISSUER, toUnits, type CurrencyCode } from "@/lib/config";
 import { isCentAmount } from "@/lib/amount";
 
 const need = (k: string) => {
@@ -422,6 +422,48 @@ const CONTRACT_ERRORS: Record<number, string> = {
 export function explainContractError(raw: string) {
   const m = /Error\(Contract, #(\d+)\)/.exec(raw);
   return m ? CONTRACT_ERRORS[Number(m[1])] ?? raw : raw;
+}
+
+/** The FX desk that provides the pools' liquidity (scripts/fx.mjs derives the same key). */
+const fxDesk = () => Keypair.fromRawEd25519Seed(createHash("sha256").update(`${need("SPONSOR_SECRET")}:fx-desk`).digest());
+
+/**
+ * Pay a smart account (C… address) in another currency. Classic path payments can't credit a contract
+ * address, so the conversion lands at our FX desk (issuer → DEX pool → desk), and the desk forwards the
+ * converted money to the account through the asset's SAC. Two public transactions; returns the conversion's.
+ */
+async function convertInto(contractAddress: string, amount: number, currency: CurrencyCode, payIn: CurrencyCode) {
+  const desk = fxDesk();
+  const op = await payInOp(desk.publicKey(), amount, currency, payIn);
+  let hash = "";
+  for (let attempt = 0; !hash; attempt++) {
+    const ch = channel(Math.floor(Math.random() * CHANNEL_COUNT));
+    const tx = new TransactionBuilder(await server.getAccount(ch.publicKey()), { fee: String(Number(BASE_FEE) * 10), networkPassphrase: NETWORK_PASSPHRASE }).addOperation(op).setTimeout(120).build();
+    tx.sign(ch, issuer());
+    try {
+      hash = await sendClassic(tx);
+    } catch (e) {
+      if (!(e instanceof BadSeq) || attempt >= 3) throw e;
+    }
+  }
+  const transfer = new Contract(CURRENCIES[currency].token).call(
+    "transfer",
+    nativeToScVal(Address.fromString(desk.publicKey()), { type: "address" }),
+    nativeToScVal(Address.fromString(contractAddress), { type: "address" }),
+    nativeToScVal(toUnits(amount), { type: "i128" }),
+  );
+  const fwd = await server.prepareTransaction(new TransactionBuilder(await server.getAccount(desk.publicKey()), { fee: BASE_FEE, networkPassphrase: NETWORK_PASSPHRASE }).addOperation(transfer).setTimeout(60).build());
+  fwd.sign(desk);
+  await sendClassic(fwd);
+  return { hash };
+}
+
+/** Test money into a smart account: minted in the deal's currency, or converted on the Stellar DEX first. */
+export async function fundSmartAccount(contractAddress: string, amount: number, currency: CurrencyCode, payIn: CurrencyCode = currency) {
+  if (payIn === currency) return mintTo(contractAddress, amount, currency);
+  if (!/^C[A-Z2-7]{55}$/.test(contractAddress)) throw new UserError("Not a smart account");
+  if (!(amount > 0 && amount <= 2000) || !isCentAmount(amount)) throw new UserError("Enter an amount with up to two decimal places, between 0 and 2000.");
+  return convertInto(contractAddress, amount, currency, payIn);
 }
 
 /** Mint test money straight into a smart account (C… address); the issuer is the token's admin. */

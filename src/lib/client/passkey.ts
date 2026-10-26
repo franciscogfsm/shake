@@ -50,8 +50,8 @@ export async function ensurePasskeyWallet() {
   return res.contractId;
 }
 
-export async function fundPasskeyWallet(contractId: string, amount: number, currency: CurrencyCode) {
-  const res = await fetch("/api/passkey", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "fund", contractId, amount, currency }) });
+export async function fundPasskeyWallet(contractId: string, amount: number, currency: CurrencyCode, payIn: CurrencyCode = currency) {
+  const res = await fetch("/api/passkey", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ action: "fund", contractId, amount, currency, payIn }) });
   const json = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(json.error ?? "Couldn't add test money.");
   return json.hash as string;
