@@ -1052,6 +1052,35 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 [data-n="Passkeys"] .passkey-popup{padding:calc(var(--u)*1.5) calc(var(--u)*1)}[data-n="Passkeys"] .passkey-face{width:calc(var(--u)*5.5);height:calc(var(--u)*5.5);margin-bottom:calc(var(--u)*1)}
 @media(prefers-reduced-motion:reduce){.passkey-results>span{transition:none}}
 [data-n="Passkeys"] .passkey-popup{padding:calc(var(--u)*1.05) calc(var(--u)*1)}[data-n="Passkeys"] .passkey-face{width:calc(var(--u)*4.8);height:calc(var(--u)*4.8);margin-bottom:calc(var(--u)*.7)}[data-n="Passkeys"] .passkey-purchase{padding:calc(var(--u)*.8);margin-bottom:calc(var(--u)*1)}.passkey-results{margin-top:calc(var(--u)*.7);gap:calc(var(--u)*.35)}
+
+/* Passkeys: a phone pays with Face ID; the Dynamic Island becomes the Face ID prompt */
+.phone{position:relative;justify-self:center;height:min(62vh,calc(var(--u)*46));aspect-ratio:9/19.5;container-type:inline-size;border-radius:16cqw;background:linear-gradient(150deg,#4a535f,#161a20 45%,#2b323b);box-shadow:inset 0 0 0 1px rgba(255,255,255,.16),inset 0 0 0 3px #0a0c0f,0 50px 110px -40px #000,0 0 140px -50px var(--ice)}
+.ph-screen{position:absolute;inset:3.4cqw;border-radius:13cqw;overflow:hidden;background:radial-gradient(130% 70% at 50% 0%,#1c2b3c,#0a0c10 72%)}
+.ph-status{display:flex;justify-content:space-between;align-items:center;padding:5.6cqw 10cqw 0 11cqw;font:600 4.4cqw var(--sans);color:var(--ink)}.ph-status i{width:8cqw;height:3.8cqw;border-radius:1.2cqw;border:1px solid rgba(255,255,255,.6);background:linear-gradient(90deg,var(--ink) 70%,transparent 0) padding-box}
+.ph-island{position:absolute;z-index:3;left:50%;top:3.2cqw;translate:-50% 0;width:31cqw;height:9cqw;border-radius:6cqw;background:#000;display:grid;place-items:center;transition:all .6s var(--spring)}
+.ph-island svg{width:24cqw;fill:none;stroke:var(--ice);stroke-width:3;stroke-linecap:round;stroke-linejoin:round;opacity:0;scale:.6;transition:opacity .3s,scale .5s var(--spring)}
+.phone[data-s=scan] .ph-island,.phone[data-s=ok] .ph-island{top:50%;translate:-50% -50%;width:46cqw;height:46cqw;border-radius:12cqw;box-shadow:0 0 0 1px rgba(255,255,255,.06),0 20px 60px #000}
+.phone[data-s=scan] .ph-island svg,.phone[data-s=ok] .ph-island svg{opacity:1;scale:1;transition-delay:.25s}
+.phone[data-s=scan] .ph-island .ff{animation:phScan 1s ease-in-out infinite alternate}
+.ph-island .fk,.ph-btn .fk{opacity:0;stroke-dasharray:60;stroke-dashoffset:60;transition:stroke-dashoffset .5s .1s,opacity .2s}
+.phone[data-s=ok] .ph-island .ff{opacity:0;transition:opacity .2s}.phone[data-s=ok] .ph-island .fk{opacity:1;stroke-dashoffset:0}.phone[data-s=ok] .ph-island .fc{stroke:#bfe8ff}
+@keyframes phScan{to{opacity:.35;translate:0 2px}}
+.ph-app{position:absolute;inset:17cqw 7cqw 8cqw;display:flex;flex-direction:column;transition:opacity .45s,transform .6s var(--ease),filter .45s}
+.ph-brand{display:flex;align-items:center;gap:2cqw;font:600 4cqw var(--mono);letter-spacing:.2em;color:var(--ink)}.ph-brand .cm{width:7cqw;height:7cqw}
+.ph-item{display:flex;align-items:center;gap:3.5cqw;margin-top:7cqw;padding:3cqw;border-radius:5cqw;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07)}.ph-item i{width:13cqw;height:13cqw;border-radius:3.5cqw;flex:none;background:linear-gradient(140deg,#6b4a33,#2a1c14)}.ph-item p{font:600 4.6cqw var(--sans);color:var(--ink);line-height:1.25}.ph-item span{display:block;font-weight:400;font-size:3.7cqw;color:var(--mute)}
+.ph-lbl{font-size:3.9cqw;color:var(--mute);text-align:center}.ph-pay .ph-lbl:first-of-type{margin-top:auto}
+.ph-amt{font:700 21cqw var(--display);letter-spacing:-.05em;text-align:center;line-height:1.05;color:var(--ink)}
+.ph-btn{margin-top:auto;display:flex;align-items:center;justify-content:center;gap:2.4cqw;height:14cqw;border-radius:99px;background:var(--ice);color:#06131d;font:600 4.7cqw var(--sans);transition:transform .2s var(--ease)}.ph-btn svg{width:6.5cqw;fill:none;stroke:currentColor;stroke-width:6;stroke-linecap:round}.ph-btn .fk{display:none}
+.ph-tap{position:absolute;left:50%;bottom:7cqw;width:12cqw;height:12cqw;margin-left:-6cqw;border-radius:50%;background:rgba(255,255,255,.55);opacity:0;scale:.4}
+.phone[data-s=tap] .ph-btn{transform:scale(.95)}.phone[data-s=tap] .ph-tap{animation:phTap .6s ease-out}
+@keyframes phTap{30%{opacity:.8;scale:1}100%{opacity:0;scale:2.4}}
+.phone[data-s=scan] .ph-pay,.phone[data-s=ok] .ph-pay{opacity:.3;filter:blur(3px);transform:scale(.96)}
+.ph-done{opacity:0;transform:translateY(8cqw);align-items:center;justify-content:center;text-align:center}
+.phone[data-s=done] .ph-pay{opacity:0;transform:translateY(-8cqw)}.phone[data-s=done] .ph-done{opacity:1;transform:none}
+.ph-coin{width:26cqw;height:26cqw;filter:drop-shadow(0 0 14px rgba(143,211,255,.5))}.ph-coin .cl,.ph-coin .cr{transition:transform .7s var(--spring) .15s}.ph-coin .cl{transform:translateX(-5px)}.ph-coin .cr{transform:translateX(5px)}.phone[data-s=done] .ph-coin :is(.cl,.cr){transform:none}
+.ph-big{font:700 9.5cqw var(--display);letter-spacing:-.04em;color:var(--ink);margin:5cqw 0 1.5cqw}
+.ph-res{list-style:none;margin:7cqw 0 0;padding:0;display:flex;flex-direction:column;gap:2.4cqw;font-size:4.1cqw;color:var(--ink)}.ph-res li{opacity:0;transform:translateY(2cqw);transition:opacity .4s,transform .4s}.phone[data-s=done] .ph-res li{opacity:1;transform:none}.phone[data-s=done] .ph-res li:nth-child(1){transition-delay:.45s}.phone[data-s=done] .ph-res li:nth-child(2){transition-delay:.65s}.phone[data-s=done] .ph-res li:nth-child(3){transition-delay:.85s}
+@media(prefers-reduced-motion:reduce){.phone *{animation:none!important;transition-duration:.01s!important}}
 </style>
 </head>
 <body>
@@ -1240,18 +1269,27 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
    <h2 class="r" style="--d:1">Unlock.<br>Confirm.<br><span>Done.</span></h2>
    <p class="passkey-intro r" style="--d:2">As easy as unlocking your phone.</p>
    <div class="passkey-benefits r" style="--d:3"><span>No wallet to install</span><span>No recovery phrase</span></div>
-   <p class="passkey-agent r" style="--d:4">Face ID · Fingerprint · Device PIN</p>
   </div>
-  <div class="passkey-preview r" style="--d:2">
-   <div class="passkey-preview-top"><span class="passkey-wallet-name">SHAKE</span><span class="passkey-secure">Your passkey wallet</span></div>
-   <div class="passkey-purchase"><p>SHAKE<span>Leather jacket</span></p><b>60€</b></div>
-   <div class="passkey-popup glass" id="passkey-popup">
-    <div class="passkey-face" aria-hidden="true"><svg viewBox="0 0 80 80"><path class="face-corners" d="M25 10H17a7 7 0 0 0-7 7v8m45-15h8a7 7 0 0 1 7 7v8M10 55v8a7 7 0 0 0 7 7h8m30 0h8a7 7 0 0 0 7-7v-8"/><g class="face-features"><path d="M27 29v8m26-8v8M41 30v16h-5m-9 7q13 12 26 0"/></g><path class="face-check" d="m24 41 11 11 22-25"/></svg><i class="face-scan"></i></div>
-    <h3 id="passkey-label">Confirm with Face ID</h3>
-    <p id="passkey-detail">Your passkey. Your approval.</p>
-    <div class="passkey-results" aria-label="Setup and approval steps"><span><i>✓</i>Wallet created</span><span><i>✓</i>Payment signed</span><span><i>✓</i>Ready to lock funds</span></div>
+  <div class="phone r" style="--d:2" id="pk-phone" data-s="pay" role="img" aria-label="Paying 60€ with Face ID in SHAKE">
+   <div class="ph-screen">
+    <div class="ph-island"><svg viewBox="0 0 80 80"><path class="fc" d="M25 10H17a7 7 0 0 0-7 7v8m45-15h8a7 7 0 0 1 7 7v8M10 55v8a7 7 0 0 0 7 7h8m30 0h8a7 7 0 0 0 7-7v-8"/><g class="ff"><path d="M27 29v8m26-8v8M41 30v16h-5m-9 7q13 12 26 0"/></g><path class="fk" d="m24 41 11 11 22-25"/></svg></div>
+    <div class="ph-status"><span>9:41</span><i></i></div>
+    <div class="ph-app ph-pay">
+     <p class="ph-brand"><svg class="cm" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>SHAKE</p>
+     <div class="ph-item"><i></i><p>Leather jacket<span>Vinted · meet today</span></p></div>
+     <p class="ph-lbl">You pay</p>
+     <p class="ph-amt">60€</p>
+     <p class="ph-lbl">Locked until you meet</p>
+     <span class="ph-btn"><svg viewBox="0 0 80 80"><path class="fc" d="M25 10H17a7 7 0 0 0-7 7v8m45-15h8a7 7 0 0 1 7 7v8M10 55v8a7 7 0 0 0 7 7h8m30 0h8a7 7 0 0 0 7-7v-8"/><g class="ff"><path d="M27 29v8m26-8v8M41 30v16h-5m-9 7q13 12 26 0"/></g><path class="fk" d="m24 41 11 11 22-25"/></svg>Pay with Face ID</span>
+     <i class="ph-tap"></i>
+    </div>
+    <div class="ph-app ph-done">
+     <svg class="cm ph-coin" viewBox="0 0 24 24" aria-hidden="true"><use class="cl" href="#half-l"/><use class="cr" href="#half-r"/></svg>
+     <p class="ph-big">60€ locked</p>
+     <p class="ph-lbl">Safe until you meet.</p>
+     <ul class="ph-res"><li>✓ Wallet created</li><li>✓ Payment signed</li><li>✓ Locked on Stellar</li></ul>
+    </div>
    </div>
-   <div class="passkey-steps"><span class="pk-step x" data-pk-step="0"><i>01</i> Open</span><span class="pk-step" data-pk-step="1"><i>02</i> Confirm</span><span class="pk-step" data-pk-step="2"><i>03</i> Ready</span></div>
   </div>
  </div>
 
@@ -1585,7 +1623,7 @@ const P={
  Trust:async(s,S)=>{$("#tcores").textContent=deal.status==="locked"?"your 10€, locked right now":"locked on Stellar";
   const tiles=$$(".onode",s),lns=$$(".orbl .ln",s);await S(900);ripple($(".ocore",s),"140,207,255");
   for(let k=0;;k=(k+1)%tiles.length){add(tiles[k]);add(lns[k]);await S(1300);tiles[k].classList.remove("x");lns[k].classList.remove("x");await S(150)}},
- Passkeys:async(s,S)=>{const popup=$("#passkey-popup"),label=$("#passkey-label"),detail=$("#passkey-detail"),steps=$$("[data-pk-step]",s),results=$$(".passkey-results>span",s);const step=n=>steps.forEach((el,i)=>el.classList.toggle("x",i<=n));popup.classList.remove("scanning","confirmed");results.forEach(el=>el.classList.remove("x"));step(0);label.textContent="Confirm with Face ID";detail.textContent="Your passkey. Your approval.";await S(1100);step(1);popup.classList.add("scanning");await S(2600);popup.classList.remove("scanning");popup.classList.add("confirmed");label.textContent="You’re ready.";detail.textContent="Approved in SHAKE.";await S(650);for(const result of results){result.classList.add("x");await S(650)}step(2);},
+ Passkeys:async(s,S)=>{const ph=$("#pk-phone"),set=v=>ph.dataset.s=v;for(;;){set("pay");await S(1400);set("tap");await S(550);set("scan");await S(1600);set("ok");await S(850);set("done");await S(4200)}},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
  Built:async()=>{},
  Decide:async(s,S)=>{const locked=deal.status==="locked",settled=deal.status==="released"||deal.status==="refunded";hold.disabled=$("#notyet").disabled=!locked;
