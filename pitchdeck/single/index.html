@@ -335,7 +335,12 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .fact p{font-size:calc(var(--u)*1.15);color:var(--mute);margin-top:calc(var(--u)*.5);line-height:1.4}.fact p strong{color:var(--ink);font-weight:500}
 [data-n="Problem"] .facts{grid-template-columns:repeat(3,minmax(0,1fr));gap:calc(var(--u)*.65);margin-top:calc(var(--u)*1.3)}
 [data-n="Problem"] .fk{grid-column:1 / -1;margin:calc(var(--u)*.15) 0 0;font-family:var(--mono);font-size:calc(var(--u)*.7);letter-spacing:.16em;text-transform:uppercase;color:var(--ice)}
-[data-n="Problem"] .fk.bad{color:var(--red);margin-top:calc(var(--u)*.7)}
+[data-n="Problem"] .fk.gk{color:var(--mute);margin-top:calc(var(--u)*.7)}
+.grow{grid-column:1/-1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));border:1px solid var(--line);border-radius:calc(var(--u)*1);background:rgba(255,255,255,.03)}
+.grow p{display:flex;align-items:baseline;gap:calc(var(--u)*.6);padding:calc(var(--u)*.75) calc(var(--u)*1.4);min-width:0}.grow p+p{border-left:1px solid var(--line)}
+.grow b{flex:none;font:700 calc(var(--u)*1.15) var(--display);letter-spacing:-.02em;color:var(--ink)}
+.grow span{font-size:calc(var(--u)*.85);color:var(--mute);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.fk.bad{color:var(--red);margin-top:calc(var(--u)*.7)}
 [data-n="Problem"] .fact{padding:calc(var(--u)*.8) calc(var(--u)*.95);border:1px solid var(--line);border-radius:calc(var(--u)*1);background:rgba(255,255,255,.03)}
 [data-n="Problem"] .fact b{font-size:calc(var(--u)*3)}
 [data-n="Problem"] .fact.mkt{border-color:rgba(143,211,255,.35);background:rgba(143,211,255,.06)}
@@ -1170,6 +1175,26 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
 .rcard .txline .proof{flex-direction:column;align-items:center;gap:.2em;color:#0d0f12;border-bottom:0}.rcard .txline .proof:hover{color:#0d0f12}
 .rcard .proof small{font:500 calc(var(--u)*.62) var(--mono);letter-spacing:.02em;color:#0d0f12b3}
 @media(prefers-reduced-motion:reduce){.rcard .proof{animation:none}}
+
+/* Built: who we are in two lines, then the proof of work, counting up */
+[data-n="Built"] h2 span{color:var(--ice)}
+.who3{display:flex;gap:calc(var(--u)*3);margin-top:calc(var(--u)*2)}
+.who3 b{display:block;font:600 calc(var(--u)*1.55) var(--display);letter-spacing:-.03em}
+.who3 span{display:block;font-size:calc(var(--u)*1.05);color:var(--mute);margin-top:calc(var(--u)*.2)}
+.bstats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:calc(var(--u)*1);margin-top:calc(var(--u)*2.4)}
+.bstat{padding:calc(var(--u)*1.4) calc(var(--u)*1.6);border:1px solid rgba(143,211,255,.3);border-radius:calc(var(--u)*1.1);background:linear-gradient(150deg,rgba(143,211,255,.1),rgba(143,211,255,.02));opacity:0;transform:translateY(14px) scale(.97);transition:opacity .5s,transform .8s var(--spring)}
+.bstat.x{opacity:1;transform:none}
+.bstat b{display:block;font:700 calc(var(--u)*3.6) var(--display);letter-spacing:-.045em;line-height:1;color:var(--ice)}
+.bstat span{display:block;font-size:calc(var(--u)*1.05);color:var(--ink);opacity:.75;margin-top:calc(var(--u)*.5)}
+@media(prefers-reduced-motion:reduce){.bstat{opacity:1;transform:none;transition:none}}
+
+/* Built: the team leads; the hackathon numbers are one compact strip under it */
+[data-n="Built"] h2 span{color:var(--mute)}
+.bstk{margin-top:calc(var(--u)*1.6);font:500 calc(var(--u)*.7) var(--mono);letter-spacing:.16em;text-transform:uppercase;color:var(--ice)}
+.bstats{grid-template-columns:repeat(4,minmax(0,1fr));gap:calc(var(--u)*.6);margin-top:calc(var(--u)*.6)}
+.bstat{padding:calc(var(--u)*.7) calc(var(--u)*.9);border-radius:calc(var(--u)*.8)}
+.bstat b{font-size:calc(var(--u)*1.7)}
+.bstat span{font-size:calc(var(--u)*.78);margin-top:calc(var(--u)*.25)}
 </style>
 </head>
 <body>
@@ -1230,6 +1255,8 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
    <div class="fact"><b>4,467</b><span>MB WAY scam reports · Portugal</span></div>
    <div class="fact"><b>$432M</b><span>Shopping scams · US</span></div>
    <div class="fact"><b>£85.9M</b><span>Purchase scams · UK</span></div>
+   <p class="fk gk">How SHAKE grows</p>
+   <div class="grow"><p><b>1%</b><span>per safe deal, max 5€</span></p><p><b>Links, extension &amp; AI</b><span>all integrated</span></p><p><b>+1 on Stellar</b><span>new user per deal</span></p></div>
   </div>
   </div></div>
 </section>
@@ -1242,7 +1269,7 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
    <i class="stp-glow" aria-hidden="true"></i>
    <button class="stp product-step" type="button" data-product-step="0" aria-pressed="false"><b>01</b><span>Pay. It locks.<small>Pedro pays 400€ with Face ID. It waits, locked.</small></span></button>
    <button class="stp product-step" type="button" data-product-step="2" aria-pressed="false"><b>02</b><span>The seller sees it.<small>Francisco sees the real 400€ on his phone. Not a screenshot.</small></span></button>
-   <button class="stp product-step" type="button" data-product-step="3" aria-pressed="false"><b>03</b><span>Meet. Scan. Paid.<small>Pedro checks the bike and scans. Francisco is paid.</small></span></button>
+   <button class="stp product-step" type="button" data-product-step="3" aria-pressed="false"><b>03</b><span>Meet. Scan. Paid.<small>Pedro checks the bike and scans the code on Francisco’s screen. Only that code can release the money.</small></span></button>
   </div>
   </div>
   <div class="phslot"></div></div>
@@ -1428,7 +1455,13 @@ html.intro [data-n="Start"] .hero-mark :is(.cl,.cr,.coin,.rim,.sheen){animation:
     <div class="who2 r" style="--d:2"><b>Pedro Franco · 21</b><span>Materials Engineering (BSc), Técnico</span><span class="crew-role">Product, design &amp; pitch.<br>The flow, the brand, the safety rules, this deck.</span></div>
     <div class="who2 r" style="--d:3"><b>Francisco Martins · 21</b><span>Computer Science (MSc), Técnico</span><span class="crew-role">Engineering.<br>The Stellar contract, app, extension, AI tools and offline approvals.</span></div>
    </div>
-   <div class="crew-built r" style="--d:4"><small>BUILT IN 24 HOURS</small><p>From a problem we live to a working payment on Stellar Testnet.</p></div>
+   <p class="bstk">Built in 24 hours</p>
+   <div class="bstats" aria-label="Built during the hackathon">
+    <div class="bstat"><b>99</b><span>commits</span></div>
+    <div class="bstat"><b>16,504</b><span>lines of code</span></div>
+    <div class="bstat"><b>43</b><span>contract tests</span></div>
+    <div class="bstat"><b>9</b><span>Stellar pieces</span></div>
+   </div>
   </div>
  </div>
 </section>
@@ -1538,7 +1571,7 @@ const PRESENT=/[?&]present\b/.test(location.search);
 document.documentElement.classList.add(PRESENT?"present":"read");
 const CAPTIONS={
  Hook:"Scams start with a fake “proof of payment”. Watch both endings play out.",
- Problem:"The market, and what fake proof of payment costs. A picture proves nothing.",
+ Problem:"The market, what fake payments cost, and how SHAKE grows.",
  Product:"The buyer locks money on Stellar. The seller sees it. One scan pays them.",
  Demo:"",
  Offline:"No signal on either phone. Two QR scans, and the seller is still paid.",
@@ -1548,7 +1581,7 @@ const CAPTIONS={
  Passkeys:"One look at the phone and it’s paid. Anyone can do it, no tech needed.",
  Workflow:"Deal on Vinted or OLX. Money locked. Paid only on a face-to-face scan.",
  First:"Who we start with, and why. A hypothesis we still have to test.",
- Built:"Pedro and Francisco, 21, from Técnico Lisbon. Built in 24 hours.",
+ Built:"Pedro and Francisco, 21, from Técnico Lisbon. 99 commits and 16,504 lines of code in 24 hours.",
  Decide:"Test money only. Hold the coin ~2s to shake. Not yet refunds the 10€.",
  Reveal:"The real transactions you just made. Scan the QR to try it on two phones."};
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)],clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
@@ -1706,7 +1739,7 @@ const P={
   for(let k=0;;k=(k+1)%tiles.length){add(tiles[k]);add(lns[k]);await S(1300);tiles[k].classList.remove("x");lns[k].classList.remove("x");await S(150)}},
  Passkeys:async(s,S)=>{const ph=$("#pk-phone"),set=v=>ph.dataset.s=v;for(;;){set("pay");await S(1500);set("tap");await S(450);set("scan");await S(2200);set("ok");await S(950);set("lock");await S(1200);set("done");await S(4200)}},
  Workflow:async(s,S)=>{const steps=$$(".fstep",s);await S(400);for(let i=0;i<steps.length;i++){add(steps[i]);if(i===steps.length-1)ripple(steps[i],"140,207,255");await S(380)}add($(".fback",s))},
- Built:async()=>{},
+ Built:async(s,S)=>{const bs=$$(".bstat",s);bs.forEach(b=>b.classList.remove("x"));await S(600);for(const b of bs){add(b);countUp($("b",b));await S(160)}},
  Decide:async(s,S)=>{const locked=deal.status==="locked",settled=deal.status==="released"||deal.status==="refunded";hold.disabled=$("#notyet").disabled=!locked;
   const st=$("#ststat");st.className="ststat"+(deal.status==="released"?" ok":deal.status==="refunded"?" back":"");
   st.textContent=deal.status==="idle"?"Nothing is locked yet. Go back to the first slide and press →.":deal.status==="locking"?"Locking your 10€…":locked?"":deal.status==="released"?"Released. Final.":deal.status==="refunded"?"Refunded. The 10€ is back with you.":"";
