@@ -85,7 +85,9 @@ export async function connectNido() {
   throw new Error(p.get("nido_connect") === "cancelled" ? "You closed Nido without picking an account." : p.get("nido_error") ?? "Nido didn't return an account.");
 }
 
-// Nido's on-chain registry (testnet); its factory derives a new account's address from the sign-up salt
+// Nido's factory derives a new account's address from the sign-up salt. The one its sign-up uses today
+// (seen in its create_account calls, 26 Oct 2026) is newer than what its on-chain registry lists, so we try both.
+const NIDO_FACTORY = "CDDIW3F63PB6ZKMJN7CCGJSCYXTAVAVEEYNS36K2YFEJH7GQ3ADVZSVS";
 const NIDO_REGISTRY = "CDBL7MNO7UI5OAAIC67UIWKQ4P3S6RVQSFCQXUHUW6TOFCXSYRPNHY4S";
 
 async function simulate(contract: string, fn: string, ...args: xdr.ScVal[]) {
@@ -106,11 +108,14 @@ export function createNidoAccount(): Promise<string> {
   const w = window.open(`${apex()}/new-account/?setup=1#salt=${salt}`, "nido-wallet", "popup,width=460,height=720");
   if (!w) return Promise.reject(new Error("Your browser blocked Nido's window. Allow pop-ups for this site and try again."));
   return (async () => {
-    const factory = await simulate(NIDO_REGISTRY, "fetch_contract_id", nativeToScVal("factory", { type: "string" }));
-    const address = await simulate(factory, "get_c_address", xdr.ScVal.scvBytes(Buffer.from(Keypair.fromRawEd25519Seed(Buffer.from(seed)).rawPublicKey())));
-    const live = () => server.getContractData(address, xdr.ScVal.scvLedgerKeyContractInstance(), rpc.Durability.Persistent).then(() => true, () => false);
+    const setupKey = xdr.ScVal.scvBytes(Buffer.from(Keypair.fromRawEd25519Seed(Buffer.from(seed)).rawPublicKey()));
+    const listed = await simulate(NIDO_REGISTRY, "fetch_contract_id", nativeToScVal("factory", { type: "string" })).catch(() => NIDO_FACTORY);
+    const candidates = [...new Set(await Promise.all([...new Set([NIDO_FACTORY, listed])].map((f) => simulate(f, "get_c_address", setupKey).catch(() => null))))].filter((a): a is string => !!a);
+    if (!candidates.length) throw new Error("Couldn't reach Nido on Stellar. Try again.");
+    const live = (a: string) => server.getContractData(a, xdr.ScVal.scvLedgerKeyContractInstance(), rpc.Durability.Persistent).then(() => a, () => null);
     for (const started = Date.now(); Date.now() - started < 10 * 60_000; ) {
-      if (await live()) {
+      const address = (await Promise.all(candidates.map(live))).find(Boolean);
+      if (address) {
         // let Nido finish its own last step (it shows "done" for a few seconds), then close it for the user
         await new Promise((r) => setTimeout(r, 2_500));
         try { w.close(); } catch {}
