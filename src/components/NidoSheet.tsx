@@ -1,6 +1,6 @@
 "use client";
 import { AnimatePresence, motion } from "motion/react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "./Button";
 import { GlassSheet } from "./GlassSheet";
 import { springs } from "./Mark";
@@ -52,6 +52,11 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
   const [account, setAccount] = useState<string | null>(null);
   /** This browser couldn't keep a key, so SHAKE's key is a passkey: one more step, and Face ID on each payment. */
   const [passkeyOnly, setPasskeyOnly] = useState(false);
+  const passkeyOnlyRef = useRef(false);
+  const fallBackToPasskey = useCallback(() => {
+    passkeyOnlyRef.current = true;
+    setPasskeyOnly(true);
+  }, []);
   const steps: Exclude<NidoStatus, "ready">[] = passkeyOnly ? ["connect", "passkey", "approve"] : ["connect", "approve"];
 
   /** Take every step that needs no tap: make SHAKE's browser key, and read approvals that are already on chain. */
@@ -62,15 +67,15 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
         await createNidoDeviceKey();
         s = nidoStatus(currency);
       } catch {
-        setPasskeyOnly(true);
+        fallBackToPasskey();
       }
     }
     if (s === "approve" && (await checkNido(currency).catch(() => false))) s = "ready";
     // a Face ID passkey from before needs approving again anyway: swap it for a browser key while we're at it
-    if (s === "approve" && !nidoSignsSilently()) await createNidoDeviceKey().catch(() => setPasskeyOnly(true));
+    if (s === "approve" && !nidoSignsSilently() && !passkeyOnlyRef.current) await createNidoDeviceKey().catch(fallBackToPasskey);
     setAccount(nidoAddress());
     return s;
-  }, [currency]);
+  }, [currency, fallBackToPasskey]);
 
   useEffect(() => {
     if (!open) return;
@@ -91,6 +96,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
       .finally(() => live && setBusy(false));
     return () => {
       live = false;
+      setBusy(false);
     };
   }, [open, currency, onReady, advance]);
 
@@ -154,7 +160,7 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
               <a href={explorer.contract(account)} target="_blank" rel="noopener noreferrer" className="min-w-0 flex-1 truncate font-mono text-ink-2 underline-offset-4 hover:underline">
                 {account.slice(0, 6)}…{account.slice(-6)} ↗
               </a>
-              <button type="button" className="shrink-0 text-mute underline-offset-4 hover:underline" onClick={() => { disconnectNido(); setAccount(null); setStatus("connect"); }}>
+              <button type="button" disabled={busy} className="shrink-0 text-mute underline-offset-4 hover:underline disabled:opacity-50" onClick={() => { disconnectNido(); setAccount(null); setStatus("connect"); }}>
                 Switch
               </button>
             </div>
@@ -187,5 +193,30 @@ export function NidoSheet({ open, onClose, onReady, currency }: { open: boolean;
         </div>
       )}
     </GlassSheet>
+  );
+}
+
+/**
+ * On a deal screen, after a payment from Nido was refused because SHAKE's approval ran out (or this browser lost its
+ * key): approve SHAKE in Nido again right there, then the person tries again.
+ */
+export function NidoRenew({ buyer, currency, show }: { buyer: string; currency: CurrencyCode; show: boolean }) {
+  const [open, setOpen] = useState(false);
+  const [done, setDone] = useState(false);
+  const ready = useCallback(() => {
+    setOpen(false);
+    setDone(true);
+  }, []);
+  const close = useCallback(() => setOpen(false), []);
+  if (!open && (!show || buyer !== nidoAddress())) return null;
+  if (!open && nidoStatus(currency) === "ready") return done ? <p className="text-center text-sm text-safe" role="status">SHAKE is approved in Nido. Try again now.</p> : null;
+  return (
+    <>
+      <Button full onClick={() => setOpen(true)}>
+        <NidoMark size={20} />
+        Approve SHAKE in Nido
+      </Button>
+      <NidoSheet open={open} onClose={close} onReady={ready} currency={currency} />
+    </>
   );
 }

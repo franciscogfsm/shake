@@ -442,8 +442,18 @@ async function passkeyAssertion(credentialId: string, challenge: Uint8Array): Pr
   return { authenticatorData: new Uint8Array(r.authenticatorData), clientData: new Uint8Array(r.clientDataJSON), signature: derToCompact(new Uint8Array(r.signature)) };
 }
 
+type CapWindow = { spending_limit: bigint; period_ledgers: number; spending_history: { amount: bigint; ledger_sequence: number }[] };
 /** The spending a capped rule has left, from its spending_limit policy's storage: refuse before signing what the account would refuse. */
 async function checkCaps(account: string, calls: Call[], ruleIds: number[], rules: Rule[], ledger: number) {
+  // only a courtesy: when the window can't be read, the account still enforces the cap on chain
+  const windowOf = async (rule: Rule) => {
+    const key = xdr.ScVal.scvVec([xdr.ScVal.scvSymbol("AccountContext"), new Address(account).toScVal(), xdr.ScVal.scvU32(rule.id)]);
+    const { entries } = await server.getLedgerEntries(
+      ...rule.policies.map((policy) => xdr.LedgerKey.contractData(new xdr.LedgerKeyContractData({ contract: new Address(policy).toScAddress(), key, durability: xdr.ContractDataDurability.persistent() }))),
+    );
+    // a rule can have other policies (the recipient check); the cap is the one keeping a spending history
+    return entries.map((e) => scValToNative(e.val.contractData().val()) as Partial<CapWindow> | null).find((w): w is CapWindow => !!w && w.spending_limit !== undefined && Array.isArray(w.spending_history));
+  };
   const amounts = new Map<number, bigint>();
   calls.forEach((c, i) => {
     const rule = rules.find((r) => r.id === ruleIds[i]);
@@ -453,12 +463,8 @@ async function checkCaps(account: string, calls: Call[], ruleIds: number[], rule
   for (const [id, amount] of amounts) {
     const rule = rules.find((r) => r.id === id)!;
     if (!rule.policies.length) continue;
-    const key = xdr.ScVal.scvVec([xdr.ScVal.scvSymbol("AccountContext"), new Address(account).toScVal(), xdr.ScVal.scvU32(rule.id)]);
-    const { entries } = await server.getLedgerEntries(
-      ...rule.policies.map((policy) => xdr.LedgerKey.contractData(new xdr.LedgerKeyContractData({ contract: new Address(policy).toScAddress(), key, durability: xdr.ContractDataDurability.persistent() }))),
-    );
-    if (!entries[0]) continue;
-    const w = scValToNative(entries[0].val.contractData().val()) as { spending_limit: bigint; period_ledgers: number; spending_history: { amount: bigint; ledger_sequence: number }[] };
+    const w = await windowOf(rule).catch(() => undefined);
+    if (!w) continue;
     const limit = BigInt(w.spending_limit);
     const period = Number(w.period_ledgers);
     const counting = w.spending_history.map((e) => ({ amount: BigInt(e.amount), ledger: Number(e.ledger_sequence) })).filter((e) => e.ledger > ledger - period).sort((a, b) => a.ledger - b.ledger);
@@ -492,10 +498,10 @@ export async function signWithNido(entry: xdr.SorobanAuthorizationEntry, validUn
     const fits = rules.filter((r) => r.contract === contract && (!r.functions || r.functions.includes(fn)) && mine(r, s) && (r.validUntil === undefined || r.validUntil >= latestLedger));
     const rule = fits.find((r) => labels.includes(r.name)) ?? fits[0];
     if (!rule) {
-      // the chain says it isn't approved: forget what we thought, so the next tap asks Nido again
+      // the chain says it isn't approved: forget what we thought, so the screen offers Nido's approval again
       s.approved = {};
       save(s);
-      throw new NidoError("Your Nido approval doesn't cover this payment (or it ran out). Tap again to approve SHAKE in Nido.");
+      throw new NidoError("Your Nido approval for SHAKE ran out. Approve SHAKE in Nido again, then try once more.");
     }
     return rule.id;
   });
@@ -518,7 +524,7 @@ export async function signWithNido(entry: xdr.SorobanAuthorizationEntry, validUn
     if (!key) {
       // site data was cleared: start the setup again
       localStorage.removeItem(SESSION_KEY + account);
-      throw new NidoError("This browser no longer has SHAKE's key for your Nido. Tap again to set it up.");
+      throw new NidoError("This browser no longer has SHAKE's key for your Nido. Approve SHAKE in Nido again, then try once more.");
     }
     a = await deviceAssertion(key, challenge, location.origin, location.hostname);
   } else if (s.credentialId) a = await passkeyAssertion(s.credentialId, challenge);

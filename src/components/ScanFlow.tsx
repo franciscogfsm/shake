@@ -4,6 +4,7 @@ import { Button } from "./Button";
 import { BumpToShake } from "./BumpToShake";
 import { GlassSheet } from "./GlassSheet";
 import { HoldToShake } from "./HoldToShake";
+import { NidoRenew } from "./NidoSheet";
 import { useCountry } from "./Money";
 import { Scanner, preloadScanner } from "./Scanner";
 import { TestnetNote } from "./ui";
@@ -88,6 +89,7 @@ export function ScanFlow({ deal, initial, onReleased, onOffline, onArmed, onBack
       <Scanner onCode={check} paused={!!code} className="lg:col-start-2 lg:row-span-2 lg:row-start-1" />
       <div className="flex flex-col gap-5 lg:col-start-1">
         {problem && <p className="rounded-2xl bg-white/5 px-4 py-3 text-center text-ink-2 lg:text-left" role="alert">{problem}</p>}
+        <NidoRenew buyer={deal.buyer} currency={currencyOfToken(deal.token).code} show={!!problem} />
         <form
           className="flex gap-2"
           onSubmit={(e) => {

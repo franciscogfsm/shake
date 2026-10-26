@@ -26,6 +26,7 @@ import { codeToHex, dealMeta, newCode, qrPayload, sellerCode } from "@/lib/clien
 import { useDeal, eventOf, type Deal, type DealEvent } from "@/lib/client/useDeal";
 import { checkPay, offlineShake, useOfflineSettle, type OfflineShake } from "@/lib/client/offline";
 import { ApiError, callDeal, ensureAccount, getKeypair, isMine, sha256Hex } from "@/lib/client/wallet";
+import { NidoRenew } from "@/components/NidoSheet";
 
 export default function DealPage() {
   return (
@@ -222,6 +223,7 @@ function BuyerView({ kind, deal, events, meta, refresh, isNew, locale, currency,
         {joined && !expired && !ship && <SafeSpots />}
         {joined && !expired && !ship && <p className="text-center text-sm text-mute">Only the seller can cancel now. If you don&apos;t meet, you&apos;re refunded automatically.</p>}
         {err && <p className="text-center text-sm text-ink-2" role="alert">{err}</p>}
+        <NidoRenew buyer={deal.buyer} currency={currency} show={!!err} />
         <TestnetNote />
       </Item>
 
@@ -755,6 +757,7 @@ function HoldPayer({ kind, deal, events, meta, refresh, isNew, locale, currency 
           <p className="text-center text-sm text-mute">The {k.payee} can&apos;t spend it, and neither can you. Only they can return it early or claim damage. If they do nothing, it comes back to you on {ends}.</p>
         )}
         {err && <p className="text-center text-sm text-ink-2" role="alert">{err}</p>}
+        <NidoRenew buyer={deal.buyer} currency={currency} show={!!err} />
         <TestnetNote />
       </Item>
 

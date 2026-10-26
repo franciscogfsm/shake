@@ -343,7 +343,13 @@ function NewDeal() {
             wallet={wallet}
             via={via}
             error={error}
-            onRetry={() => lock()}
+            onRetry={() => {
+              // a Nido approval that ran out (or a lost key) needs Nido's window first, not the same lock again
+              if (wallet === "nido" && nidoStatus(currency) !== "ready") {
+                setPhase("form");
+                setNidoOpen(true);
+              } else lock();
+            }}
             onEdit={() => setPhase("form")}
           />
         )}
